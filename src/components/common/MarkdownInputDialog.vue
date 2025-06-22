@@ -204,7 +204,7 @@ watch(() => markdownContent.value, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
+  z-index: 150;
   backdrop-filter: blur(3px);
 }
 
@@ -294,7 +294,7 @@ watch(() => markdownContent.value, () => {
   width: 100%;
   padding: 12px 16px;
   border: 2px solid #e9ecef;
-  border-radius: 8px;
+  border-radius: 8px !important;
   font-size: 14px;
   transition: all 0.3s ease;
   background: #f8f9fa;
@@ -593,5 +593,180 @@ watch(() => markdownContent.value, () => {
   .markdown-textarea {
     font-size: 16px; /* 防止iOS缩放 */
   }
+}
+
+/* 暗色模式样式 */
+.dark .markdown-input-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dark .markdown-input-dialog {
+  background: #1e293b;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dark .dialog-header {
+  background: linear-gradient(135deg, #333 0%, #444 100%);
+  border-bottom: 1px solid #475569;
+}
+
+.dark .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.dark .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dark .dialog-content {
+  background: #1e293b;
+}
+
+.dark .input-label {
+  color: #f1f5f9;
+}
+
+.dark .title-input,
+.dark .markdown-textarea {
+  background: #334155;
+  border: 2px solid #475569;
+  color: #f1f5f9;
+}
+
+.dark .title-input::placeholder,
+.dark .markdown-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.dark .title-input:focus {
+  background: #1e293b;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+.dark .markdown-textarea:focus {
+  background: #1e293b;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+.dark .char-count {
+  color: #94a3b8;
+}
+
+.dark .editor-container {
+  border: 2px solid #475569;
+}
+
+.dark .editor-tabs {
+  background: #334155;
+  border-bottom: 1px solid #475569;
+}
+
+.dark .tab-btn {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.dark .tab-btn.active {
+  background: #1e293b;
+  color: #f1f5f9;
+  border-bottom: 2px solid #60a5fa;
+}
+
+.dark .tab-btn:hover {
+  background: rgba(96, 165, 250, 0.1);
+  color: #f1f5f9;
+}
+
+.dark .editor-footer {
+  background: #334155;
+  border-top: 1px solid #475569;
+}
+
+.dark .markdown-tips {
+  color: #94a3b8;
+}
+
+.dark .preview-panel {
+  background: #1e293b;
+}
+
+.dark .empty-preview {
+  color: #94a3b8;
+}
+
+/* 暗色模式Markdown预览样式 */
+.dark .markdown-preview :deep(h1),
+.dark .markdown-preview :deep(h2),
+.dark .markdown-preview :deep(h3),
+.dark .markdown-preview :deep(h4),
+.dark .markdown-preview :deep(h5),
+.dark .markdown-preview :deep(h6) {
+  color: #f1f5f9;
+}
+
+.dark .markdown-preview :deep(h1) {
+  border-bottom: 2px solid #475569;
+}
+
+.dark .markdown-preview :deep(h2) {
+  border-bottom: 1px solid #475569;
+}
+
+.dark .markdown-preview :deep(p) {
+  color: #e2e8f0;
+}
+
+.dark .markdown-preview :deep(code) {
+  background: #0f172a;
+  color: #f472b6;
+}
+
+.dark .markdown-preview :deep(pre) {
+  background: #0f172a;
+  border-left: 4px solid #94a3b8;
+}
+
+.dark .markdown-preview :deep(blockquote) {
+  border-left: 4px solid #475569;
+  color: #94a3b8;
+}
+
+.dark .markdown-preview :deep(th),
+.dark .markdown-preview :deep(td) {
+  border: 1px solid #475569;
+  color: #f1f5f9;
+}
+
+.dark .markdown-preview :deep(th) {
+  background: #334155;
+}
+
+.dark .dialog-actions {
+  background: #0f172a;
+  border-top: 1px solid #475569;
+}
+
+.dark .cancel-btn {
+  background: #64748b;
+}
+
+.dark .cancel-btn:hover {
+  background: #475569;
+}
+
+.dark .submit-btn {
+  background: #333;
+}
+
+.dark .submit-btn:hover:not(:disabled) {
+  background: #222;
+}
+
+.dark .submit-btn:disabled,
+.dark .submit-btn.loading {
+  background: #64748b;
 }
 </style> 

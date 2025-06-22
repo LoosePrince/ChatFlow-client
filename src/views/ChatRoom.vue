@@ -59,7 +59,13 @@
               <i class="fas fa-bars"></i>
             </button>
             <div class="room-info">
-              <h1>{{ roomName }}</h1>
+              <h1 
+                class="room-name"
+                :class="{ 'editable': isCreator }"
+                @click="isCreator ? showRoomNameDialog() : null"
+              >
+                {{ roomName }}
+              </h1>
               <span class="room-id">ID: {{ roomId }}</span>
               <span v-if="roomInfo?.hasPassword" class="room-password-indicator">
                 <i class="fas fa-lock"></i>
@@ -234,6 +240,7 @@
                       </div>
                       <!-- Markdown消息 -->
                       <div v-else-if="message.type === 'markdown'" class="markdown-message">
+                        <div class="message-text">{{ message.text }}</div>
                         <div class="message-type-header markdown-header">
                           <i class="fab fa-markdown"></i>
                           <span>Markdown</span>
@@ -356,9 +363,12 @@
             <i class="fas fa-users"></i>
             成员列表 ({{ totalMemberCount }})
           </h3>
-          <button @click="toggleMemberList" class="sidebar-toggle">
-            <i class="fas fa-times"></i>
-          </button>
+          <div class="button-container">
+            <ThemeToggle />
+            <button @click="toggleMemberList" class="sidebar-toggle">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
         </div>
         <div class="member-list">
           <!-- 在线成员 -->
@@ -560,6 +570,14 @@
       @cancel="closeMarkdownDialog"
       @submit="handleMarkdownSubmit"
     />
+
+    <!-- 房间名称编辑弹窗 -->
+    <RoomNameEditDialog
+      :visible="roomNameDialog.visible"
+      :current-name="roomName"
+      @cancel="closeRoomNameDialog"
+      @submit="handleRoomNameUpdate"
+    />
   </div>
 </template>
 
@@ -579,6 +597,8 @@ import ImagePreview from '@/components/common/ImagePreview.vue'
 import MessageTypeSelector from '@/components/common/MessageTypeSelector.vue'
 import BilibiliInputDialog from '@/components/common/BilibiliInputDialog.vue'
 import MarkdownInputDialog from '@/components/common/MarkdownInputDialog.vue'
+import RoomNameEditDialog from '@/components/common/RoomNameEditDialog.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { useContextMenu } from '@/composables/useContextMenu.js'
 import { marked } from 'marked'
 
@@ -1176,6 +1196,11 @@ const kickDialogUser = computed(() => {
     const markdownDialog = ref({
       visible: false
     })
+
+    // 房间名称编辑弹窗状态
+    const roomNameDialog = ref({
+      visible: false
+    })
     
     // 打开图片预览
     const openImagePreview = (imageUrl, title = '') => {
@@ -1264,6 +1289,45 @@ const kickDialogUser = computed(() => {
       } catch (error) {
         console.error('发送Markdown内容失败:', error)
         notificationStore.error('发送Markdown内容失败: ' + (error.response?.data?.message || error.message))
+      }
+    }
+
+    // 房间名称编辑相关方法
+    const showRoomNameDialog = () => {
+      if (!isCreator.value) {
+        notificationStore.error('只有房间创建者可以修改房间名称')
+        return
+      }
+      roomNameDialog.value.visible = true
+    }
+
+    const closeRoomNameDialog = () => {
+      roomNameDialog.value.visible = false
+    }
+
+    const handleRoomNameUpdate = async (newName) => {
+      try {
+        await chatroomStore.updateRoomName(roomId.value, newName)
+        
+        // 更新本地房间信息
+        if (roomInfo.value) {
+          roomInfo.value.name = newName
+        }
+        
+        notificationStore.success('房间名称修改成功')
+        closeRoomNameDialog()
+        
+        // 通过WebSocket通知其他用户房间名称已更改
+        if (socket.value && socket.value.connected) {
+          socket.value.emit('room-name-updated', {
+            roomId: roomId.value,
+            newName: newName
+          })
+        }
+        
+      } catch (error) {
+        console.error('修改房间名称失败:', error)
+        notificationStore.error('修改房间名称失败: ' + (error.response?.data?.message || error.message))
       }
     }
     
@@ -1420,6 +1484,21 @@ const kickDialogUser = computed(() => {
         
         // 重新加载成员列表
         loadRoomMembers()
+      })
+
+      // 房间名称更新
+      socket.value.on('room-name-updated', (data) => {
+        console.log('房间名称已更新:', data)
+        
+        // 更新本地房间信息
+        if (roomInfo.value) {
+          roomInfo.value.name = data.newName
+        }
+        
+        // 显示通知
+        if (data.updatedBy !== authStore.user?.uid) {
+          addTemporaryNotification(`房间名称已更改为: ${data.newName}`, 'info')
+        }
       })
       
       // 新消息
@@ -2175,6 +2254,11 @@ const confirmKickUser = async () => {
   overflow: hidden;
 }
 
+/* 暗色模式基础样式 */
+.dark .chatroom-container {
+  background: #1e293b;
+}
+
 /* 加载状态 */
 .loading-container {
   display: flex;
@@ -2185,15 +2269,30 @@ const confirmKickUser = async () => {
   background: #f8f9fa;
 }
 
+/* 暗色模式加载状态 */
+.dark .loading-container {
+  background: #1e293b;
+}
+
 .loading-container .loading-spinner {
   font-size: 2rem;
   color: #1976d2;
   margin-bottom: 1rem;
 }
 
+/* 暗色模式加载图标 */
+.dark .loading-container .loading-spinner {
+  color: #60a5fa;
+}
+
 .loading-container p {
   color: #6c757d;
   font-size: 1.1rem;
+}
+
+/* 暗色模式加载文字 */
+.dark .loading-container p {
+  color: #cbd5e1;
 }
 
 /* 布局 */
@@ -2202,6 +2301,11 @@ const confirmKickUser = async () => {
   display: flex;
   background: #f8f9fa;
   overflow: hidden;
+}
+
+/* 暗色模式布局 */
+.dark .chatroom-layout {
+  background: #1e293b;
 }
 
 /* 侧边栏通用样式 */
@@ -2214,12 +2318,34 @@ const confirmKickUser = async () => {
   z-index: 20;
 }
 
+/* 暗色模式侧边栏 */
+.dark .sidebar {
+  background: #0f172a;
+}
+
 .left-sidebar {
   border-right: 1px solid #e9ecef;
 }
 
+/* 暗色模式左侧边栏 */
+.dark .left-sidebar {
+  border-right: 1px solid #475569;
+}
+
 .right-sidebar {
   border-left: 1px solid #e9ecef;
+}
+
+.right-sidebar .button-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 暗色模式右侧边栏 */
+.dark .right-sidebar {
+  border-left: 1px solid #475569;
 }
 
 .sidebar-hidden {
@@ -2239,6 +2365,12 @@ const confirmKickUser = async () => {
   background: #f8f9fa;
 }
 
+/* 暗色模式侧边栏头部 */
+.dark .sidebar-header {
+  border-bottom: 1px solid #475569;
+  background: #1e293b;
+}
+
 .sidebar-header h3 {
   margin: 0;
   font-size: 16px;
@@ -2246,6 +2378,11 @@ const confirmKickUser = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* 暗色模式侧边栏标题 */
+.dark .sidebar-header h3 {
+  color: #f1f5f9;
 }
 
 .sidebar-toggle {
@@ -2262,6 +2399,16 @@ const confirmKickUser = async () => {
 .sidebar-toggle:hover {
   background: #e9ecef;
   color: #2c3e50;
+}
+
+/* 暗色模式侧边栏切换按钮 */
+.dark .sidebar-toggle {
+  color: #94a3b8;
+}
+
+.dark .sidebar-toggle:hover {
+  background: #334155;
+  color: #f1f5f9;
 }
 
 /* 主内容区域 */
@@ -2284,6 +2431,13 @@ const confirmKickUser = async () => {
   flex-shrink: 0;
   position: relative;
   z-index: 10;
+}
+
+/* 暗色模式顶部导航栏 */
+.dark .chatroom-header {
+  background: #0f172a;
+  border-bottom: 1px solid #475569;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .header-left,
@@ -2316,6 +2470,16 @@ const confirmKickUser = async () => {
   color: #2c3e50;
 }
 
+/* 暗色模式移动端菜单按钮 */
+.dark .mobile-menu-btn {
+  color: #94a3b8;
+}
+
+.dark .mobile-menu-btn:hover {
+  background: #1e293b;
+  color: #f1f5f9;
+}
+
 .room-info {
   display: flex;
   align-items: center;
@@ -2328,6 +2492,24 @@ const confirmKickUser = async () => {
   font-size: 24px;
 }
 
+.room-info .room-name.editable {
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.room-info .room-name.editable:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--primary-color);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* 暗色模式房间信息标题 */
+.dark .room-info h1 {
+  color: #f1f5f9;
+}
+
 .room-id,
 .room-info .room-id {
   color: #6c757d;
@@ -2337,10 +2519,22 @@ const confirmKickUser = async () => {
   border-radius: 4px;
 }
 
+/* 暗色模式房间ID */
+.dark .room-id,
+.dark .room-info .room-id {
+  color: #94a3b8;
+  background: #1e293b;
+}
+
 .room-info .room-name {
   font-weight: 600;
   color: #2c3e50;
   font-size: 14px;
+}
+
+/* 暗色模式房间名称 */
+.dark .room-info .room-name {
+  color: #f1f5f9;
 }
 
 .room-password-indicator {
@@ -2357,6 +2551,11 @@ const confirmKickUser = async () => {
   border-radius: 8px;
 }
 
+/* 暗色模式用户信息 */
+.dark .user-info {
+  background: #1e293b;
+}
+
 .user-avatar {
   width: 32px;
   height: 32px;
@@ -2370,9 +2569,19 @@ const confirmKickUser = async () => {
   margin-right: 3px;
 }
 
+/* 暗色模式用户名 */
+.dark .user-name {
+  color: #f1f5f9;
+}
+
 .user-uid {
   font-size: 12px;
   color: #6c757d;
+}
+
+/* 暗色模式用户ID */
+.dark .user-uid {
+  color: #94a3b8;
 }
 
 .leave-button {
@@ -2418,8 +2627,18 @@ const confirmKickUser = async () => {
   background: #f8f9fa;
 }
 
+/* 暗色模式房间项悬停 */
+.dark .room-item:hover {
+  background: #334155;
+}
+
 .room-active {
-  background: #e3f2fd !important;
+  background: #e3f2fd;
+}
+
+/* 暗色模式活跃房间 */
+.dark .room-active {
+  background: #19233c;
 }
 
 .room-status {
@@ -2460,6 +2679,11 @@ const confirmKickUser = async () => {
   gap: 10px;
 }
 
+/* 暗色模式侧边栏底部 */
+.dark .sidebar-footer {
+  border-top: 1px solid #475569;
+}
+
 .join-chat-button,
 .home-button {
   width: 100%;
@@ -2486,6 +2710,18 @@ const confirmKickUser = async () => {
   color: #218838;
 }
 
+/* 暗色模式加入聊天按钮 */
+.dark .join-chat-button {
+  border: 1px solid #10b981;
+  color: #10b981;
+}
+
+.dark .join-chat-button:hover {
+  border-color: #059669;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.1);
+}
+
 .home-button {
   background: #1976d2;
   color: white;
@@ -2493,6 +2729,15 @@ const confirmKickUser = async () => {
 
 .home-button:hover {
   background: #1565c0;
+}
+
+/* 暗色模式首页按钮 */
+.dark .home-button {
+  background: #3b82f6;
+}
+
+.dark .home-button:hover {
+  background: #2563eb;
 }
 
 /* 成员列表样式 */
@@ -2517,9 +2762,19 @@ const confirmKickUser = async () => {
   padding: 0 8px;
 }
 
+/* 暗色模式章节标题 */
+.dark .section-title {
+  color: #94a3b8;
+}
+
 .online-dot {
   color: #28a745;
   font-size: 10px;
+}
+
+/* 暗色模式在线状态点 */
+.dark .online-dot {
+  color: #10b981;
 }
 
 .offline-dot {
@@ -2527,9 +2782,19 @@ const confirmKickUser = async () => {
   font-size: 10px;
 }
 
+/* 暗色模式离线状态点 */
+.dark .offline-dot {
+  color: #f59e0b;
+}
+
 .left-dot {
   color: #6c757d;
   font-size: 10px;
+}
+
+/* 暗色模式离开状态点 */
+.dark .left-dot {
+  color: #6b7280;
 }
 
 .member-item {
@@ -2543,6 +2808,11 @@ const confirmKickUser = async () => {
 
 .member-item:hover {
   background: #f8f9fa;
+}
+
+/* 暗色模式成员项悬停 */
+.dark .member-item:hover {
+  background: #334155;
 }
 
 .member-avatar {
@@ -2567,9 +2837,19 @@ const confirmKickUser = async () => {
   gap: 4px;
 }
 
+/* 暗色模式成员名称 */
+.dark .member-name {
+  color: #f1f5f9;
+}
+
 .member-uid {
   font-size: 11px;
   color: #6c757d;
+}
+
+/* 暗色模式成员UID */
+.dark .member-uid {
+  color: #94a3b8;
 }
 
 .creator-icon {
@@ -2577,15 +2857,30 @@ const confirmKickUser = async () => {
   font-size: 12px;
 }
 
+/* 暗色模式创建者图标 */
+.dark .creator-icon {
+  color: #fbbf24;
+}
+
 .admin-icon {
   color: #1976d2;
   font-size: 12px;
+}
+
+/* 暗色模式管理员图标 */
+.dark .admin-icon {
+  color: #60a5fa;
 }
 
 .muted-icon {
   color: #dc3545;
   font-size: 12px;
   margin-left: 4px;
+}
+
+/* 暗色模式禁言图标 */
+.dark .muted-icon {
+  color: #ef4444;
 }
 
 .member-status {
@@ -2636,6 +2931,11 @@ const confirmKickUser = async () => {
   z-index: 1000;
 }
 
+/* 暗色模式对话框遮罩 */
+.dark .confirm-dialog-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
 .confirm-dialog {
   background: white;
   border-radius: 12px;
@@ -2644,6 +2944,12 @@ const confirmKickUser = async () => {
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
+}
+
+/* 暗色模式确认对话框 */
+.dark .confirm-dialog {
+  background: #1e293b;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .dialog-header {
@@ -2657,6 +2963,11 @@ const confirmKickUser = async () => {
   font-size: 18px;
 }
 
+/* 暗色模式对话框标题 */
+.dark .dialog-header h3 {
+  color: #f1f5f9;
+}
+
 .dialog-content {
   padding: 20px;
   text-align: center;
@@ -2666,6 +2977,11 @@ const confirmKickUser = async () => {
   margin: 0;
   color: #6c757d;
   line-height: 1.5;
+}
+
+/* 暗色模式对话框内容 */
+.dark .dialog-content p {
+  color: #cbd5e1;
 }
 
 .warning-icon {
@@ -2702,6 +3018,17 @@ const confirmKickUser = async () => {
   color: #495057;
 }
 
+/* 暗色模式取消按钮 */
+.dark .cancel-button {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.dark .cancel-button:hover {
+  background: #475569;
+  color: #f1f5f9;
+}
+
 .confirm-button {
   background: #1976d2;
   color: white;
@@ -2711,12 +3038,30 @@ const confirmKickUser = async () => {
   background: #1565c0;
 }
 
+/* 暗色模式确认按钮 */
+.dark .confirm-button {
+  background: #3b82f6;
+}
+
+.dark .confirm-button:hover {
+  background: #2563eb;
+}
+
 .confirm-button.danger {
   background: #dc3545;
 }
 
 .confirm-button.danger:hover {
   background: #c82333;
+}
+
+/* 暗色模式危险按钮 */
+.dark .confirm-button.danger {
+  background: #ef4444;
+}
+
+.dark .confirm-button.danger:hover {
+  background: #dc2626;
 }
 
 /* 聊天内容区域 */
@@ -2844,6 +3189,11 @@ const confirmKickUser = async () => {
   color: #6c757d;
 }
 
+/* 暗色模式空消息 */
+.dark .empty-messages {
+  color: #94a3b8;
+}
+
 .empty-messages i {
   font-size: 3rem;
   margin-bottom: 1rem;
@@ -2861,6 +3211,12 @@ const confirmKickUser = async () => {
   color: #6c757d;
   font-size: 14px;
   margin-bottom: 16px;
+}
+
+/* 暗色模式加载指示器 */
+.dark .loading-more,
+.dark .no-more-messages {
+  color: #94a3b8;
 }
 
 .no-more-messages {
@@ -2946,6 +3302,13 @@ const confirmKickUser = async () => {
   position: relative;
 }
 
+/* 暗色模式消息内容 */
+.dark .message-content {
+  background: #334155;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  color: #f1f5f9;
+}
+
 .message-continuous .message-content {
   padding: 8px 16px;
   margin-top: 2px;
@@ -2954,6 +3317,11 @@ const confirmKickUser = async () => {
 .message-own .message-content {
   background: #1976d2;
   color: white;
+}
+
+/* 暗色模式自己的消息 */
+.dark .message-own .message-content {
+  background: #3b82f6;
 }
 
 .message-content::before {
@@ -2967,11 +3335,21 @@ const confirmKickUser = async () => {
   border-right-color: white;
 }
 
+/* 暗色模式消息箭头 */
+.dark .message-content::before {
+  border-right-color: #334155;
+}
+
 .message-own .message-content::before {
   left: auto;
   right: -8px;
   border-left-color: #1976d2;
   border-right-color: transparent;
+}
+
+/* 暗色模式自己消息的箭头 */
+.dark .message-own .message-content::before {
+  border-left-color: #3b82f6;
 }
 
 .message-header {
@@ -2998,6 +3376,11 @@ const confirmKickUser = async () => {
   font-size: 11px;
 }
 
+/* 暗色模式消息时间 */
+.dark .message-time {
+  color: #94a3b8;
+}
+
 .message-own .message-time {
   color: #bbdefb;
 }
@@ -3015,6 +3398,11 @@ const confirmKickUser = async () => {
   flex: 1;
 }
 
+/* 暗色模式消息文本 */
+.dark .message-text {
+  color: #f1f5f9;
+}
+
 .message-own .message-text {
   color: white;
 }
@@ -3026,6 +3414,11 @@ const confirmKickUser = async () => {
   white-space: nowrap;
   align-self: flex-end;
   margin-bottom: 2px;
+}
+
+/* 暗色模式内联时间 */
+.dark .message-time-inline {
+  color: #94a3b8;
 }
 
 .message-own .message-time-inline {
@@ -3094,7 +3487,7 @@ const confirmKickUser = async () => {
 
 /* 消息高亮效果 */
 .message-highlight {
-  background: rgba(25, 118, 210, 0.1) !important;
+  background: rgba(25, 118, 210, 0.1);
 }
 
 /* 回复消息样式 */
@@ -3171,6 +3564,12 @@ const confirmKickUser = async () => {
   z-index: 10;
 }
 
+/* 暗色模式输入区域 */
+.dark .input-area {
+  background: #0f172a;
+  border-top: 1px solid #475569;
+}
+
 /* 回复预览样式 */
 .reply-preview {
   background: #f8f9fa;
@@ -3184,6 +3583,12 @@ const confirmKickUser = async () => {
   position: relative;
 }
 
+/* 暗色模式回复预览 */
+.dark .reply-preview {
+  background: #1e293b;
+  border: 1px solid #475569;
+}
+
 .reply-info {
   display: flex;
   align-items: center;
@@ -3192,6 +3597,11 @@ const confirmKickUser = async () => {
   color: #1976d2;
   font-weight: 600;
   min-width: 0;
+}
+
+/* 暗色模式回复信息 */
+.dark .reply-info {
+  color: #60a5fa;
 }
 
 .reply-info i {
@@ -3207,6 +3617,11 @@ const confirmKickUser = async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 暗色模式回复内容 */
+.dark .reply-content {
+  color: #94a3b8;
 }
 
 .reply-cancel {
@@ -3228,6 +3643,16 @@ const confirmKickUser = async () => {
 .reply-cancel:hover {
   background: #e9ecef;
   color: #dc3545;
+}
+
+/* 暗色模式回复取消按钮 */
+.dark .reply-cancel {
+  color: #94a3b8;
+}
+
+.dark .reply-cancel:hover {
+  background: #475569;
+  color: #ef4444;
 }
 
 .message-form {
@@ -3262,10 +3687,31 @@ const confirmKickUser = async () => {
   border-color: #1976d2;
 }
 
+/* 暗色模式消息输入框 */
+.dark .message-input {
+  background: #334155;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+}
+
+.dark .message-input:focus {
+  border-color: #60a5fa;
+}
+
+.dark .message-input::placeholder {
+  color: #94a3b8;
+}
+
 .message-input:disabled {
   background: #f8f9fa;
   color: #6c757d;
   cursor: not-allowed;
+}
+
+/* 暗色模式禁用状态 */
+.dark .message-input:disabled {
+  background: #1e293b;
+  color: #64748b;
 }
 
 .send-button {
@@ -3287,10 +3733,20 @@ const confirmKickUser = async () => {
   transform: scale(1.05);
 }
 
+/* 暗色模式发送按钮悬停 */
+.dark .send-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
 .send-button:disabled {
   background: #ccc;
   cursor: not-allowed;
   transform: none;
+}
+
+/* 暗色模式发送按钮禁用 */
+.dark .send-button:disabled {
+  background: #64748b;
 }
 
 .mute-notice,
@@ -3306,9 +3762,21 @@ const confirmKickUser = async () => {
   font-size: 14px;
 }
 
+/* 暗色模式禁言提示 */
+.dark .mute-notice {
+  background: #451a03;
+  color: #fbbf24;
+}
+
 .auth-notice {
   background: #f8d7da;
   color: #721c24;
+}
+
+/* 暗色模式认证提示 */
+.dark .auth-notice {
+  background: #450a0a;
+  color: #fca5a5;
 }
 
 /* 移动端响应式样式 */
@@ -3334,12 +3802,12 @@ const confirmKickUser = async () => {
   }
   
   .mobile-overlay {
-    display: block !important;
+    display: block;
   }
   
   .mobile-menu-btn,
   .sidebar-toggle {
-    display: flex !important;
+    display: flex;
   }
   
   .chatroom-header {
@@ -3424,8 +3892,8 @@ const confirmKickUser = async () => {
 
 /* 图片按钮样式 */
 .image-button {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   background: #f8f9fa;
   color: #6c757d;
   border: 1px solid #ddd;
@@ -3446,12 +3914,26 @@ const confirmKickUser = async () => {
   transform: scale(1.05);
 }
 
+/* 暗色模式图片按钮悬停 */
+.dark .image-button:hover:not(:disabled) {
+  background: #475569;
+  color: #60a5fa;
+  border-color: #60a5fa;
+}
+
 .image-button:disabled {
   background: #f8f9fa;
   color: #ccc;
   border-color: #e9ecef;
   cursor: not-allowed;
   transform: none;
+}
+
+/* 暗色模式图片按钮禁用 */
+.dark .image-button:disabled {
+  background: #1e293b;
+  color: #64748b;
+  border-color: #475569;
 }
 
 /* 扩展按钮样式 */
@@ -3477,12 +3959,25 @@ const confirmKickUser = async () => {
   transform: scale(1.05);
 }
 
+/* 暗色模式扩展按钮悬停 */
+.dark .extend-button:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
 .extend-button:disabled {
   background: #ccc;
   color: #666;
   border-color: #ccc;
   cursor: not-allowed;
   transform: none;
+}
+
+/* 暗色模式扩展按钮禁用 */
+.dark .extend-button:disabled {
+  background: #64748b;
+  color: #475569;
+  border-color: #64748b;
 }
 
 /* 图片消息样式 */
@@ -3548,6 +4043,16 @@ const confirmKickUser = async () => {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;
+}
+
+/* 暗色模式Markdown标记 */
+.dark .markdown-header {
+  color: #e2e8f0;
+}
+
+.dark .markdown-header span {
+  background: rgba(226, 232, 240, 0.2);
+  color: #e2e8f0;
 }
 
 /* 发送者消息中的类型标记样式 */

@@ -124,7 +124,7 @@ onMounted(() => {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 9999;
+  z-index: 999;
   pointer-events: none;
 }
 
@@ -288,5 +288,32 @@ onMounted(() => {
     min-width: auto;
     max-width: none;
   }
+}
+
+/* 暗色模式样式 */
+.dark .notification {
+  background: #1e293b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dark .notification:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark .notification-title {
+  color: #f1f5f9;
+}
+
+.dark .notification-text {
+  color: #cbd5e1;
+}
+
+.dark .notification-close {
+  color: #94a3b8;
+}
+
+.dark .notification-close:hover {
+  background: #334155;
+  color: #f1f5f9;
 }
 </style> 

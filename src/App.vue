@@ -36,6 +36,7 @@ import { ref, onMounted, provide } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { useThemeStore } from '@/stores/theme'
 import NotificationContainer from '@/components/common/NotificationContainer.vue'
 
 // 响应式数据
@@ -45,10 +46,16 @@ const loadingText = ref('正在初始化应用...')
 // Store实例
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const themeStore = useThemeStore()
 
 // 应用初始化
 onMounted(async () => {
   try {
+    loadingText.value = '正在初始化主题...'
+    
+    // 初始化主题
+    themeStore.initializeTheme()
+    
     loadingText.value = '正在检查用户状态...'
     
     // 初始化认证状态
@@ -152,5 +159,67 @@ provide('hideNotification', notificationStore.removeNotification)
 .slide-up-leave-to {
   transform: translateY(-20px);
   opacity: 0;
+}
+</style>
+
+<style>
+/* 全局暗色模式样式 */
+#app {
+  @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200;
+}
+
+/* 主题切换相关样式 */
+.theme-toggle-wrapper {
+  @apply flex items-center justify-center;
+}
+
+.guest-theme-toggle {
+  @apply absolute top-4 right-4 z-10;
+}
+
+.top-actions {
+  @apply flex items-center justify-between mb-8;
+}
+
+/* 自定义滚动条样式 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: #6b7280 #374151;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 </style> 

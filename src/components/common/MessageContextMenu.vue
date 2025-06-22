@@ -97,7 +97,7 @@ const canDelete = computed(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 999;
+  z-index: 99;
 }
 
 .message-context-menu {
@@ -106,7 +106,7 @@ const canDelete = computed(() => {
   border: 1px solid #e9ecef;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 100;
   min-width: 150px;
   overflow: hidden;
   animation: messageContextMenuFadeIn 0.15s ease-out;
@@ -154,5 +154,28 @@ const canDelete = computed(() => {
   width: 16px;
   text-align: center;
   font-size: 13px;
+}
+
+/* 暗色模式样式 */
+.dark .message-context-menu {
+  background: #1e293b;
+  border: 1px solid #475569;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dark .message-context-menu-item {
+  color: #f1f5f9;
+}
+
+.dark .message-context-menu-item:hover {
+  background: #334155;
+}
+
+.dark .message-context-menu-item.danger {
+  color: #ef4444;
+}
+
+.dark .message-context-menu-item.danger:hover {
+  background: #450a0a;
 }
 </style> 

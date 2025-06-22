@@ -165,7 +165,7 @@ const formatTime = (timestamp) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100;
   backdrop-filter: blur(3px);
 }
 
@@ -424,5 +424,85 @@ const formatTime = (timestamp) => {
   .confirm-button {
     width: 100%;
   }
+}
+
+/* 暗色模式样式 */
+.dark .delete-dialog-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dark .delete-dialog {
+  background: #1e293b;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dark .delete-dialog-header {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-bottom: 1px solid #475569;
+}
+
+.dark .delete-dialog-content {
+  background: #1e293b;
+  border-bottom: 1px solid #475569;
+}
+
+.dark .message-preview {
+  background: #334155;
+  border: 1px solid #475569;
+  border-left: 4px solid #60a5fa;
+}
+
+.dark .message-preview.preview-deleting {
+  background: #450a0a;
+  border-left-color: #ef4444;
+}
+
+.dark .message-user {
+  color: #f1f5f9;
+}
+
+.dark .message-time {
+  color: #94a3b8;
+}
+
+.dark .message-content {
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+}
+
+.dark .warning-text {
+  color: #fbbf24;
+  background: #451a03;
+  border: 1px solid #92400e;
+}
+
+.dark .warning-text i {
+  color: #f59e0b;
+}
+
+.dark .delete-dialog-actions {
+  background: #0f172a;
+  border-top: 1px solid #475569;
+}
+
+.dark .cancel-button {
+  background: #64748b;
+}
+
+.dark .cancel-button:hover {
+  background: #475569;
+}
+
+.dark .confirm-button {
+  background: #ef4444;
+}
+
+.dark .confirm-button:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.dark .confirm-button:disabled {
+  background: #64748b;
 }
 </style> 

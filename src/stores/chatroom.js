@@ -143,6 +143,31 @@ export const useChatroomStore = defineStore('chatroom', () => {
       throw error
     }
   }
+
+  // 更新聊天室名称
+  const updateRoomName = async (roomId, newName) => {
+    try {
+      const response = await axios.put(`/api/chatrooms/${roomId}/name`, {
+        name: newName
+      })
+      
+      // 更新当前房间信息
+      if (currentRoom.value && currentRoom.value.id === roomId) {
+        currentRoom.value.name = newName
+      }
+      
+      // 更新用户聊天室列表中的名称
+      const roomIndex = userChatrooms.value.findIndex(room => room.roomId === roomId)
+      if (roomIndex !== -1) {
+        userChatrooms.value[roomIndex].name = newName
+      }
+      
+      return response.data.data
+    } catch (error) {
+      console.error('更新聊天室名称失败:', error)
+      throw error
+    }
+  }
   
   return {
     // 状态
@@ -172,6 +197,7 @@ export const useChatroomStore = defineStore('chatroom', () => {
     sendMessage,
     fetchUserChatrooms,
     joinChatroom,
-    createChatroom
+    createChatroom,
+    updateRoomName
   }
 }) 

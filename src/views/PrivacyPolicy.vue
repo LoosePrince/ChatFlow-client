@@ -200,6 +200,11 @@ const goBack = () => {
   padding: 2rem 0;
 }
 
+/* 暗色模式支持 */
+.dark .privacy-page {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
 .container {
   max-width: 800px;
   margin: 0 auto;
@@ -209,14 +214,30 @@ const goBack = () => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
+/* 暗色模式下的容器 */
+.dark .container {
+  background: #1e293b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
 .privacy-header h1 {
   color: #2c3e50;
   font-weight: 600;
 }
 
+/* 暗色模式下的标题 */
+.dark .privacy-header h1 {
+  color: #f1f5f9;
+}
+
 .privacy-content {
   line-height: 1.6;
   color: #34495e;
+}
+
+/* 暗色模式下的内容文字 */
+.dark .privacy-content {
+  color: #cbd5e1;
 }
 
 .section {
@@ -232,11 +253,22 @@ const goBack = () => {
   padding-bottom: 0.5rem;
 }
 
+/* 暗色模式下的章节标题 */
+.dark .section h2 {
+  color: #f1f5f9;
+  border-bottom: 2px solid #ef4444;
+}
+
 .section h3 {
   color: #34495e;
   font-size: 1.2rem;
   font-weight: 500;
   margin: 1rem 0 0.5rem 0;
+}
+
+/* 暗色模式下的子标题 */
+.dark .section h3 {
+  color: #e2e8f0;
 }
 
 .section p {
@@ -258,9 +290,24 @@ const goBack = () => {
   font-weight: 600;
 }
 
+/* 暗色模式下的强调文字 */
+.dark .section strong {
+  color: #f1f5f9;
+}
+
 .privacy-footer {
   border-top: 1px solid #e9ecef;
   padding-top: 2rem;
+}
+
+/* 暗色模式下的页脚 */
+.dark .privacy-footer {
+  border-top: 1px solid #475569;
+}
+
+/* 暗色模式下的页脚文字 */
+.dark .privacy-footer .text-muted {
+  color: #94a3b8 !important;
 }
 
 .btn {
@@ -273,6 +320,34 @@ const goBack = () => {
 .btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 暗色模式下的按钮 */
+.dark .btn-outline-primary {
+  color: #60a5fa;
+  border-color: #60a5fa;
+}
+
+.dark .btn-outline-primary:hover {
+  background-color: #60a5fa;
+  border-color: #60a5fa;
+  color: #1e293b;
+}
+
+.dark .btn-primary {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.dark .btn-primary:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* 暗色模式下的辅助文字 */
+.dark .text-muted {
+  color: #94a3b8 !important;
 }
 
 @media (max-width: 768px) {

@@ -176,7 +176,7 @@ watch(() => props.visible, (newVisible) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
+  z-index: 150;
   backdrop-filter: blur(3px);
 }
 
@@ -270,7 +270,7 @@ watch(() => props.visible, (newVisible) => {
   width: 100%;
   padding: 12px 16px;
   border: 2px solid #e9ecef;
-  border-radius: 8px;
+  border-radius: 8px !important;
   font-size: 14px;
   transition: all 0.3s ease;
   background: #f8f9fa;
@@ -423,5 +423,89 @@ watch(() => props.visible, (newVisible) => {
   .submit-btn {
     width: 100%;
   }
+}
+
+/* 暗色模式样式 */
+.dark .bilibili-input-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dark .bilibili-input-dialog {
+  background: #1e293b;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dark .dialog-header {
+  background: linear-gradient(135deg, #fb7299 0%, #f64a83 100%);
+  border-bottom: 1px solid #475569;
+}
+
+.dark .dialog-content {
+  background: #1e293b;
+}
+
+.dark .input-label {
+  color: #f1f5f9;
+}
+
+.dark .bv-input,
+.dark .description-input {
+  background: #334155;
+  border: 2px solid #475569;
+  color: #f1f5f9;
+}
+
+.dark .bv-input::placeholder,
+.dark .description-input::placeholder {
+  color: #94a3b8;
+}
+
+.dark .bv-input:focus,
+.dark .description-input:focus {
+  background: #1e293b;
+  border-color: #fb7299;
+  box-shadow: 0 0 0 3px rgba(251, 114, 153, 0.2);
+}
+
+.dark .char-count {
+  color: #94a3b8;
+}
+
+.dark .preview-section {
+  border-top: 1px solid #475569;
+}
+
+.dark .preview-header {
+  color: #f1f5f9;
+}
+
+.dark .video-preview {
+  border: 2px solid #475569;
+}
+
+.dark .dialog-actions {
+  background: #0f172a;
+  border-top: 1px solid #475569;
+}
+
+.dark .cancel-btn {
+  background: #64748b;
+}
+
+.dark .cancel-btn:hover {
+  background: #475569;
+}
+
+.dark .submit-btn {
+  background: #fb7299;
+}
+
+.dark .submit-btn:hover:not(:disabled) {
+  background: #e85a8a;
+}
+
+.dark .submit-btn:disabled,
+.dark .submit-btn.loading {
+  background: #64748b;
 }
 </style> 

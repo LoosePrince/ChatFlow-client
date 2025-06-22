@@ -187,7 +187,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 100;
   padding: 20px;
 }
 
@@ -340,5 +340,71 @@ onUnmounted(() => {
   .cropper-wrapper {
     max-height: 300px;
   }
+}
+
+/* 暗色模式样式 */
+.dark .avatar-cropper-modal {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.dark .cropper-container {
+  background: #1e293b;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.dark .cropper-header {
+  background: #0f172a;
+  border-bottom: 1px solid #475569;
+}
+
+.dark .cropper-header h3 {
+  color: #f1f5f9;
+}
+
+.dark .close-btn {
+  color: #94a3b8;
+}
+
+.dark .close-btn:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.dark .cropper-wrapper {
+  border: 2px solid #475569;
+}
+
+.dark .cropper-info {
+  background: #334155;
+  border-left: 4px solid #60a5fa;
+}
+
+.dark .cropper-info p {
+  color: #e2e8f0;
+}
+
+.dark .cropper-info i {
+  color: #60a5fa;
+}
+
+.dark .cropper-footer {
+  background: #0f172a;
+  border-top: 1px solid #475569;
+}
+
+.dark .btn-secondary {
+  background: #64748b;
+}
+
+.dark .btn-secondary:hover:not(:disabled) {
+  background: #475569;
+}
+
+.dark .btn-primary {
+  background: #3b82f6;
+}
+
+.dark .btn-primary:hover:not(:disabled) {
+  background: #2563eb;
 }
 </style> 

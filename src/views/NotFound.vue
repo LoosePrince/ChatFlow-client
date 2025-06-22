@@ -82,6 +82,11 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* 暗色模式支持 */
+.dark .not-found-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
 .not-found-content {
   text-align: center;
   color: white;
@@ -101,11 +106,26 @@ onUnmounted(() => {
   background-clip: text;
 }
 
+/* 暗色模式下的错误代码 */
+.dark .error-code {
+  background: linear-gradient(45deg, #ffffff, #e2e8f0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
 .error-title {
   font-size: 36px;
   font-weight: 700;
   margin-bottom: 15px;
   text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 暗色模式下的标题 */
+.dark .error-title {
+  color: #f1f5f9;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 .error-message {
@@ -117,12 +137,24 @@ onUnmounted(() => {
   margin-right: auto;
 }
 
+/* 暗色模式下的消息 */
+.dark .error-message {
+  color: #cbd5e1;
+  opacity: 1;
+}
+
 .redirect-message {
   font-size: 16px;
   margin-bottom: 30px;
   opacity: 0.8;
   color: #ffd700;
   font-weight: 500;
+}
+
+/* 暗色模式下的重定向消息 */
+.dark .redirect-message {
+  color: #fbbf24;
+  opacity: 1;
 }
 
 .action-buttons {
@@ -158,6 +190,18 @@ onUnmounted(() => {
   transform: translateY(-2px);
 }
 
+/* 暗色模式下的首页按钮 */
+.dark .home-button {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.dark .home-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
 .back-button {
   background: transparent;
   color: white;
@@ -166,6 +210,17 @@ onUnmounted(() => {
 
 .back-button:hover {
   background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 暗色模式下的返回按钮 */
+.dark .back-button {
+  color: #cbd5e1;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark .back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
 }
 
@@ -183,6 +238,11 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   animation: float 6s ease-in-out infinite;
+}
+
+/* 暗色模式下的浮动形状 */
+.dark .shape {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .shape-1 {

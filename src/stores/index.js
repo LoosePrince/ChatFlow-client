@@ -8,4 +8,5 @@ export default pinia
 // 导出所有store
 export { useAuthStore } from './auth'
 export { useNotificationStore } from './notification'
-export { useChatroomStore } from './chatroom' 
+export { useChatroomStore } from './chatroom'
+export { useThemeStore } from './theme' 

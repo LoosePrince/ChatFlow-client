@@ -77,7 +77,7 @@ const selectType = (type) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
+  z-index: 150;
   backdrop-filter: blur(3px);
 }
 
@@ -249,5 +249,55 @@ const selectType = (type) => {
   .type-description {
     font-size: 13px;
   }
+}
+
+/* 暗色模式样式 */
+.dark .message-type-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dark .message-type-dialog {
+  background: #1e293b;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dark .dialog-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  border-bottom: 1px solid #475569;
+}
+
+.dark .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dark .type-option {
+  border: 2px solid #475569;
+  background: #334155;
+}
+
+.dark .type-option:hover {
+  border-color: #3b82f6;
+  background: #1e293b;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.dark .type-title {
+  color: #f1f5f9;
+}
+
+.dark .type-description {
+  color: #94a3b8;
+}
+
+.dark .type-arrow {
+  color: #94a3b8;
+}
+
+.dark .type-option:hover .type-arrow {
+  color: #3b82f6;
 }
 </style> 

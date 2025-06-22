@@ -237,6 +237,11 @@ const goBack = () => {
   justify-content: center;
 }
 
+/* 暗色模式支持 */
+.dark .room-select-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
 .room-select-content {
   width: 100%;
   max-width: 800px;
@@ -267,12 +272,28 @@ const goBack = () => {
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* 暗色模式下的返回按钮 */
+.dark .back-button {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f1f5f9;
+}
+
+.dark .back-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .title {
   color: white;
   font-size: 32px;
   font-weight: 700;
   margin: 0;
   text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 暗色模式下的标题 */
+.dark .title {
+  color: #f1f5f9;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 .options-grid {
@@ -289,6 +310,12 @@ const goBack = () => {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
+/* 暗色模式下的选项卡片 */
+.dark .option-card {
+  background: #1e293b;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
 .card-header {
   text-align: center;
   margin-bottom: 30px;
@@ -301,11 +328,21 @@ const goBack = () => {
   display: block;
 }
 
+/* 暗色模式下的卡片图标 */
+.dark .card-header i {
+  color: #60a5fa;
+}
+
 .card-header h2 {
   color: #2c3e50;
   margin: 0;
   font-size: 24px;
   font-weight: 600;
+}
+
+/* 暗色模式下的卡片标题 */
+.dark .card-header h2 {
+  color: #f1f5f9;
 }
 
 .form-group {
@@ -317,6 +354,11 @@ const goBack = () => {
   color: #2c3e50;
   font-weight: 600;
   margin-bottom: 8px;
+}
+
+/* 暗色模式下的标签 */
+.dark .form-group label {
+  color: #f1f5f9;
 }
 
 .form-group input {
@@ -332,6 +374,22 @@ const goBack = () => {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 暗色模式下的输入框 */
+.dark .form-group input {
+  background: #334155;
+  border: 2px solid #475569;
+  color: #f1f5f9;
+}
+
+.dark .form-group input::placeholder {
+  color: #94a3b8;
+}
+
+.dark .form-group input:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
 }
 
 .action-button {
@@ -356,6 +414,20 @@ const goBack = () => {
   box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
+/* 暗色模式下的操作按钮 */
+.dark .action-button {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.dark .action-button:hover {
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.dark .action-button:disabled {
+  background: linear-gradient(135deg, #475569, #334155);
+  cursor: not-allowed;
+}
+
 .anonymous-notice {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 15px;
@@ -370,6 +442,13 @@ const goBack = () => {
   font-size: 24px;
   margin-bottom: 10px;
   display: block;
+}
+
+/* 暗色模式下的匿名提示 */
+.dark .anonymous-notice {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
 }
 
 @media (max-width: 768px) {

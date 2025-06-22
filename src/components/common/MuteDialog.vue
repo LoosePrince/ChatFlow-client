@@ -98,7 +98,7 @@ defineEmits(['cancel', 'confirm'])
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 100;
   animation: overlayFadeIn 0.2s ease-out;
 }
 
@@ -282,5 +282,78 @@ defineEmits(['cancel', 'confirm'])
     margin: 20px;
     width: calc(100% - 40px);
   }
+}
+
+/* 暗色模式样式 */
+.dark .confirm-dialog-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dark .confirm-dialog {
+  background: #1e293b;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.dark .dialog-header h3 {
+  color: #f1f5f9;
+}
+
+.dark .mute-user-info {
+  background: #334155;
+}
+
+.dark .mute-user-name {
+  color: #f1f5f9;
+}
+
+.dark .mute-user-uid {
+  color: #94a3b8;
+}
+
+.dark .mute-time-selection p {
+  color: #f1f5f9;
+}
+
+.dark .mute-time-option {
+  border: 1px solid #475569;
+  background: #334155;
+}
+
+.dark .mute-time-option:hover {
+  border-color: #60a5fa;
+  background: #1e293b;
+}
+
+.dark .mute-time-option span {
+  color: #f1f5f9;
+}
+
+.dark .mute-time-option input[type="radio"]:checked + span {
+  color: #60a5fa;
+}
+
+.dark .cancel-button {
+  background: #64748b;
+  color: #f1f5f9;
+}
+
+.dark .cancel-button:hover {
+  background: #475569;
+}
+
+.dark .confirm-button {
+  background: #3b82f6;
+}
+
+.dark .confirm-button:hover {
+  background: #2563eb;
+}
+
+.dark .confirm-button.danger {
+  background: #ef4444;
+}
+
+.dark .confirm-button.danger:hover {
+  background: #dc2626;
 }
 </style> 

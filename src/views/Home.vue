@@ -37,6 +37,11 @@
             </div>
           </div>
 
+                  <!-- 主题切换按钮 -->
+        <div class="theme-toggle-wrapper">
+          <ThemeToggle />
+        </div>
+
           <!-- 用户菜单 -->
           <div class="user-menu">
             <button 
@@ -288,6 +293,11 @@
 
       <!-- 未登录用户的选择界面 -->
       <div v-else class="guest-welcome">
+        <!-- 主题切换按钮（未登录状态） -->
+        <div class="guest-theme-toggle">
+          <ThemeToggle :show-text="true" />
+        </div>
+
         <!-- Logo和欢迎信息 -->
         <div class="welcome-section">
           <div class="logo-container">
@@ -391,6 +401,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import { useChatroomStore } from '@/stores/chatroom'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import axios from 'axios'
 
 const router = useRouter()
@@ -693,6 +704,10 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
+.dark .home-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
 /* 顶部导航栏样式 */
 .top-navbar {
   position: fixed;
@@ -702,8 +717,13 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 1000;
+  z-index: 10;
   padding: 0 20px;
+}
+
+.dark .top-navbar {
+  background: rgba(31, 41, 55, 0.95);
+  border-bottom: 1px solid rgba(75, 85, 99, 0.2);
 }
 
 .navbar-content {
@@ -777,6 +797,10 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
+.dark .user-nickname {
+  color: #f3f4f6;
+}
+
 .type-badge {
   display: flex;
   align-items: center;
@@ -830,6 +854,12 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
+.dark .menu-dropdown {
+  background: #374151;
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 .menu-item {
   display: flex;
   align-items: center;
@@ -842,6 +872,14 @@ onUnmounted(() => {
 
 .menu-item:hover {
   background: #f8f9fa;
+}
+
+.dark .menu-item {
+  color: #e5e7eb;
+}
+
+.dark .menu-item:hover {
+  background: #4b5563;
 }
 
 .menu-item.logout {
@@ -1061,6 +1099,11 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+.dark .option-card {
+  background: #374151;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
 .option-card::before {
   content: '';
   position: absolute;
@@ -1107,11 +1150,19 @@ onUnmounted(() => {
   margin-bottom: 12px;
 }
 
+.dark .option-title {
+  color: #f3f4f6;
+}
+
 .option-description {
   font-size: 16px;
   color: #7f8c8d;
   margin-bottom: 20px;
   line-height: 1.5;
+}
+
+.dark .option-description {
+  color: #d1d5db;
 }
 
 .option-badge {
@@ -1176,6 +1227,11 @@ onUnmounted(() => {
   text-align: center;
   padding: 20px;
   font-size: 14px;
+}
+
+.dark .home-footer {
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .home-footer p {
@@ -1254,6 +1310,11 @@ onUnmounted(() => {
   border-radius: 20px;
   padding: 2rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .my-chatrooms-section {
+  background: rgba(17, 24, 39, 0.3);
+  border: 1px solid rgba(75, 85, 99, 0.3);
 }
 
 .section-header {
@@ -1463,6 +1524,11 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .joined-chatrooms-section {
+  background: rgba(17, 24, 39, 0.2);
+  border: 1px solid rgba(75, 85, 99, 0.2);
 }
 
 .joined-card {

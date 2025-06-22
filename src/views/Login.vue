@@ -9,11 +9,19 @@
 
     <!-- 主要内容 -->
     <div class="login-content">
+      <!-- 顶部操作栏 -->
+      <div class="top-actions">
       <!-- 返回按钮 -->
       <button @click="goBack" class="back-button">
         <i class="fas fa-arrow-left"></i>
         <span>返回首页</span>
       </button>
+        
+        <!-- 主题切换按钮 -->
+        <div class="theme-toggle-wrapper">
+          <ThemeToggle />
+        </div>
+      </div>
 
       <!-- 登录表单卡片 -->
       <div class="login-card">
@@ -158,6 +166,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 // 路由相关
 const router = useRouter()
@@ -318,6 +327,10 @@ onMounted(() => {
   padding: 20px;
 }
 
+.dark .login-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
 .background-decoration {
   position: absolute;
   top: 0;
@@ -388,6 +401,11 @@ onMounted(() => {
   backdrop-filter: blur(20px);
 }
 
+.dark .login-card {
+  background: #374151;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
 .login-header {
   text-align: center;
   margin-bottom: 40px;
@@ -413,9 +431,17 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 
+.dark .login-title {
+  color: #f3f4f6;
+}
+
 .login-subtitle {
   color: #7f8c8d;
   margin: 0;
+}
+
+.dark .login-subtitle {
+  color: #d1d5db;
 }
 
 .form-group {
@@ -432,6 +458,10 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.dark .form-label {
+  color: #e5e7eb;
+}
+
 .form-input {
   width: 100%;
   padding: 12px 16px;
@@ -442,6 +472,12 @@ onMounted(() => {
   background: #f8f9fa;
 }
 
+.dark .form-input {
+  background: #4b5563;
+  border: 2px solid #6b7280;
+  color: #f3f4f6;
+}
+
 .form-input:focus {
   outline: none;
   border-color: #667eea;
@@ -449,9 +485,20 @@ onMounted(() => {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.dark .form-input:focus {
+  background: #374151;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
 .form-input.is-invalid {
   border-color: #e74c3c;
   background: #fdf2f2;
+}
+
+.dark .form-input.is-invalid {
+  border-color: #ef4444;
+  background: #7f1d1d;
 }
 
 .password-input-wrapper {
@@ -531,6 +578,10 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.dark .checkbox-text {
+  color: #e5e7eb;
+}
+
 .login-button {
   width: 100%;
   background: linear-gradient(135deg, #667eea, #764ba2);
@@ -593,6 +644,11 @@ onMounted(() => {
   max-width: 600px;
   margin: 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .login-tips {
+  background: rgba(17, 24, 39, 0.3);
+  border: 1px solid rgba(75, 85, 99, 0.3);
 }
 
 .tips-title {

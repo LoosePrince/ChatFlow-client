@@ -10,6 +10,11 @@
         </button>
         <h1>个人设置</h1>
         <div class="header-spacer"></div>
+        
+        <!-- 主题切换按钮 -->
+        <div class="theme-toggle-wrapper">
+          <ThemeToggle />
+        </div>
       </div>
     </header>
 
@@ -131,8 +136,9 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, useNotificationStore } from '@/stores'
-import axios from 'axios'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import AvatarCropper from '@/components/common/AvatarCropper.vue'
+import axios from 'axios'
 
 // 路由相关
 const router = useRouter()
@@ -337,6 +343,10 @@ onMounted(async () => {
   padding-bottom: 2rem;
 }
 
+.dark .profile-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
 .profile-header {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
@@ -345,6 +355,11 @@ onMounted(async () => {
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+.dark .profile-header {
+  background: rgba(17, 24, 39, 0.3);
+  border-bottom: 1px solid rgba(75, 85, 99, 0.3);
 }
 
 .header-content {
@@ -406,6 +421,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 2rem;
+}
+
+.dark .user-info-card {
+  background: rgba(17, 24, 39, 0.3);
+  border: 1px solid rgba(75, 85, 99, 0.3);
 }
 
 .avatar-section {
@@ -492,6 +512,11 @@ onMounted(async () => {
   padding: 2rem;
 }
 
+.dark .settings-form {
+  background: rgba(17, 24, 39, 0.3);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
 .form-group {
   margin-bottom: 2rem;
 }
@@ -517,14 +542,29 @@ onMounted(async () => {
   transition: all 0.3s ease;
 }
 
+.dark .form-input {
+  background: rgba(55, 65, 81, 0.6);
+  border: 1px solid rgba(107, 114, 128, 0.4);
+  color: #f3f4f6;
+}
+
 .form-input::placeholder {
   color: rgba(255, 255, 255, 0.6);
+}
+
+.dark .form-input::placeholder {
+  color: rgba(156, 163, 175, 0.8);
 }
 
 .form-input:focus {
   outline: none;
   border-color: rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.15);
+}
+
+.dark .form-input:focus {
+  border-color: rgba(139, 92, 246, 0.6);
+  background: rgba(55, 65, 81, 0.8);
 }
 
 .input-hint {

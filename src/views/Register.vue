@@ -9,11 +9,19 @@
 
     <!-- 主要内容 -->
     <div class="register-content">
+      <!-- 顶部操作栏 -->
+      <div class="top-actions">
       <!-- 返回按钮 -->
       <button @click="goBack" class="back-button">
         <i class="fas fa-arrow-left"></i>
         <span>返回首页</span>
       </button>
+        
+        <!-- 主题切换按钮 -->
+        <div class="theme-toggle-wrapper">
+          <ThemeToggle />
+        </div>
+      </div>
 
       <!-- 注册表单卡片 -->
       <div class="register-card">
@@ -258,6 +266,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import AvatarCropper from '@/components/common/AvatarCropper.vue'
 
 // 路由相关
@@ -533,6 +542,10 @@ const goBack = () => {
   padding: 20px;
 }
 
+.dark .register-container {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
 .background-decoration {
   position: absolute;
   top: 0;
@@ -603,6 +616,11 @@ const goBack = () => {
   backdrop-filter: blur(20px);
 }
 
+.dark .register-card {
+  background: #374151;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
 .register-header {
   text-align: center;
   margin-bottom: 40px;
@@ -628,9 +646,17 @@ const goBack = () => {
   margin-bottom: 10px;
 }
 
+.dark .register-title {
+  color: #f3f4f6;
+}
+
 .register-subtitle {
   color: #7f8c8d;
   margin: 0;
+}
+
+.dark .register-subtitle {
+  color: #d1d5db;
 }
 
 .form-group {
@@ -647,8 +673,16 @@ const goBack = () => {
   font-size: 14px;
 }
 
+.dark .form-label {
+  color: #e5e7eb;
+}
+
 .required {
   color: #e74c3c;
+}
+
+.dark .required {
+  color: #ef4444;
 }
 
 .avatar-group {
@@ -691,6 +725,10 @@ const goBack = () => {
   color: #7f8c8d;
 }
 
+.dark .avatar-placeholder {
+  color: #9ca3af;
+}
+
 .avatar-placeholder i {
   font-size: 24px;
   margin-bottom: 8px;
@@ -727,6 +765,12 @@ const goBack = () => {
   background: #f8f9fa;
 }
 
+.dark .form-input {
+  background: #4b5563;
+  border: 2px solid #6b7280;
+  color: #f3f4f6;
+}
+
 .form-input:focus {
   outline: none;
   border-color: #667eea;
@@ -734,9 +778,20 @@ const goBack = () => {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.dark .form-input:focus {
+  background: #374151;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
 .form-input.is-invalid {
   border-color: #e74c3c;
   background: #fdf2f2;
+}
+
+.dark .form-input.is-invalid {
+  border-color: #ef4444;
+  background: #7f1d1d;
 }
 
 .password-input-wrapper {
@@ -858,6 +913,10 @@ const goBack = () => {
   line-height: 1.4;
 }
 
+.dark .checkbox-text {
+  color: #e5e7eb;
+}
+
 .terms-link {
   color: #667eea;
   text-decoration: none;
@@ -929,6 +988,11 @@ const goBack = () => {
   max-width: 600px;
   margin: 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .register-tips {
+  background: rgba(17, 24, 39, 0.3);
+  border: 1px solid rgba(75, 85, 99, 0.3);
 }
 
 .tips-title {

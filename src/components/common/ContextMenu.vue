@@ -17,7 +17,6 @@
         <div class="context-menu-uid">{{ targetUser?.uid }}</div>
       </div>
     </div>
-    <div class="context-menu-divider"></div>
     <div class="context-menu-items">
       <!-- 管理员相关 (只有创建者可以设置管理员，不能对创建者操作) -->
       <div 
@@ -111,7 +110,7 @@ defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 999;
+  z-index: 99;
 }
 
 .context-menu {
@@ -120,7 +119,7 @@ defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
   border: 1px solid #e9ecef;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: 100;
   min-width: 200px;
   overflow: hidden;
   animation: contextMenuFadeIn 0.15s ease-out;
@@ -208,6 +207,46 @@ defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
   height: 1px;
   background: #e9ecef;
   margin: 4px 0;
+}
+
+/* 暗色模式样式 */
+.dark .context-menu {
+  background: #1e293b;
+  border: 1px solid #475569;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dark .context-menu-header {
+  background: #0f172a;
+  border-bottom: 1px solid #475569;
+}
+
+.dark .context-menu-nickname {
+  color: #f1f5f9;
+}
+
+.dark .context-menu-uid {
+  color: #94a3b8;
+}
+
+.dark .context-menu-item {
+  color: #f1f5f9;
+}
+
+.dark .context-menu-item:hover {
+  background: #334155;
+}
+
+.dark .context-menu-item.danger {
+  color: #ef4444;
+}
+
+.dark .context-menu-item.danger:hover {
+  background: #450a0a;
+}
+
+.dark .context-menu-divider {
+  background: #475569;
 }
 
 @media (max-width: 480px) {

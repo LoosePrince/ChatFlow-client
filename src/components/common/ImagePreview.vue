@@ -322,7 +322,7 @@ const preventDefault = (e) => {
   background: rgba(0, 0, 0, 0.9);
   display: flex;
   flex-direction: column;
-  z-index: 2000;
+  z-index: 200;
   backdrop-filter: blur(4px);
   cursor: pointer;
 }
@@ -510,5 +510,57 @@ const preventDefault = (e) => {
     width: 40px;
     height: 40px;
   }
+}
+
+/* 暗色模式样式 */
+.dark .image-preview-overlay {
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.dark .image-preview-toolbar {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.dark .image-info {
+  color: #f1f5f9;
+}
+
+.dark .toolbar-btn {
+  background: rgba(100, 116, 139, 0.3);
+  color: #f1f5f9;
+}
+
+.dark .toolbar-btn:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+.dark .close-btn:hover {
+  background: rgba(239, 68, 68, 0.8);
+}
+
+.dark .zoom-info {
+  color: #cbd5e1;
+}
+
+.dark .loading-overlay,
+.dark .error-overlay {
+  color: #f1f5f9;
+}
+
+.dark .error-icon {
+  color: #f59e0b;
+}
+
+.dark .image-preview-info {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f1f5f9;
+}
+
+.dark .info-label {
+  color: #cbd5e1;
+}
+
+.dark .info-value {
+  color: #f1f5f9;
 }
 </style> 
