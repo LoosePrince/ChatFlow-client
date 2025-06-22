@@ -1,0 +1,2658 @@
+<template>
+  <div class="chatroom-container" @contextmenu.prevent="handleRightClick">
+    <!-- 加载状态 -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <p>正在加载聊天室...</p>
+    </div>
+
+    <!-- 聊天室内容 -->
+    <div v-else class="chatroom-layout">
+      <!-- 左侧房间列表 (桌面端) -->
+      <div class="sidebar left-sidebar" :class="{ 'sidebar-hidden': !showRoomList }">
+        <div class="sidebar-header">
+          <h3>
+            <i class="fas fa-comments"></i>
+            加入的房间
+          </h3>
+          <button @click="toggleRoomList" class="sidebar-toggle">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="room-list">
+          <div 
+            v-for="room in joinedRooms" 
+            :key="room.roomId"
+            :class="['room-item', { 'room-active': room.roomId === roomId }]"
+            @click="switchRoom(room.roomId)"
+          >
+            <div class="room-info">
+              <div class="room-name">{{ room.name }}</div>
+              <div class="room-id">{{ room.roomId }}</div>
+            </div>
+            <div class="room-status">
+              <span v-if="room.unreadCount > 0" class="unread-badge">{{ room.unreadCount }}</span>
+              <i :class="['connection-dot', room.connected ? 'connected' : 'disconnected']"></i>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <button @click="goToRoomSelect" class="join-chat-button">
+            <i class="fas fa-plus"></i>
+            添加聊天室
+          </button>
+          <button @click="goHome" class="home-button">
+            <i class="fas fa-home"></i>
+            返回首页
+          </button>
+        </div>
+      </div>
+
+      <!-- 主聊天区域 -->
+      <div class="main-content">
+        <!-- 顶部导航栏 -->
+        <div class="chatroom-header">
+          <div class="header-left">
+            <button @click="toggleRoomList" class="mobile-menu-btn">
+              <i class="fas fa-bars"></i>
+            </button>
+            <div class="room-info">
+              <h1>{{ roomName }}</h1>
+              <span class="room-id">ID: {{ roomId }}</span>
+              <span v-if="roomInfo?.hasPassword" class="room-password-indicator">
+                <i class="fas fa-lock"></i>
+              </span>
+            </div>
+          </div>
+          <div class="header-center">
+            <span class="user-info">
+              <img 
+                :src="userAvatarUrl" 
+                :alt="authStore.user?.nickname"
+                class="user-avatar"
+              >
+              <span class="user-name">{{ authStore.user?.nickname }}</span>
+              <span class="user-uid">{{ authStore.user?.uid }}</span>
+            </span>
+          </div>
+          <div class="header-right">
+            <button @click="toggleMemberList" class="mobile-menu-btn">
+              <i class="fas fa-users"></i>
+            </button>
+            <button @click="confirmLeaveRoom" class="leave-button">
+              <i class="fas fa-sign-out-alt"></i>
+              <span class="leave-text">退出房间</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 聊天内容区域 -->
+        <div class="chatroom-content">
+          <!-- 临时通知区域 -->
+          <div v-if="temporaryNotifications.length > 0" class="temporary-notifications">
+            <div 
+              v-for="notification in temporaryNotifications"
+              :key="notification.id"
+              :class="['temp-notification', `notification-${notification.type}`]"
+            >
+              <i :class="getNotificationIcon(notification.type)"></i>
+              <span>{{ notification.message }}</span>
+            </div>
+          </div>
+          
+          <div class="messages-area">
+            <div class="message-list" ref="messageList" @scroll="handleScroll">
+              <div class="messages-container">
+                <!-- 加载更多指示器 -->
+                <div v-if="messagesPagination.isLoading && messagesPagination.currentPage > 1" class="loading-more">
+                  <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                  </div>
+                  <span>加载更多消息...</span>
+                </div>
+                
+                <!-- 没有更多消息提示 -->
+                <div v-if="!messagesPagination.hasMore && messages.length > 0" class="no-more-messages">
+                  <i class="fas fa-history"></i>
+                  <span>已显示所有历史消息</span>
+                </div>
+                
+                <div v-if="messages.length === 0 && !messagesPagination.isLoading" class="empty-messages">
+                  <i class="fas fa-comments"></i>
+                  <p>暂无消息，开始聊天吧！</p>
+                </div>
+              
+              <div 
+                v-for="message in processedMessages" 
+                :key="message.id"
+                :class="[
+                  'message', 
+                  `message-${message.type}`,
+                  { 
+                    'message-own': message.isOwn,
+                    'message-first-in-group': message.isFirstInGroup,
+                    'message-last-in-group': message.isLastInGroup,
+                    'message-continuous': !message.isFirstInGroup
+                  }
+                ]"
+              >
+                <!-- 系统消息 -->
+                <div v-if="message.type === 'system'" class="system-message">
+                  <div class="system-message-content">
+                    <div class="system-icon">
+                      <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="system-text">{{ message.text }}</div>
+                    <div class="system-time">{{ formatTime(message.timestamp) }}</div>
+                  </div>
+                </div>
+                
+                <!-- 用户消息 -->
+                <div v-else class="message-wrapper">
+                  <!-- 头像区域 -->
+                  <div class="message-avatar" :class="{ 'avatar-placeholder': !message.showAvatar }">
+                    <img 
+                      v-if="message.showAvatar"
+                      :src="getAvatarUrl(message.userAvatar)" 
+                      :alt="message.userName"
+                      class="avatar-img"
+                      @contextmenu="handleShowUserContextMenu($event, {
+                        uid: message.userUid,
+                        nickname: message.userName,
+                        avatarUrl: message.userAvatar,
+                        isAdmin: message.isAdmin
+                      }, 'message')"
+                    >
+                  </div>
+                  
+                  <!-- 消息内容 -->
+                  <div class="message-content">
+                    <!-- 消息头部（用户名和时间） -->
+                    <div v-if="message.showHeader" class="message-header">
+                      <span class="user-name">
+                        {{ message.userName }}
+                        <i v-if="message.isAdmin" class="fas fa-crown admin-icon" title="管理员"></i>
+                      </span>
+                      <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                    </div>
+                    
+                    <!-- 消息文本和时间 -->
+                    <div class="message-body">
+                      <div class="message-text">{{ message.text }}</div>
+                      <div v-if="!message.showHeader" class="message-time-inline">{{ formatTime(message.timestamp) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </div> <!-- 关闭 messages-container -->
+            </div>
+          </div>
+
+          <div class="input-area">
+            <form @submit.prevent="sendMessage" class="message-form">
+              <input
+                v-model="newMessage"
+                type="text"
+                placeholder="输入消息..."
+                :disabled="!canSendMessage"
+                class="message-input"
+                maxlength="500"
+              >
+              <button 
+                type="submit" 
+                :disabled="!canSendMessage || !newMessage.trim()" 
+                class="send-button"
+              >
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </form>
+            
+            <div v-if="!canSendMessage && muteTimeRemaining > 0" class="mute-notice">
+              <i class="fas fa-clock"></i>
+              您已被禁言，还需等待 {{ formatMuteTime(muteTimeRemaining) }} 后才能发言
+            </div>
+            
+            <div v-if="!authStore.isAuthenticated" class="auth-notice">
+              <i class="fas fa-user-slash"></i>
+              请先登录后才能发言
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧成员列表 (桌面端) -->
+      <div class="sidebar right-sidebar" :class="{ 'sidebar-hidden': !showMemberList }">
+        <div class="sidebar-header">
+          <h3>
+            <i class="fas fa-users"></i>
+            成员列表 ({{ totalMemberCount }})
+          </h3>
+          <button @click="toggleMemberList" class="sidebar-toggle">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="member-list">
+          <!-- 在线成员 -->
+          <div v-if="onlineMembers.length > 0" class="member-section">
+            <div class="section-title">
+              <i class="fas fa-circle online-dot"></i>
+              在线 ({{ onlineMembers.length }})
+            </div>
+            <div 
+              v-for="member in onlineMembers" 
+              :key="member.uid"
+              class="member-item"
+              @contextmenu="handleShowUserContextMenu($event, member, 'member')"
+            >
+              <img 
+                :src="getAvatarUrl(member.avatarUrl)" 
+                :alt="member.nickname"
+                class="member-avatar"
+              >
+              <div class="member-info">
+                <div class="member-name">
+                  {{ member.nickname }}
+                  <i v-if="member.isCreator" class="fas fa-crown creator-icon" title="房主"></i>
+                  <i v-else-if="member.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
+                  <i v-if="member.isMuted" class="fas fa-microphone-slash muted-icon" title="已被禁言"></i>
+                </div>
+                <div class="member-uid">{{ member.uid }}</div>
+              </div>
+              <div class="member-status online">在线</div>
+            </div>
+          </div>
+
+          <!-- 离线成员 -->
+          <div v-if="offlineMembers.length > 0" class="member-section">
+            <div class="section-title">
+              <i class="fas fa-circle offline-dot"></i>
+              离线 ({{ offlineMembers.length }})
+            </div>
+            <div 
+              v-for="member in offlineMembers" 
+              :key="member.uid"
+              class="member-item"
+              @contextmenu="handleShowUserContextMenu($event, member, 'member')"
+            >
+              <img 
+                :src="getAvatarUrl(member.avatarUrl)" 
+                :alt="member.nickname"
+                class="member-avatar"
+              >
+              <div class="member-info">
+                <div class="member-name">
+                  {{ member.nickname }}
+                  <i v-if="member.isCreator" class="fas fa-crown creator-icon" title="房主"></i>
+                  <i v-else-if="member.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
+                  <i v-if="member.isMuted" class="fas fa-microphone-slash muted-icon" title="已被禁言"></i>
+                </div>
+                <div class="member-uid">{{ member.uid }}</div>
+              </div>
+              <div class="member-status offline">离线</div>
+            </div>
+          </div>
+
+          <!-- 已退出成员 -->
+          <div v-if="leftMembers.length > 0" class="member-section">
+            <div class="section-title">
+              <i class="fas fa-circle left-dot"></i>
+              已退出 ({{ leftMembers.length }})
+            </div>
+            <div 
+              v-for="member in leftMembers" 
+              :key="member.uid"
+              class="member-item"
+              @contextmenu="handleShowUserContextMenu($event, member, 'member')"
+            >
+              <img 
+                :src="getAvatarUrl(member.avatarUrl)" 
+                :alt="member.nickname"
+                class="member-avatar"
+              >
+              <div class="member-info">
+                <div class="member-name">{{ member.nickname }}</div>
+                <div class="member-uid">{{ member.uid }}</div>
+              </div>
+              <div class="member-status left">已退出</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移动端遮罩层 -->
+    <div 
+      v-if="(showRoomList || showMemberList) && isMobile" 
+      class="mobile-overlay"
+      @click="closeMobileSidebars"
+    ></div>
+
+    <!-- 退出确认对话框 -->
+    <div v-if="showLeaveConfirm" class="confirm-dialog-overlay" @click="cancelLeave">
+      <div class="confirm-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>{{ isCreator ? '解散房间' : '退出房间' }}</h3>
+        </div>
+        <div class="dialog-content">
+          <p v-if="isCreator">
+            <i class="fas fa-exclamation-triangle warning-icon"></i>
+            您是房主，退出房间将会解散整个房间，所有成员都将被移除。此操作不可撤销！
+          </p>
+          <p v-else>
+            确定要退出房间"{{ roomName }}"吗？
+          </p>
+        </div>
+        <div class="dialog-actions">
+          <button @click="cancelLeave" class="cancel-button">取消</button>
+          <button @click="confirmLeave" class="confirm-button" :class="{ 'danger': isCreator }">
+            {{ isCreator ? '确认解散' : '确认退出' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右键菜单组件 -->
+    <ContextMenu 
+      :visible="contextMenu.visible"
+      :x="contextMenu.x"
+      :y="contextMenu.y"
+      :targetUser="contextMenuUser"
+      @close="closeContextMenu"
+      @setAdmin="setUserAdmin"
+      @showMute="showMuteDialog"
+      @unmute="unmuteUser"
+      @showKick="showKickDialog"
+    />
+
+    <!-- 禁言弹窗组件 -->
+    <MuteDialog 
+      :visible="muteDialog.visible"
+      :targetUser="muteDialogUser"
+      @cancel="cancelMute"
+      @confirm="confirmMute"
+    />
+
+    <!-- 踢人确认弹窗组件 -->
+    <KickDialog 
+      :visible="kickDialog.visible"
+      :targetUser="kickDialogUser"
+      @cancel="cancelKick"
+      @confirm="confirmKickUser"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore, useNotificationStore, useChatroomStore } from '@/stores'
+import axios from 'axios'
+import { io } from 'socket.io-client'
+import { getWebSocketCorsConfig } from '@/config/cors.js'
+import ContextMenu from '@/components/common/ContextMenu.vue'
+import MuteDialog from '@/components/common/MuteDialog.vue'
+import KickDialog from '@/components/common/KickDialog.vue'
+import { useContextMenu } from '@/composables/useContextMenu.js'
+
+// 定义组件名称（在 <script setup> 中可选）
+defineOptions({
+  name: 'ChatRoom'
+})
+
+    const router = useRouter()
+    const route = useRoute()
+    const authStore = useAuthStore()
+    const notificationStore = useNotificationStore()
+    const chatroomStore = useChatroomStore()
+    const roomId = computed(() => route.params.roomId)
+    const roomInfo = ref(null)
+    const newMessage = ref('')
+    const messageList = ref(null)
+    const isLoading = ref(true)
+    const isJoining = ref(false)
+    const messages = reactive([])
+    const socket = ref(null)
+    const onlineUsers = ref([])
+    const temporaryNotifications = ref([])
+    const currentTime = ref(Date.now()) // 添加响应式时间变量
+    
+    // 新增状态
+    const showRoomList = ref(true) // 桌面端默认显示
+    const showMemberList = ref(true) // 桌面端默认显示
+    const showLeaveConfirm = ref(false)
+    const isMobile = ref(false)
+    const joinedRooms = ref([])
+    const roomMembers = ref([])
+
+// 使用右键菜单功能
+const {
+  contextMenu,
+  muteDialog,
+  kickDialog,
+  showUserContextMenu,
+  closeContextMenu,
+  showMuteDialog,
+  cancelMute,
+  showKickDialog,
+  cancelKick,
+  handleRightClick
+} = useContextMenu()
+    
+    // 计算属性
+    const roomName = computed(() => roomInfo.value?.name || '聊天室')
+
+// 右键菜单用户数据（需要包含头像URL）
+const contextMenuUser = computed(() => {
+  if (!contextMenu.value.targetUser) return null
+  return {
+    ...contextMenu.value.targetUser,
+    avatarUrl: getAvatarUrl(contextMenu.value.targetUser.avatarUrl)
+  }
+})
+
+// 禁言弹窗用户数据（需要包含头像URL）
+const muteDialogUser = computed(() => {
+  if (!muteDialog.value.targetUser) return null
+  return {
+    ...muteDialog.value.targetUser,
+    avatarUrl: getAvatarUrl(muteDialog.value.targetUser.avatarUrl)
+  }
+})
+
+// 踢人弹窗用户数据（需要包含头像URL）
+const kickDialogUser = computed(() => {
+  if (!kickDialog.value.targetUser) return null
+  return {
+    ...kickDialog.value.targetUser,
+    avatarUrl: getAvatarUrl(kickDialog.value.targetUser.avatarUrl)
+  }
+})
+    
+    const userAvatarUrl = computed(() => {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+      
+      if (!authStore.user?.avatarUrl) {
+        return `${baseUrl}/avatars/default`
+      }
+      
+      // 如果是完整URL，直接返回
+      if (authStore.user.avatarUrl.startsWith('http') || authStore.user.avatarUrl.startsWith('data:')) {
+        return authStore.user.avatarUrl
+      }
+      
+      // 使用新的固定头像URL格式
+      return `${baseUrl}${authStore.user.avatarUrl}`
+    })
+    
+    const canSendMessage = computed(() => {
+      if (!authStore.isAuthenticated) return false
+  
+  // 检查用户的禁言状态（包括注册用户和匿名用户）
+        if (authStore.user?.muteUntil) {
+          const muteUntil = new Date(authStore.user.muteUntil)
+          const now = new Date()
+          return now >= muteUntil
+        }
+  
+      return true
+    })
+    
+    // 计算禁言剩余时间
+    const muteTimeRemaining = computed(() => {
+  if (!authStore.user?.muteUntil) return 0
+      
+      const muteUntil = new Date(authStore.user.muteUntil)
+      const now = new Date(currentTime.value) // 使用响应式时间变量
+      const remaining = muteUntil - now
+      
+      return Math.max(0, remaining)
+    })
+    
+    // 格式化禁言剩余时间
+    const formatMuteTime = (milliseconds) => {
+      if (milliseconds <= 0) return ''
+      
+      const totalSeconds = Math.ceil(milliseconds / 1000)
+      const hours = Math.floor(totalSeconds / 3600)
+      const minutes = Math.floor((totalSeconds % 3600) / 60)
+      const seconds = totalSeconds % 60
+      
+      if (hours > 0) {
+        return `${hours}小时${minutes}分钟${seconds}秒`
+      } else if (minutes > 0) {
+        return `${minutes}分钟${seconds}秒`
+      } else {
+        return `${seconds}秒`
+      }
+    }
+    
+    // 新增计算属性
+    const isCreator = computed(() => {
+      return roomInfo.value?.creatorUid === authStore.user?.uid
+    })
+    
+    const onlineMembers = computed(() => {
+      return roomMembers.value.filter(member => member.status === 'online')
+    })
+    
+    const offlineMembers = computed(() => {
+      return roomMembers.value.filter(member => member.status === 'offline')
+    })
+    
+    const leftMembers = computed(() => {
+      return roomMembers.value.filter(member => member.status === 'left')
+    })
+    
+    const totalMemberCount = computed(() => {
+      return roomMembers.value.length
+    })
+    
+    // 处理连续消息的计算属性
+    const processedMessages = computed(() => {
+      return messages.map((message, index) => {
+        const prevMessage = index > 0 ? messages[index - 1] : null
+        const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
+        
+        // 系统消息不参与连续消息处理
+        if (message.type === 'system') {
+          return {
+            ...message,
+            isFirstInGroup: true,
+            isLastInGroup: true,
+            showAvatar: false,
+            showHeader: false
+          }
+        }
+        
+        // 判断是否与前一条消息是同一用户的连续消息
+        const isContinuous = prevMessage && 
+          prevMessage.type !== 'system' &&
+          prevMessage.userUid === message.userUid &&
+          message.timestamp - prevMessage.timestamp < 300000 // 5分钟内算连续消息
+        
+        // 判断是否与后一条消息是同一用户的连续消息
+        const isNextContinuous = nextMessage && 
+          nextMessage.type !== 'system' &&
+          nextMessage.userUid === message.userUid &&
+          nextMessage.timestamp - message.timestamp < 300000 // 5分钟内算连续消息
+        
+        return {
+          ...message,
+          isFirstInGroup: !isContinuous,
+          isLastInGroup: !isNextContinuous,
+          showAvatar: !isContinuous,
+          showHeader: !isContinuous
+        }
+      })
+    })
+    
+    // 验证聊天室是否存在
+    const validateChatroom = async () => {
+      try {
+        const response = await axios.get(`/api/chatrooms/${roomId.value}`)
+        roomInfo.value = response.data.data
+        return true
+      } catch (error) {
+        console.error('聊天室验证失败:', error)
+        if (error.response?.status === 404) {
+          notificationStore.error('聊天室不存在或已被关闭')
+        } else {
+          notificationStore.error('无法连接到聊天室')
+        }
+        return false
+      }
+    }
+    
+    // 消息分页状态
+    const messagesPagination = reactive({
+      currentPage: 0,
+      pageSize: 30,
+      hasMore: true,
+      isLoading: false,
+      oldestMessageId: null
+    })
+    
+    // 加载聊天室历史消息 - 重新设计为分页加载
+    const loadMessages = async (loadMore = false) => {
+      if (messagesPagination.isLoading || (!loadMore && messagesPagination.currentPage > 0)) {
+        return
+      }
+      
+      messagesPagination.isLoading = true
+      
+      try {
+        const params = {
+          limit: messagesPagination.pageSize,
+          page: messagesPagination.currentPage
+        }
+        
+        // 如果是加载更多，使用最旧消息的ID作为参考点
+        if (loadMore && messagesPagination.oldestMessageId) {
+          params.before = messagesPagination.oldestMessageId
+        }
+        
+        const response = await axios.get(`/api/chatrooms/${roomId.value}/messages`, { params })
+        
+        const messageData = response.data.data
+        const messagesArray = Array.isArray(messageData) ? messageData : messageData.messages || []
+        
+        // 只过滤掉临时系统消息，保留持久系统消息
+        const persistentMessages = messagesArray.filter(msg => 
+          msg.messageType !== 'system' || 
+          (msg.messageType === 'system' && msg.systemMessageType === 'persistent')
+        )
+        
+        const formattedMessages = persistentMessages.map(msg => ({
+          id: msg.id,
+          type: msg.messageType === 'system' ? 'system' : 'user',
+          userName: msg.user?.nickname || msg.nickname || '未知用户',
+          userUid: msg.userUid || msg.sender_uid,
+          userAvatar: msg.user?.avatarUrl || msg.avatar_url || '/avatars/default',
+          text: msg.content,
+          timestamp: msg.createdAt,
+          isOwn: (msg.userUid || msg.sender_uid) === authStore.user?.uid,
+          isAdmin: msg.user?.isAdmin || false,
+          systemMessageType: msg.systemMessageType,
+          visibilityScope: msg.visibilityScope,
+          visibleToUsers: msg.visibleToUsers
+        }))
+        
+        if (loadMore) {
+          // 加载更多时，将新消息插入到数组开头（保持时间顺序）
+          messages.unshift(...formattedMessages.reverse())
+        } else {
+          // 首次加载，直接替换消息数组
+          messages.splice(0, messages.length, ...formattedMessages)
+        }
+        
+        // 更新分页状态
+        messagesPagination.hasMore = formattedMessages.length === messagesPagination.pageSize
+        messagesPagination.currentPage++
+        
+        // 更新最旧消息ID
+        if (messages.length > 0) {
+          messagesPagination.oldestMessageId = messages[0].id
+        }
+        
+        // 首次加载时滚动到底部，加载更多时保持当前位置
+        await nextTick()
+        if (!loadMore) {
+          scrollToBottom()
+        } else {
+          // 加载更多后，保持滚动位置相对稳定
+          maintainScrollPosition()
+        }
+        
+      } catch (error) {
+        console.error('加载消息失败:', error)
+        notificationStore.error('加载聊天记录失败')
+      } finally {
+        messagesPagination.isLoading = false
+      }
+    }
+    
+    // 加载更多历史消息
+    const loadMoreMessages = async () => {
+      if (!messagesPagination.hasMore || messagesPagination.isLoading) {
+        return
+      }
+      
+      await loadMessages(true)
+    }
+    
+    // 保持滚动位置（加载更多消息后使用）
+    const maintainScrollPosition = () => {
+      if (messageList.value) {
+        // 滚动到距离底部一定距离的位置，避免跳动
+        const scrollHeight = messageList.value.scrollHeight
+        const clientHeight = messageList.value.clientHeight
+        const newScrollTop = scrollHeight - clientHeight - 100 // 保持100px的缓冲
+        messageList.value.scrollTop = Math.max(0, newScrollTop)
+      }
+    }
+    
+    // 监听滚动事件，实现上拉加载更多
+    const handleScroll = () => {
+      if (!messageList.value || messagesPagination.isLoading || !messagesPagination.hasMore) {
+        return
+      }
+      
+      const { scrollTop } = messageList.value
+      
+      // 当滚动到顶部附近时，加载更多历史消息
+      if (scrollTop < 100) {
+        loadMoreMessages()
+      }
+    }
+    
+    // 滚动到底部
+    const scrollToBottom = (smooth = true) => {
+      if (messageList.value) {
+        const scrollOptions = {
+          top: messageList.value.scrollHeight,
+          behavior: smooth ? 'smooth' : 'instant'
+        }
+        messageList.value.scrollTo(scrollOptions)
+      }
+    }
+    
+    // 检查是否在底部附近
+    const isNearBottom = () => {
+      if (!messageList.value) return true
+      
+      const { scrollTop, scrollHeight, clientHeight } = messageList.value
+      return scrollHeight - scrollTop - clientHeight < 50
+    }
+    
+    // 发送消息
+    const sendMessage = async () => {
+      if (!newMessage.value.trim() || !canSendMessage.value) return
+      
+      if (socket.value && socket.value.connected) {
+        // 使用WebSocket发送消息
+        socket.value.emit('send-message', {
+          roomId: roomId.value,
+          content: newMessage.value.trim(),
+          messageType: 'text'
+        })
+        
+        newMessage.value = ''
+      } else {
+        // 如果WebSocket未连接，使用HTTP API作为备选
+        try {
+          const response = await axios.post(`/api/chatrooms/${roomId.value}/messages`, {
+            content: newMessage.value.trim(),
+            messageType: 'text'
+          })
+          
+          const msg = response.data.data
+          
+          // 处理用户消息和持久系统消息
+          if (msg.messageType !== 'system' || msg.systemMessageType === 'persistent') {
+            messages.push({
+              id: msg.id,
+              type: msg.messageType === 'system' ? 'system' : 'user',
+              userName: msg.user?.nickname || authStore.user?.nickname || '未知用户',
+              userUid: msg.userUid || msg.sender_uid,
+              userAvatar: msg.user?.avatarUrl || authStore.user?.avatarUrl || '/avatars/default',
+              text: msg.content,
+              timestamp: msg.createdAt,
+              isOwn: true,
+              isAdmin: msg.user?.isAdmin || false,
+              systemMessageType: msg.systemMessageType,
+              visibilityScope: msg.visibilityScope,
+              visibleToUsers: msg.visibleToUsers
+            })
+          }
+          
+          newMessage.value = ''
+          await nextTick()
+          scrollToBottom(false) // 发送消息后立即滚动到底部，不使用平滑滚动
+          
+        } catch (error) {
+          console.error('发送消息失败:', error)
+          notificationStore.error('发送消息失败: ' + (error.response?.data?.message || error.message))
+        }
+      }
+    }
+    
+    // 获取头像URL
+    const getAvatarUrl = (avatarPath) => {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+      
+      if (!avatarPath) {
+        return `${baseUrl}/avatars/default`
+      }
+      
+      // 如果是完整URL，直接返回
+      if (avatarPath.startsWith('http') || avatarPath.startsWith('data:')) {
+        return avatarPath
+      }
+      
+      // 使用新的固定头像URL格式
+      return `${baseUrl}${avatarPath}`
+    }
+    
+    // 添加临时通知
+    const addTemporaryNotification = (message, type = 'info') => {
+      const notification = {
+        id: Date.now() + Math.random(),
+        message,
+        type,
+        timestamp: new Date()
+      }
+      
+      temporaryNotifications.value.push(notification)
+      
+      // 3秒后自动移除
+      setTimeout(() => {
+        const index = temporaryNotifications.value.findIndex(n => n.id === notification.id)
+        if (index > -1) {
+          temporaryNotifications.value.splice(index, 1)
+        }
+      }, 3000)
+      
+      // 最多保留5条通知
+      if (temporaryNotifications.value.length > 5) {
+        temporaryNotifications.value.shift()
+      }
+    }
+    
+    // 获取通知图标
+    const getNotificationIcon = (type) => {
+      const icons = {
+        join: 'fas fa-user-plus',
+        leave: 'fas fa-user-minus',
+        info: 'fas fa-info-circle',
+        warning: 'fas fa-exclamation-triangle',
+        error: 'fas fa-times-circle'
+      }
+      return icons[type] || icons.info
+    }
+    
+    // 格式化时间
+    const formatTime = (timestamp) => {
+      // 确保timestamp是数字类型
+      const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp
+      const date = new Date(time)
+      
+      // 检查是否是有效日期
+      if (isNaN(date.getTime())) {
+        return '时间错误'
+      }
+      
+      const now = new Date()
+      const diff = now - date
+      
+      // 如果是今天的消息，显示时间
+      if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
+        return date.toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })
+      }
+      
+      // 如果是昨天或更早，显示日期和时间
+      return date.toLocaleString('zh-CN', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+    
+    // 连接WebSocket
+    const connectWebSocket = () => {
+      console.log('准备连接WebSocket，token:', authStore.token)
+      if (!authStore.token) {
+        console.error('无法连接WebSocket：缺少认证令牌')
+        return
+      }
+      
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+      const corsConfig = getWebSocketCorsConfig()
+      
+      socket.value = io(socketUrl, {
+        auth: {
+          token: authStore.token
+        },
+        transports: ['websocket', 'polling'],
+        // 应用CORS配置
+        withCredentials: corsConfig.credentials,
+        extraHeaders: {
+          'Origin': window.location.origin
+        }
+      })
+      
+      // 连接成功
+      socket.value.on('connect', () => {
+        console.log('WebSocket连接成功')
+        addTemporaryNotification('已连接到实时聊天', 'info')
+        // 加入聊天室
+        socket.value.emit('join-room', { roomId: roomId.value })
+      })
+      
+      // 连接错误
+      socket.value.on('connect_error', (error) => {
+        console.error('WebSocket连接失败:', error)
+        addTemporaryNotification('实时连接失败，消息可能延迟', 'error')
+      })
+      
+      // 断开连接
+      socket.value.on('disconnect', (reason) => {
+        console.log('WebSocket连接断开:', reason)
+        if (reason !== 'io client disconnect') {
+          addTemporaryNotification('连接已断开，正在重连...', 'warning')
+        }
+      })
+      
+      // 重连成功
+      socket.value.on('reconnect', () => {
+        console.log('WebSocket重连成功')
+        addTemporaryNotification('重连成功', 'info')
+      })
+      
+      // 加入房间成功
+      socket.value.on('room-joined', (data) => {
+        console.log('成功加入房间:', data)
+        onlineUsers.value = data.onlineUsers || []
+        addTemporaryNotification(`已加入聊天室，当前在线 ${data.onlineUsers?.length || 0} 人`, 'info')
+        
+        // 重新加载成员列表
+        loadRoomMembers()
+      })
+      
+      // 新消息
+      socket.value.on('new-message', (messageData) => {
+        console.log('收到新消息:', messageData)
+        
+        // 如果是临时系统消息，通过临时通知显示
+        if (messageData.messageType === 'system' && messageData.systemMessageType === 'temporary') {
+          addTemporaryNotification(messageData.content, 'info')
+          return
+        }
+        
+        // 处理用户消息和持久系统消息
+        const newMessage = {
+          id: messageData.id,
+          type: messageData.messageType === 'system' ? 'system' : 'user',
+          userName: messageData.user?.nickname || messageData.userName || '未知用户',
+          userUid: messageData.userUid || messageData.sender_uid,
+          userAvatar: messageData.user?.avatarUrl || messageData.userAvatar || '/avatars/default',
+          text: messageData.content,
+          timestamp: messageData.createdAt,
+          isOwn: messageData.userUid === authStore.user?.uid,
+          isAdmin: messageData.user?.isAdmin || false,
+          systemMessageType: messageData.systemMessageType,
+          visibilityScope: messageData.visibilityScope,
+          visibleToUsers: messageData.visibleToUsers
+        }
+        
+        // 记录用户是否在底部附近
+        const wasNearBottom = isNearBottom()
+        
+        messages.push(newMessage)
+        
+        nextTick(() => {
+          // 只有在用户在底部附近或者是自己发送的消息时才自动滚动到底部
+          if (wasNearBottom || newMessage.isOwn) {
+            scrollToBottom()
+          }
+        })
+      })
+      
+      // 用户加入/离开
+      socket.value.on('user-joined', (data) => {
+        console.log('用户加入:', data)
+        onlineUsers.value = data.onlineUsers || []
+        
+        // 显示临时通知而不是聊天消息
+        if (data.user && data.user.uid !== authStore.user?.uid) {
+          addTemporaryNotification(`${data.user.nickname} 加入了聊天室`, 'join')
+        }
+        
+        // 重新加载成员列表
+        loadRoomMembers()
+      })
+      
+      socket.value.on('user-left', (data) => {
+        console.log('用户离开:', data)
+        onlineUsers.value = data.onlineUsers || []
+        
+        // 显示临时通知而不是聊天消息
+        if (data.user && data.user.uid !== authStore.user?.uid) {
+          addTemporaryNotification(`${data.user.nickname} 离开了聊天室`, 'leave')
+        }
+        
+        // 重新加载成员列表
+        loadRoomMembers()
+      })
+      
+      // 在线用户列表更新
+      socket.value.on('online-users', (data) => {
+        onlineUsers.value = data.users || []
+      })
+      
+      // 聊天室被解散
+      socket.value.on('room-dissolved', (data) => {
+        console.log('聊天室被解散:', data)
+        addTemporaryNotification(data.message, 'warning')
+        
+        // 3秒后自动跳转到首页
+        setTimeout(() => {
+          notificationStore.error('聊天室已被解散，正在返回首页...')
+          router.push({ name: 'Home' })
+        }, 3000)
+      })
+  
+  // 用户被踢出
+  socket.value.on('user-kicked', (data) => {
+    console.log('用户被踢出事件:', data)
+    
+    if (data.kickedUid === authStore.user?.uid) {
+      // 当前用户被踢出
+      addTemporaryNotification('您已被移出聊天室', 'warning')
+      setTimeout(() => {
+        notificationStore.error('您已被移出聊天室')
+        router.push({ name: 'RoomSelect' })
+      }, 2000)
+    } else {
+      // 其他用户被踢出，直接显示离开消息，避免重复
+      const kickedUser = data.kickedUser || { nickname: '用户' }
+      addTemporaryNotification(`${kickedUser.nickname} 离开了聊天室`, 'leave')
+      
+      // 更新在线用户列表
+      onlineUsers.value = onlineUsers.value.filter(user => user.uid !== data.kickedUid)
+      
+      // 重新加载成员列表
+      loadRoomMembers()
+    }
+  })
+  
+  // 用户被禁言/解除禁言
+  socket.value.on('user-muted', (data) => {
+    console.log('用户禁言状态变化:', data)
+    
+    if (data.targetUid === authStore.user?.uid) {
+      // 当前用户被禁言或解除禁言
+      if (data.isMuted) {
+        authStore.user.muteUntil = data.muteUntil
+        addTemporaryNotification(`您已被禁言，${data.duration}分钟后可以发言`, 'warning')
+      } else {
+        authStore.user.muteUntil = null
+        addTemporaryNotification('您的禁言已被解除', 'info')
+      }
+    }
+    
+    // 更新成员列表中的禁言状态
+    const member = roomMembers.value.find(m => m.uid === data.targetUid)
+    if (member) {
+      member.isMuted = data.isMuted
+      member.muteUntil = data.isMuted ? data.muteUntil : null
+    }
+  })
+    }
+    
+    // 断开WebSocket连接
+    const disconnectWebSocket = () => {
+      if (socket.value) {
+        socket.value.disconnect()
+        socket.value = null
+      }
+    }
+    
+    // 离开房间
+    const leaveRoom = () => {
+      disconnectWebSocket()
+      router.push({ name: 'Home' })
+    }
+    
+    // 初始化聊天室
+    const initializeChatroom = async () => {
+      isLoading.value = true
+      
+      try {
+        // 等待认证状态初始化完成
+        if (!authStore.isInitialized) {
+          await authStore.initialize()
+        }
+        
+        // 检查用户是否已登录
+        if (!authStore.isAuthenticated) {
+          notificationStore.error('请先登录')
+          router.push({ name: 'Home' })
+          return
+        }
+        
+        // 验证聊天室是否存在
+        const isValid = await validateChatroom()
+        if (!isValid) {
+          router.push({ name: 'RoomSelect' })
+          return
+        }
+        
+        // 加载历史消息
+        await loadMessages()
+        
+        notificationStore.success(`成功加入聊天室"${roomInfo.value.name}"`)
+        
+        // 连接WebSocket
+        connectWebSocket()
+        
+      } catch (error) {
+        console.error('初始化聊天室失败:', error)
+        notificationStore.error('初始化聊天室失败')
+        router.push({ name: 'RoomSelect' })
+      } finally {
+        isLoading.value = false
+      }
+    }
+    
+    // 禁言倒计时定时器
+    const muteTimer = ref(null)
+    
+    // 启动禁言倒计时
+    const startMuteTimer = () => {
+      if (muteTimer.value) {
+        clearInterval(muteTimer.value)
+      }
+      
+  if (muteTimeRemaining.value > 0) {
+        muteTimer.value = setInterval(() => {
+          // 更新当前时间，触发计算属性重新计算
+          currentTime.value = Date.now()
+          
+          // 如果禁言时间结束则清除定时器
+          if (muteTimeRemaining.value <= 0) {
+            clearInterval(muteTimer.value)
+            muteTimer.value = null
+            addTemporaryNotification('禁言时间已结束，现在可以发言了！', 'info')
+          }
+        }, 1000)
+      }
+    }
+    
+    // 监听认证状态变化，重新启动倒计时
+    watch(
+  () => authStore.user?.muteUntil,
+      () => {
+        startMuteTimer()
+      },
+      { immediate: false }
+    )
+    
+    // 监听在线用户变化，更新成员列表状态
+    watch(
+      () => onlineUsers.value,
+      (newOnlineUsers) => {
+        if (roomMembers.value.length > 0) {
+          roomMembers.value = roomMembers.value.map(member => ({
+            ...member,
+            status: member.uid === authStore.user?.uid ? 'online' : 
+                   newOnlineUsers.some(u => u.uid === member.uid) ? 'online' : 
+                   member.status === 'left' ? 'left' : 'offline'
+          }))
+        }
+      },
+      { deep: true }
+    )
+    
+    // 生命周期 (已合并到后面的onMounted中)
+    
+    onUnmounted(() => {
+      disconnectWebSocket()
+      if (muteTimer.value) {
+        clearInterval(muteTimer.value)
+      }
+    })
+    
+    // 新增方法
+    // 检测移动端
+    const checkMobile = () => {
+      isMobile.value = window.innerWidth <= 768
+      if (isMobile.value) {
+        showRoomList.value = false
+        showMemberList.value = false
+      } else {
+        showRoomList.value = true
+        showMemberList.value = true
+      }
+    }
+    
+    // 切换房间列表显示
+    const toggleRoomList = () => {
+      showRoomList.value = !showRoomList.value
+    }
+    
+    // 切换成员列表显示
+    const toggleMemberList = () => {
+      showMemberList.value = !showMemberList.value
+    }
+    
+    // 关闭移动端侧边栏
+    const closeMobileSidebars = () => {
+      if (isMobile.value) {
+        showRoomList.value = false
+        showMemberList.value = false
+      }
+    }
+    
+    // 返回首页
+    const goHome = () => {
+      router.push({ name: 'Home' })
+    }
+    
+    // 跳转到加入聊天页面
+    const goToRoomSelect = () => {
+      router.push({ name: 'RoomSelect' })
+    }
+    
+    // 切换房间
+    const switchRoom = (newRoomId) => {
+      if (newRoomId !== roomId.value) {
+        router.push({ name: 'ChatRoom', params: { roomId: newRoomId } })
+      }
+    }
+    
+    // 确认退出房间
+    const confirmLeaveRoom = () => {
+      showLeaveConfirm.value = true
+    }
+    
+    // 取消退出
+    const cancelLeave = () => {
+      showLeaveConfirm.value = false
+    }
+    
+    // 确认退出/解散
+    const confirmLeave = async () => {
+      showLeaveConfirm.value = false
+      
+      try {
+        if (isCreator.value) {
+          // 房主解散房间
+          await axios.delete(`/api/chatrooms/${roomId.value}`)
+          notificationStore.success('房间已解散')
+        } else {
+          // 普通用户退出房间
+          await axios.post(`/api/chatrooms/${roomId.value}/leave`)
+          notificationStore.success('已退出房间')
+        }
+        
+        // 断开WebSocket连接
+        disconnectWebSocket()
+        
+        // 跳转到首页
+        router.push({ name: 'Home' })
+        
+      } catch (error) {
+        console.error('退出房间失败:', error)
+        notificationStore.error('操作失败: ' + (error.response?.data?.message || error.message))
+      }
+    }
+    
+    // 加载已加入的房间列表
+    const loadJoinedRooms = async () => {
+      try {
+        if (authStore.isUser) {
+          // 注册用户：获取创建的房间列表
+          const response = await axios.get('/api/chatrooms/my/rooms')
+          const userRooms = response.data.data || []
+          
+          joinedRooms.value = userRooms.map(room => ({
+            roomId: room.roomId,
+            name: room.name,
+            connected: true,
+            unreadCount: 0
+          }))
+        } else {
+          // 匿名用户：只显示当前房间
+          joinedRooms.value = [
+            {
+              roomId: roomId.value,
+              name: roomName.value,
+              connected: true,
+              unreadCount: 0
+            }
+          ]
+        }
+        
+        // 确保当前房间在列表中
+        const currentRoomExists = joinedRooms.value.some(room => room.roomId === roomId.value)
+        if (!currentRoomExists) {
+          joinedRooms.value.unshift({
+            roomId: roomId.value,
+            name: roomName.value,
+            connected: true,
+            unreadCount: 0
+          })
+        }
+      } catch (error) {
+        console.error('加载房间列表失败:', error)
+        // 备选方案：至少显示当前房间
+        joinedRooms.value = [
+          {
+            roomId: roomId.value,
+            name: roomName.value,
+            connected: true,
+            unreadCount: 0
+          }
+        ]
+      }
+    }
+    
+    // 加载房间成员列表
+    const loadRoomMembers = async () => {
+      try {
+        console.log('正在加载房间成员列表，房间ID:', roomId.value)
+        const response = await axios.get(`/api/chatrooms/${roomId.value}/members`)
+        const members = response.data.data || []
+        console.log('获取到的成员列表:', members)
+        
+        // 更新成员状态，当前用户设为在线
+        roomMembers.value = members.map(member => {
+          let status = member.status || 'offline'
+          
+          // 当前用户设为在线
+          if (member.uid === authStore.user?.uid) {
+            status = 'online'
+          }
+          // 检查是否在WebSocket在线用户列表中
+          else if (onlineUsers.value.some(u => u.uid === member.uid)) {
+            status = 'online'
+          }
+      
+      // 检查禁言状态
+      let isMuted = false
+      let muteUntil = null
+      if (member.muteUntil) {
+        const muteEndTime = new Date(member.muteUntil)
+        const now = new Date()
+        isMuted = now < muteEndTime
+        muteUntil = isMuted ? member.muteUntil : null
+      }
+          
+          return {
+            ...member,
+        status,
+        isMuted,
+        muteUntil
+          }
+        })
+        
+        // 如果当前用户不在成员列表中，添加当前用户
+        const currentUserExists = roomMembers.value.some(member => member.uid === authStore.user?.uid)
+        console.log('当前用户是否在成员列表中:', currentUserExists, '当前用户:', authStore.user?.uid)
+        
+        if (!currentUserExists && authStore.user) {
+          console.log('添加当前用户到成员列表')
+      
+      // 检查当前用户的禁言状态
+      let isMuted = false
+      let muteUntil = null
+      if (authStore.user.muteUntil) {
+        const muteEndTime = new Date(authStore.user.muteUntil)
+        const now = new Date()
+        isMuted = now < muteEndTime
+        muteUntil = isMuted ? authStore.user.muteUntil : null
+      }
+      
+          roomMembers.value.unshift({
+            uid: authStore.user.uid,
+            nickname: authStore.user.nickname,
+            avatarUrl: authStore.user.avatarUrl,
+            type: authStore.user.type,
+            status: 'online',
+            isCreator: isCreator.value,
+            isAdmin: false, // 需要从后端获取
+        isMuted,
+        muteUntil,
+            joinTime: new Date().toISOString(),
+            lastActiveTime: new Date().toISOString()
+          })
+        }
+        
+        console.log('最终成员列表:', roomMembers.value)
+        
+      } catch (error) {
+        console.error('加载成员列表失败:', error)
+        // 使用当前用户作为备选
+        if (authStore.user) {
+      // 检查当前用户的禁言状态
+      let isMuted = false
+      let muteUntil = null
+      if (authStore.user.muteUntil) {
+        const muteEndTime = new Date(authStore.user.muteUntil)
+        const now = new Date()
+        isMuted = now < muteEndTime
+        muteUntil = isMuted ? authStore.user.muteUntil : null
+      }
+      
+          roomMembers.value = [{
+            uid: authStore.user.uid,
+            nickname: authStore.user.nickname,
+            avatarUrl: authStore.user.avatarUrl,
+            type: authStore.user.type,
+            status: 'online',
+            isCreator: isCreator.value,
+            isAdmin: false,
+        isMuted,
+        muteUntil,
+            joinTime: new Date().toISOString(),
+            lastActiveTime: new Date().toISOString()
+          }]
+        }
+      }
+    }
+    
+    // 监听窗口大小变化
+    const handleResize = () => {
+      checkMobile()
+    }
+    
+// 用户管理函数需要适配新的事件格式
+const handleShowUserContextMenu = (event, user, sourceType = 'member') => {
+  // 只有创建者才能显示管理菜单
+  if (!isCreator.value) return
+  
+  // 不能对自己使用右键菜单
+  if (user.uid === authStore.user?.uid) return
+  
+  showUserContextMenu(event, user, sourceType)
+}
+
+// 确认禁言
+const confirmMute = async (duration) => {
+  if (!muteDialog.value.targetUser) return
+  
+  try {
+    await axios.post(`/api/chatrooms/${roomId.value}/mute`, {
+      targetUid: muteDialog.value.targetUser.uid,
+      duration: duration
+    })
+    
+    notificationStore.success(`已禁言用户 ${muteDialog.value.targetUser.nickname}`)
+    
+    // 更新成员状态
+    const member = roomMembers.value.find(m => m.uid === muteDialog.value.targetUser.uid)
+    if (member) {
+      member.isMuted = true
+      member.muteUntil = new Date(Date.now() + duration * 1000)
+    }
+    
+    cancelMute()
+  } catch (error) {
+    console.error('禁言用户失败:', error)
+    notificationStore.error('禁言失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 取消禁言
+const unmuteUser = async (user) => {
+  closeContextMenu()
+  
+  try {
+    await axios.post(`/api/chatrooms/${roomId.value}/unmute`, {
+      targetUid: user.uid
+    })
+    
+    notificationStore.success(`已取消禁言用户 ${user.nickname}`)
+    
+    // 更新成员状态
+    const member = roomMembers.value.find(m => m.uid === user.uid)
+    if (member) {
+      member.isMuted = false
+      member.muteUntil = null
+    }
+  } catch (error) {
+    console.error('取消禁言失败:', error)
+    notificationStore.error('取消禁言失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 设置/取消管理员
+const setUserAdmin = async (user, isAdmin) => {
+  closeContextMenu()
+  
+  try {
+    await axios.post(`/api/chatrooms/${roomId.value}/admin`, {
+      targetUid: user.uid,
+      isAdmin
+    })
+    
+    notificationStore.success(`已${isAdmin ? '设置' : '取消'}用户 ${user.nickname} 的管理员权限`)
+    
+    // 更新成员状态
+    const member = roomMembers.value.find(m => m.uid === user.uid)
+    if (member) {
+      member.isAdmin = isAdmin
+    }
+  } catch (error) {
+    console.error('设置管理员失败:', error)
+    notificationStore.error('操作失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 确认踢出用户
+const confirmKickUser = async () => {
+  if (!kickDialog.value.targetUser) return
+  
+  try {
+    await axios.post(`/api/chatrooms/${roomId.value}/kick`, {
+      targetUid: kickDialog.value.targetUser.uid
+    })
+    
+    notificationStore.success(`已移出用户 ${kickDialog.value.targetUser.nickname}`)
+    
+    // 从成员列表中移除（会通过WebSocket user-left事件自动更新）
+    
+    cancelKick()
+  } catch (error) {
+    console.error('踢出用户失败:', error)
+    notificationStore.error('踢出失败: ' + (error.response?.data?.message || error.message))
+  }
+    }
+    
+    // 生命周期
+    onMounted(async () => {
+      window.addEventListener('resize', handleResize)
+      checkMobile()
+      await initializeChatroom()
+      await loadJoinedRooms()
+      await loadRoomMembers()
+      startMuteTimer()
+    })
+    
+    // 在组件卸载时移除事件监听
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize)
+      disconnectWebSocket()
+      if (muteTimer.value) {
+        clearInterval(muteTimer.value)
+      }
+    })
+    
+// 在 <script setup> 中，所有顶层定义的变量和函数都会自动暴露给模板
+</script>
+
+<style scoped>
+/* 基础样式 */
+.chatroom-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f8f9fa;
+}
+
+.loading-container .loading-spinner {
+  font-size: 2rem;
+  color: #1976d2;
+  margin-bottom: 1rem;
+}
+
+.loading-container p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+/* 布局 */
+.chatroom-layout {
+  height: 100vh;
+  display: flex;
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+/* 侧边栏通用样式 */
+.sidebar {
+  width: 280px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+  z-index: 20;
+}
+
+.left-sidebar {
+  border-right: 1px solid #e9ecef;
+}
+
+.right-sidebar {
+  border-left: 1px solid #e9ecef;
+}
+
+.sidebar-hidden {
+  transform: translateX(-100%);
+}
+
+.right-sidebar.sidebar-hidden {
+  transform: translateX(100%);
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: none;
+}
+
+.sidebar-toggle:hover {
+  background: #e9ecef;
+  color: #2c3e50;
+}
+
+/* 主内容区域 */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 顶部导航栏 */
+.chatroom-header {
+  background: white;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #6c757d;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: #f8f9fa;
+  color: #2c3e50;
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-info h1 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 24px;
+}
+
+.room-id,
+.room-info .room-id {
+  color: #6c757d;
+  font-size: 14px;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.room-info .room-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.room-password-indicator {
+  color: #ffc107;
+  font-size: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-right: 3px;
+}
+
+.user-uid {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.leave-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.3s ease;
+}
+
+.leave-button:hover {
+  background: #c82333;
+}
+
+.leave-text {
+  display: inline;
+}
+
+/* 房间列表样式 */
+.room-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.room-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.room-item:hover {
+  background: #f8f9fa;
+}
+
+.room-active {
+  background: #e3f2fd !important;
+}
+
+.room-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unread-badge {
+  background: #dc3545;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.connection-dot.connected {
+  color: #28a745;
+}
+
+.connection-dot.disconnected {
+  color: #6c757d;
+}
+
+.sidebar-footer {
+  padding: 15px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.join-chat-button,
+.home-button {
+  width: 100%;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: background 0.2s ease;
+}
+
+.join-chat-button {
+  border: 1px solid #28a745;
+  color: #28a745;
+  background: transparent;
+}
+
+.join-chat-button:hover {
+  border-color: #218838;
+  color: #218838;
+}
+
+.home-button {
+  background: #1976d2;
+  color: white;
+}
+
+.home-button:hover {
+  background: #1565c0;
+}
+
+/* 成员列表样式 */
+.member-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.member-section {
+  margin-bottom: 20px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6c757d;
+  margin-bottom: 10px;
+  padding: 0 8px;
+}
+
+.online-dot {
+  color: #28a745;
+  font-size: 10px;
+}
+
+.offline-dot {
+  color: #ffc107;
+  font-size: 10px;
+}
+
+.left-dot {
+  color: #6c757d;
+  font-size: 10px;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.member-item:hover {
+  background: #f8f9fa;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 10px;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.member-uid {
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.creator-icon {
+  color: #ffd700;
+  font-size: 12px;
+}
+
+.admin-icon {
+  color: #1976d2;
+  font-size: 12px;
+}
+
+.muted-icon {
+  color: #dc3545;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.member-status {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.member-status.online {
+  background: #d4edda;
+  color: #155724;
+}
+
+.member-status.offline {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.member-status.left {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* 移动端遮罩层 */
+.mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 15;
+  display: none;
+}
+
+/* 确认对话框 */
+.confirm-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.dialog-header {
+  padding: 20px 20px 0;
+  text-align: center;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.dialog-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.dialog-content p {
+  margin: 0;
+  color: #6c757d;
+  line-height: 1.5;
+}
+
+.warning-icon {
+  color: #ffc107;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.dialog-actions {
+  padding: 0 20px 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.cancel-button,
+.confirm-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.cancel-button {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.cancel-button:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.confirm-button {
+  background: #1976d2;
+  color: white;
+}
+
+.confirm-button:hover {
+  background: #1565c0;
+}
+
+.confirm-button.danger {
+  background: #dc3545;
+}
+
+.confirm-button.danger:hover {
+  background: #c82333;
+}
+
+/* 聊天内容区域 */
+.chatroom-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 临时通知样式 */
+.temporary-notifications {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 300px;
+}
+
+.temp-notification {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid #2196f3;
+  font-size: 14px;
+  color: #2c3e50;
+  animation: slideInRight 0.3s ease-out;
+  transition: all 0.3s ease;
+}
+
+.temp-notification:hover {
+  transform: translateX(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.notification-join {
+  border-left-color: #4caf50;
+}
+
+.notification-join i {
+  color: #4caf50;
+}
+
+.notification-leave {
+  border-left-color: #ff9800;
+}
+
+.notification-leave i {
+  color: #ff9800;
+}
+
+.notification-info {
+  border-left-color: #2196f3;
+}
+
+.notification-info i {
+  color: #2196f3;
+}
+
+.notification-warning {
+  border-left-color: #ff9800;
+}
+
+.notification-warning i {
+  color: #ff9800;
+}
+
+.notification-error {
+  border-left-color: #f44336;
+}
+
+.notification-error i {
+  color: #f44336;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.messages-area {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.message-list {
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.messages-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  justify-content: flex-end;
+}
+
+.empty-messages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #6c757d;
+}
+
+.empty-messages i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* 加载指示器样式 */
+.loading-more,
+.no-more-messages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #6c757d;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.no-more-messages {
+  color: #999;
+  font-size: 13px;
+  padding: 12px;
+  opacity: 0.8;
+}
+
+.loading-more .loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-more .loading-spinner i {
+  font-size: 16px;
+}
+
+.no-more-messages i {
+  font-size: 14px;
+}
+
+/* 消息样式 */
+.message {
+  margin-bottom: 16px;
+}
+
+.message-continuous {
+  margin-bottom: 4px;
+}
+
+.message-first-in-group {
+  margin-bottom: 4px;
+}
+
+.message-last-in-group {
+  margin-bottom: 16px;
+}
+
+.message-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.message-own .message-wrapper {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e9ecef;
+}
+
+.message-content {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  word-wrap: break-word;
+  position: relative;
+}
+
+.message-continuous .message-content {
+  padding: 8px 16px;
+  margin-top: 2px;
+}
+
+.message-own .message-content {
+  background: #1976d2;
+  color: white;
+}
+
+.message-content::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-right-color: white;
+}
+
+.message-own .message-content::before {
+  left: auto;
+  right: -8px;
+  border-left-color: #1976d2;
+  border-right-color: transparent;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+
+.message-own .user-name {
+  color: #e3f2fd;
+}
+
+.admin-icon {
+  color: #ffc107;
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+.message-time {
+  color: #6c757d;
+  font-size: 11px;
+}
+
+.message-own .message-time {
+  color: #bbdefb;
+}
+
+.message-body {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.message-text {
+  line-height: 1.4;
+  color: #2c3e50;
+  word-break: break-word;
+  flex: 1;
+}
+
+.message-own .message-text {
+  color: white;
+}
+
+.message-time-inline {
+  color: #6c757d;
+  font-size: 10px;
+  opacity: 0.7;
+  white-space: nowrap;
+  align-self: flex-end;
+  margin-bottom: 2px;
+}
+
+.message-own .message-time-inline {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 系统消息样式 */
+.system-message {
+  display: flex;
+  justify-content: center;
+}
+
+.system-message-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+  color: #1976d2;
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  max-width: 80%;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
+  border: 1px solid rgba(25, 118, 210, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.system-message-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #b2d0ee, #d258e7, #b2d0ee);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.system-icon {
+  color: #1976d2;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.system-text {
+  flex: 1;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.system-time {
+  color: #666;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.7;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+/* 输入区域 */
+.input-area {
+  padding: 20px;
+  background: white;
+  border-top: 1px solid #e9ecef;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.message-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.message-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 25px;
+  outline: none;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.message-input:focus {
+  border-color: #1976d2;
+}
+
+.message-input:disabled {
+  background: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.send-button {
+  width: 48px;
+  height: 48px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.send-button:hover:not(:disabled) {
+  background: #1565c0;
+  transform: scale(1.05);
+}
+
+.send-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mute-notice,
+.auth-notice {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.auth-notice {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* 移动端响应式样式 */
+@media (max-width: 768px) {
+  .chatroom-layout {
+    position: relative;
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 30;
+    width: 280px;
+  }
+  
+  .left-sidebar {
+    left: 0;
+  }
+  
+  .right-sidebar {
+    right: 0;
+  }
+  
+  .mobile-overlay {
+    display: block !important;
+  }
+  
+  .mobile-menu-btn,
+  .sidebar-toggle {
+    display: flex !important;
+  }
+  
+  .chatroom-header {
+    padding: 12px 15px;
+  }
+  
+  .header-center .user-info {
+    display: none;
+  }
+  
+  .leave-text {
+    display: none;
+  }
+  
+  .room-info h1 {
+    font-size: 18px;
+  }
+  
+  .room-info {
+    gap: 8px;
+  }
+  
+  .confirm-dialog {
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+  
+  .message-content {
+    max-width: 85%;
+  }
+  
+  .input-area {
+    padding: 16px;
+  }
+  
+  .temporary-notifications {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .temp-notification {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+  }
+  
+  .chatroom-header {
+    padding: 10px 12px;
+  }
+  
+  .room-info h1 {
+    font-size: 16px;
+  }
+  
+  .room-id {
+    font-size: 12px;
+  }
+  
+  .header-left,
+  .header-right {
+    gap: 8px;
+  }
+}
+
+/* 右键菜单样式已移动到 @/components/common 组件中 */
+</style> 
