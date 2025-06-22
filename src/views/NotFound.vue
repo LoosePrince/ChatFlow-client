@@ -4,11 +4,12 @@
       <div class="error-code">404</div>
       <h1 class="error-title">页面未找到</h1>
       <p class="error-message">抱歉，您访问的页面不存在或已被删除</p>
+      <p class="redirect-message">将在 {{ countdown }} 秒后自动跳转到首页...</p>
       
       <div class="action-buttons">
         <button @click="goHome" class="home-button">
           <i class="fas fa-home"></i>
-          返回首页
+          立即返回首页
         </button>
         <button @click="goBack" class="back-button">
           <i class="fas fa-arrow-left"></i>
@@ -26,10 +27,26 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 // 路由相关
 const router = useRouter()
+
+// 倒计时相关
+const countdown = ref(5)
+let timer = null
+
+// 自动重定向倒计时
+const startCountdown = () => {
+  timer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(timer)
+      goHome()
+    }
+  }, 1000)
+}
 
 // 返回首页
 const goHome = () => {
@@ -40,6 +57,18 @@ const goHome = () => {
 const goBack = () => {
   router.go(-1)
 }
+
+// 组件挂载时开始倒计时
+onMounted(() => {
+  startCountdown()
+})
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer)
+  }
+})
 </script>
 
 <style scoped>
@@ -81,11 +110,19 @@ const goBack = () => {
 
 .error-message {
   font-size: 18px;
-  margin-bottom: 40px;
+  margin-bottom: 15px;
   opacity: 0.9;
   max-width: 500px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.redirect-message {
+  font-size: 16px;
+  margin-bottom: 30px;
+  opacity: 0.8;
+  color: #ffd700;
+  font-weight: 500;
 }
 
 .action-buttons {
@@ -192,6 +229,11 @@ const goBack = () => {
   
   .error-message {
     font-size: 16px;
+    padding: 0 20px;
+  }
+
+  .redirect-message {
+    font-size: 14px;
     padding: 0 20px;
   }
   

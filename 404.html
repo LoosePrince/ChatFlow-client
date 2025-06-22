@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>页面未找到 - ChatFlow</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .container {
+      text-align: center;
+      padding: 20px;
+    }
+    .error-code {
+      font-size: 120px;
+      font-weight: 900;
+      margin-bottom: 20px;
+      text-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+    .error-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+    .error-message {
+      font-size: 18px;
+      margin-bottom: 15px;
+      opacity: 0.9;
+    }
+    .redirect-message {
+      font-size: 16px;
+      margin-bottom: 30px;
+      color: #ffd700;
+      font-weight: 500;
+    }
+    .home-button {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+      text-decoration: none;
+      display: inline-block;
+    }
+    .home-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    @media (max-width: 768px) {
+      .error-code {
+        font-size: 80px;
+      }
+      .error-title {
+        font-size: 24px;
+      }
+      .error-message, .redirect-message {
+        font-size: 14px;
+        padding: 0 20px;
+      }
+      .home-button {
+        padding: 12px 24px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="error-code">404</div>
+    <h1 class="error-title">页面未找到</h1>
+    <p class="error-message">抱歉，您访问的页面不存在或已被删除</p>
+    <p class="redirect-message">正在重定向到首页...</p>
+    <a href="/" class="home-button">立即返回首页</a>
+  </div>
+
+  <script>
+    // 自动重定向到首页
+    setTimeout(function() {
+      window.location.href = '/';
+    }, 3000);
+  </script>
+</body>
+</html> 
