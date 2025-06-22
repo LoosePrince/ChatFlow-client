@@ -19,9 +19,9 @@
     </div>
     <div class="context-menu-divider"></div>
     <div class="context-menu-items">
-      <!-- 管理员相关 (不能对创建者操作) -->
+      <!-- 管理员相关 (只有创建者可以设置管理员，不能对创建者操作) -->
       <div 
-        v-if="!targetUser?.isCreator && !targetUser?.isAdmin"
+        v-if="currentUserIsCreator && !targetUser?.isCreator && !targetUser?.isAdmin"
         class="context-menu-item"
         @click="$emit('setAdmin', targetUser, true)"
       >
@@ -29,7 +29,7 @@
         <span>设为管理员</span>
       </div>
       <div 
-        v-else-if="!targetUser?.isCreator && targetUser?.isAdmin"
+        v-else-if="currentUserIsCreator && !targetUser?.isCreator && targetUser?.isAdmin"
         class="context-menu-item"
         @click="$emit('setAdmin', targetUser, false)"
       >
@@ -37,7 +37,7 @@
         <span>取消管理员</span>
       </div>
       
-      <!-- 禁言相关 (不能对创建者操作) -->
+      <!-- 禁言相关 (创建者和管理员都可以禁言，不能对创建者操作) -->
       <div 
         v-if="!targetUser?.isCreator && !targetUser?.isMuted"
         class="context-menu-item"
@@ -55,7 +55,7 @@
         <span>取消禁言</span>
       </div>
       
-      <!-- 移出用户 (不能对创建者操作) -->
+      <!-- 移出用户 (创建者和管理员都可以移出，不能对创建者操作) -->
       <div v-if="!targetUser?.isCreator" class="context-menu-divider"></div>
       <div 
         v-if="!targetUser?.isCreator"
@@ -93,6 +93,10 @@ defineProps({
   targetUser: {
     type: Object,
     default: null
+  },
+  currentUserIsCreator: {
+    type: Boolean,
+    default: false
   }
 })
 

@@ -56,6 +56,10 @@ body {
 }
 
 /* 通用组件样式 */
+.loading-spinner {
+  margin: auto;
+}
+
 .btn-primary {
   background: var(--primary-color);
   border-color: var(--primary-color);

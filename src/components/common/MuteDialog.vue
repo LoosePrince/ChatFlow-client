@@ -93,10 +93,33 @@ defineEmits(['cancel', 'confirm'])
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: overlayFadeIn 0.2s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .confirm-dialog {
@@ -107,6 +130,7 @@ defineEmits(['cancel', 'confirm'])
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
+  animation: dialogSlideIn 0.3s ease-out;
 }
 
 .mute-dialog {

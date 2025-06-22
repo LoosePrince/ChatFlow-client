@@ -124,20 +124,28 @@
                   <p>暂无消息，开始聊天吧！</p>
                 </div>
               
-              <div 
-                v-for="message in processedMessages" 
-                :key="message.id"
-                :class="[
-                  'message', 
-                  `message-${message.type}`,
-                  { 
-                    'message-own': message.isOwn,
-                    'message-first-in-group': message.isFirstInGroup,
-                    'message-last-in-group': message.isLastInGroup,
-                    'message-continuous': !message.isFirstInGroup
-                  }
-                ]"
+              <TransitionGroup 
+                name="message-delete" 
+                tag="div" 
+                class="messages-transition-group"
               >
+                <div 
+                  v-for="message in processedMessages" 
+                  :key="message.id"
+                  :data-message-id="message.id"
+                  :class="[
+                    'message', 
+                    `message-${message.type}`,
+                    { 
+                      'message-own': message.isOwn,
+                      'message-first-in-group': message.isFirstInGroup,
+                      'message-last-in-group': message.isLastInGroup,
+                      'message-continuous': !message.isFirstInGroup,
+                      'message-deleting': message.isDeleting
+                    }
+                  ]"
+                  @contextmenu="message.type !== 'system' ? handleShowMessageContextMenu($event, message) : null"
+                >
                 <!-- 系统消息 -->
                 <div v-if="message.type === 'system'" class="system-message">
                   <div class="system-message-content">
@@ -173,40 +181,159 @@
                     <div v-if="message.showHeader" class="message-header">
                       <span class="user-name">
                         {{ message.userName }}
-                        <i v-if="message.isAdmin" class="fas fa-crown admin-icon" title="管理员"></i>
+                        <i v-if="message.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
                       </span>
                       <span class="message-time">{{ formatTime(message.timestamp) }}</span>
                     </div>
                     
+                    <!-- 回复信息 -->
+                    <div v-if="message.replyToMessage" class="reply-message" @click="scrollToMessage(message.replyToMessage.id)">
+                      <div class="reply-line"></div>
+                      <div class="reply-content">
+                        <div class="reply-user">{{ message.replyToMessage.user.nickname }}</div>
+                        <div class="reply-text">
+                          <span v-if="message.replyToMessage.messageType === 'image'">
+                            <i class="fas fa-image"></i> 图片
+                          </span>
+                          <span v-else-if="message.replyToMessage.messageType === 'bilibili'">
+                            <i class="fab fa-bilibili"></i> B站视频 {{ message.replyToMessage.bilibiliId }}
+                          </span>
+                          <span v-else-if="message.replyToMessage.messageType === 'markdown'">
+                            <i class="fab fa-markdown"></i> {{ message.replyToMessage.content || 'Markdown内容' }}
+                          </span>
+                          <span v-else>{{ message.replyToMessage.content }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <!-- 消息文本和时间 -->
                     <div class="message-body">
-                      <div class="message-text">{{ message.text }}</div>
+                      <!-- 图片消息 -->
+                      <div v-if="message.type === 'image'" class="message-image">
+                        <img 
+                          :src="getImageUrl(message.imageUrl)" 
+                          :alt="message.text || '图片'"
+                          class="image-content"
+                          @click="openImagePreview(message.imageUrl, `${message.userName}发送的图片`)"
+                          @error="handleImageError"
+                        >
+                        <div v-if="message.text" class="image-caption">{{ message.text }}</div>
+                      </div>
+                      <!-- B站视频消息 -->
+                      <div v-else-if="message.type === 'bilibili'" class="bilibili-message">
+                        <div class="message-type-header bilibili-header">
+                          <i class="fab fa-bilibili"></i>
+                          <span>{{ message.bilibiliId }}</span>
+                        </div>
+                        <iframe 
+                          :src="`//player.bilibili.com/player.html?bvid=${message.bilibiliId}&autoplay=0`"
+                          class="bilibili-player"
+                          frameborder="0"
+                          allowfullscreen
+                        ></iframe>
+                      </div>
+                      <!-- Markdown消息 -->
+                      <div v-else-if="message.type === 'markdown'" class="markdown-message">
+                        <div class="message-type-header markdown-header">
+                          <i class="fab fa-markdown"></i>
+                          <span>Markdown</span>
+                        </div>
+                        <div 
+                          class="markdown-content"
+                          v-html="renderMarkdown(message.markdownContent)"
+                        ></div>
+                      </div>
+                      <!-- 文本消息 -->
+                      <div v-else class="message-text">{{ message.text }}</div>
                       <div v-if="!message.showHeader" class="message-time-inline">{{ formatTime(message.timestamp) }}</div>
                     </div>
                   </div>
                 </div>
-              </div>
+                </div>
+              </TransitionGroup>
               </div> <!-- 关闭 messages-container -->
             </div>
           </div>
 
           <div class="input-area">
-            <form @submit.prevent="sendMessage" class="message-form">
-              <input
-                v-model="newMessage"
-                type="text"
-                placeholder="输入消息..."
-                :disabled="!canSendMessage"
-                class="message-input"
-                maxlength="500"
-              >
-              <button 
-                type="submit" 
-                :disabled="!canSendMessage || !newMessage.trim()" 
-                class="send-button"
-              >
-                <i class="fas fa-paper-plane"></i>
+            <!-- 回复状态显示 -->
+            <div v-if="replyState.isReplying" class="reply-preview">
+              <div class="reply-info">
+                <i class="fas fa-reply"></i>
+                <span>回复 {{ replyState.targetMessage?.userName }}</span>
+              </div>
+              <div class="reply-content">
+                <span v-if="replyState.targetMessage?.type === 'image'">
+                  <i class="fas fa-image"></i> 图片
+                </span>
+                <span v-else-if="replyState.targetMessage?.type === 'bilibili'">
+                  <i class="fab fa-bilibili"></i> B站视频 {{ replyState.targetMessage?.bilibiliId }}
+                </span>
+                <span v-else-if="replyState.targetMessage?.type === 'markdown'">
+                  <i class="fab fa-markdown"></i> {{ replyState.targetMessage?.text || 'Markdown内容' }}
+                </span>
+                <span v-else>{{ replyState.targetMessage?.text }}</span>
+              </div>
+              <button @click="cancelReply" class="reply-cancel">
+                <i class="fas fa-times"></i>
               </button>
+            </div>
+            
+            <form @submit.prevent="sendMessage" class="message-form">
+              <!-- 功能按钮行 -->
+              <div class="function-buttons">
+                <!-- 图片选择按钮 -->
+                <button 
+                  type="button" 
+                  @click="selectImage" 
+                  :disabled="!canSendMessage"
+                  class="image-button"
+                  title="发送图片"
+                >
+                  <i class="fas fa-image"></i>
+                </button>
+                
+                <!-- 扩展消息类型按钮 -->
+                <button 
+                  type="button" 
+                  @click="showMessageTypeSelector" 
+                  :disabled="!canSendMessage"
+                  class="extend-button"
+                  title="更多消息类型"
+                >
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              
+              <!-- 输入行 -->
+              <div class="input-row">
+                <!-- 隐藏的文件输入框 -->
+                <input
+                  ref="imageInput"
+                  type="file"
+                  accept="image/*"
+                  @change="handleImageSelect"
+                  style="display: none"
+                >
+                
+                <input
+                  ref="messageInput"
+                  v-model="newMessage"
+                  type="text"
+                  placeholder="输入消息..."
+                  :disabled="!canSendMessage"
+                  class="message-input"
+                  maxlength="500"
+                  @paste="handlePaste"
+                >
+                <button 
+                  type="submit" 
+                  :disabled="!canSendMessage || !newMessage.trim()" 
+                  class="send-button"
+                >
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
             </form>
             
             <div v-if="!canSendMessage && muteTimeRemaining > 0" class="mute-notice">
@@ -354,16 +481,31 @@
     </div>
 
     <!-- 右键菜单组件 -->
-    <ContextMenu 
-      :visible="contextMenu.visible"
-      :x="contextMenu.x"
-      :y="contextMenu.y"
-      :targetUser="contextMenuUser"
-      @close="closeContextMenu"
-      @setAdmin="setUserAdmin"
-      @showMute="showMuteDialog"
-      @unmute="unmuteUser"
-      @showKick="showKickDialog"
+          <ContextMenu
+        :visible="contextMenu.visible"
+        :x="contextMenu.x"
+        :y="contextMenu.y"
+        :targetUser="contextMenuUser"
+        :currentUserIsCreator="isCreator"
+        @close="closeContextMenu"
+        @setAdmin="setUserAdmin"
+        @showMute="showMuteDialog"
+        @unmute="unmuteUser"
+        @showKick="showKickDialog"
+      />
+
+    <!-- 消息右键菜单组件 -->
+    <MessageContextMenu
+      :visible="messageContextMenu.visible"
+      :x="messageContextMenu.x"
+      :y="messageContextMenu.y"
+      :targetMessage="messageContextMenu.targetMessage"
+      :currentUser="authStore.user"
+      :isAdmin="currentUserIsAdmin"
+      :isCreator="isCreator"
+      @close="closeMessageContextMenu"
+      @reply="handleReplyMessage"
+      @delete="handleDeleteMessage"
     />
 
     <!-- 禁言弹窗组件 -->
@@ -381,6 +523,43 @@
       @cancel="cancelKick"
       @confirm="confirmKickUser"
     />
+
+    <!-- 删除消息确认弹窗 -->
+    <DeleteMessageDialog
+      :visible="deleteMessageDialog.visible"
+      :targetMessage="deleteMessageDialog.targetMessage"
+      @confirm="confirmDeleteMessage"
+      @cancel="cancelDeleteMessage"
+    />
+
+    <!-- 图片预览组件 -->
+    <ImagePreview
+      :visible="imagePreview.visible"
+      :imageUrl="imagePreview.imageUrl"
+      :imageTitle="imagePreview.title"
+      @close="closeImagePreview"
+    />
+
+    <!-- 消息类型选择器 -->
+    <MessageTypeSelector
+      :visible="messageTypeDialog.visible"
+      @close="closeMessageTypeSelector"
+      @select="handleMessageTypeSelect"
+    />
+
+    <!-- B站视频输入对话框 -->
+    <BilibiliInputDialog
+      :visible="bilibiliDialog.visible"
+      @cancel="closeBilibiliDialog"
+      @submit="handleBilibiliSubmit"
+    />
+
+    <!-- Markdown输入对话框 -->
+    <MarkdownInputDialog
+      :visible="markdownDialog.visible"
+      @cancel="closeMarkdownDialog"
+      @submit="handleMarkdownSubmit"
+    />
   </div>
 </template>
 
@@ -392,9 +571,16 @@ import axios from 'axios'
 import { io } from 'socket.io-client'
 import { getWebSocketCorsConfig } from '@/config/cors.js'
 import ContextMenu from '@/components/common/ContextMenu.vue'
+import MessageContextMenu from '@/components/common/MessageContextMenu.vue'
+import DeleteMessageDialog from '@/components/common/DeleteMessageDialog.vue'
 import MuteDialog from '@/components/common/MuteDialog.vue'
 import KickDialog from '@/components/common/KickDialog.vue'
+import ImagePreview from '@/components/common/ImagePreview.vue'
+import MessageTypeSelector from '@/components/common/MessageTypeSelector.vue'
+import BilibiliInputDialog from '@/components/common/BilibiliInputDialog.vue'
+import MarkdownInputDialog from '@/components/common/MarkdownInputDialog.vue'
 import { useContextMenu } from '@/composables/useContextMenu.js'
+import { marked } from 'marked'
 
 // 定义组件名称（在 <script setup> 中可选）
 defineOptions({
@@ -410,6 +596,8 @@ defineOptions({
     const roomInfo = ref(null)
     const newMessage = ref('')
     const messageList = ref(null)
+    const messageInput = ref(null)
+    const imageInput = ref(null)
     const isLoading = ref(true)
     const isJoining = ref(false)
     const messages = reactive([])
@@ -425,14 +613,29 @@ defineOptions({
     const isMobile = ref(false)
     const joinedRooms = ref([])
     const roomMembers = ref([])
+    
+    // 删除消息确认弹窗状态
+    const deleteMessageDialog = ref({
+      visible: false,
+      targetMessage: null
+    })
+    
+    // 回复状态
+    const replyState = ref({
+      isReplying: false,
+      targetMessage: null
+    })
 
 // 使用右键菜单功能
 const {
   contextMenu,
+  messageContextMenu,
   muteDialog,
   kickDialog,
   showUserContextMenu,
   closeContextMenu,
+  showMessageContextMenu,
+  closeMessageContextMenu,
   showMuteDialog,
   cancelMute,
   showKickDialog,
@@ -443,12 +646,17 @@ const {
     // 计算属性
     const roomName = computed(() => roomInfo.value?.name || '聊天室')
 
-// 右键菜单用户数据（需要包含头像URL）
+// 右键菜单用户数据（需要包含头像URL和最新状态）
 const contextMenuUser = computed(() => {
   if (!contextMenu.value.targetUser) return null
+  
+  // 从成员列表中找到最新的用户信息
+  const memberInfo = roomMembers.value.find(m => m.uid === contextMenu.value.targetUser.uid)
+  
   return {
     ...contextMenu.value.targetUser,
-    avatarUrl: getAvatarUrl(contextMenu.value.targetUser.avatarUrl)
+    ...memberInfo, // 合并最新的成员信息
+    avatarUrl: getAvatarUrl(contextMenu.value.targetUser.avatarUrl || memberInfo?.avatarUrl)
   }
 })
 
@@ -531,6 +739,11 @@ const kickDialogUser = computed(() => {
     // 新增计算属性
     const isCreator = computed(() => {
       return roomInfo.value?.creatorUid === authStore.user?.uid
+    })
+
+    const currentUserIsAdmin = computed(() => {
+      const currentMember = roomMembers.value.find(member => member.uid === authStore.user?.uid)
+      return currentMember?.isAdmin || false
     })
     
     const onlineMembers = computed(() => {
@@ -646,17 +859,25 @@ const kickDialogUser = computed(() => {
         
         const formattedMessages = persistentMessages.map(msg => ({
           id: msg.id,
-          type: msg.messageType === 'system' ? 'system' : 'user',
+          type: msg.messageType === 'system' ? 'system' : 
+                msg.messageType === 'image' ? 'image' :
+                msg.messageType === 'bilibili' ? 'bilibili' :
+                msg.messageType === 'markdown' ? 'markdown' : 'user',
           userName: msg.user?.nickname || msg.nickname || '未知用户',
           userUid: msg.userUid || msg.sender_uid,
           userAvatar: msg.user?.avatarUrl || msg.avatar_url || '/avatars/default',
           text: msg.content,
+          imageUrl: msg.imageUrl,
+          bilibiliId: msg.bilibiliId,
+          markdownContent: msg.markdownContent,
           timestamp: msg.createdAt,
           isOwn: (msg.userUid || msg.sender_uid) === authStore.user?.uid,
           isAdmin: msg.user?.isAdmin || false,
           systemMessageType: msg.systemMessageType,
           visibilityScope: msg.visibilityScope,
-          visibleToUsers: msg.visibleToUsers
+          visibleToUsers: msg.visibleToUsers,
+          replyToMessageId: msg.replyToMessageId,
+          replyToMessage: msg.replyToMessage
         }))
         
         if (loadMore) {
@@ -746,26 +967,127 @@ const kickDialogUser = computed(() => {
       return scrollHeight - scrollTop - clientHeight < 50
     }
     
+    // 选择图片
+    const selectImage = () => {
+      if (imageInput.value) {
+        imageInput.value.click()
+      }
+    }
+    
+    // 处理图片选择
+    const handleImageSelect = (event) => {
+      const file = event.target.files[0]
+      if (file) {
+        sendImageMessage(file)
+      }
+      // 清空input的值，允许重复选择同一文件
+      event.target.value = ''
+    }
+    
+    // 处理粘贴事件
+    const handlePaste = (event) => {
+      const items = event.clipboardData?.items
+      if (!items) return
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        if (item.type.startsWith('image/')) {
+          event.preventDefault()
+          const file = item.getAsFile()
+          if (file) {
+            sendImageMessage(file)
+          }
+          break
+        }
+      }
+    }
+    
+    // 发送图片消息
+    const sendImageMessage = async (file) => {
+      if (!canSendMessage.value) return
+      
+      // 检查文件大小（1MB = 1024 * 1024 bytes）
+      const maxSize = 1024 * 1024
+      if (file.size > maxSize) {
+        notificationStore.error('图片大小不能超过1MB')
+        return
+      }
+      
+      // 检查文件类型
+      if (!file.type.startsWith('image/')) {
+        notificationStore.error('只能发送图片文件')
+        return
+      }
+      
+      try {
+        // 创建FormData
+        const formData = new FormData()
+        formData.append('image', file)
+        formData.append('roomId', roomId.value)
+        formData.append('messageType', 'image')
+        
+        // 如果是回复消息，添加回复信息
+        if (replyState.value.isReplying && replyState.value.targetMessage) {
+          formData.append('replyToMessageId', replyState.value.targetMessage.id)
+        }
+        
+        // 发送图片
+        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        
+        // 图片发送成功，WebSocket会自动广播消息，不需要手动添加到消息列表
+        cancelReply() // 清除回复状态
+        
+        // 等待WebSocket消息到达后滚动到底部
+        setTimeout(() => {
+          scrollToBottom(false)
+        }, 100)
+        
+      } catch (error) {
+        console.error('发送图片失败:', error)
+        notificationStore.error('发送图片失败: ' + (error.response?.data?.message || error.message))
+      }
+    }
+    
     // 发送消息
     const sendMessage = async () => {
       if (!newMessage.value.trim() || !canSendMessage.value) return
       
+      // 准备消息数据
+      const messageData = {
+        roomId: roomId.value,
+        content: newMessage.value.trim(),
+        messageType: 'text'
+      }
+      
+      // 如果是回复消息，添加回复信息
+      if (replyState.value.isReplying && replyState.value.targetMessage) {
+        messageData.replyToMessageId = replyState.value.targetMessage.id
+      }
+      
       if (socket.value && socket.value.connected) {
         // 使用WebSocket发送消息
-        socket.value.emit('send-message', {
-          roomId: roomId.value,
-          content: newMessage.value.trim(),
-          messageType: 'text'
-        })
+        socket.value.emit('send-message', messageData)
         
         newMessage.value = ''
+        cancelReply() // 清除回复状态
       } else {
         // 如果WebSocket未连接，使用HTTP API作为备选
         try {
-          const response = await axios.post(`/api/chatrooms/${roomId.value}/messages`, {
+          const httpData = {
             content: newMessage.value.trim(),
             messageType: 'text'
-          })
+          }
+          
+          // 如果是回复消息，添加回复信息
+          if (replyState.value.isReplying && replyState.value.targetMessage) {
+            httpData.replyToMessageId = replyState.value.targetMessage.id
+          }
+          
+          const response = await axios.post(`/api/chatrooms/${roomId.value}/messages`, httpData)
           
           const msg = response.data.data
           
@@ -783,11 +1105,14 @@ const kickDialogUser = computed(() => {
               isAdmin: msg.user?.isAdmin || false,
               systemMessageType: msg.systemMessageType,
               visibilityScope: msg.visibilityScope,
-              visibleToUsers: msg.visibleToUsers
+              visibleToUsers: msg.visibleToUsers,
+              replyToMessageId: msg.replyToMessageId,
+              replyToMessage: msg.replyToMessage
             })
           }
           
           newMessage.value = ''
+          cancelReply() // 清除回复状态
           await nextTick()
           scrollToBottom(false) // 发送消息后立即滚动到底部，不使用平滑滚动
           
@@ -813,6 +1138,158 @@ const kickDialogUser = computed(() => {
       
       // 使用新的固定头像URL格式
       return `${baseUrl}${avatarPath}`
+    }
+    
+    // 获取图片URL
+    const getImageUrl = (imagePath) => {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+      
+      if (!imagePath) {
+        return ''
+      }
+      
+      // 如果是完整URL，直接返回
+      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+        return imagePath
+      }
+      
+      // 拼接完整URL
+      return `${baseUrl}${imagePath}`
+    }
+    
+    // 图片预览状态
+    const imagePreview = ref({
+      visible: false,
+      imageUrl: '',
+      title: ''
+    })
+
+    // 扩展消息类型对话框状态
+    const messageTypeDialog = ref({
+      visible: false
+    })
+
+    const bilibiliDialog = ref({
+      visible: false
+    })
+
+    const markdownDialog = ref({
+      visible: false
+    })
+    
+    // 打开图片预览
+    const openImagePreview = (imageUrl, title = '') => {
+      imagePreview.value = {
+        visible: true,
+        imageUrl: getImageUrl(imageUrl),
+        title: title || '图片预览'
+      }
+    }
+    
+    // 关闭图片预览
+    const closeImagePreview = () => {
+      imagePreview.value = {
+        visible: false,
+        imageUrl: '',
+        title: ''
+      }
+    }
+
+    // 显示消息类型选择器
+    const showMessageTypeSelector = () => {
+      messageTypeDialog.value.visible = true
+    }
+
+    // 关闭消息类型选择器
+    const closeMessageTypeSelector = () => {
+      messageTypeDialog.value.visible = false
+    }
+
+    // 处理消息类型选择
+    const handleMessageTypeSelect = (type) => {
+      if (type === 'bilibili') {
+        bilibiliDialog.value.visible = true
+      } else if (type === 'markdown') {
+        markdownDialog.value.visible = true
+      }
+    }
+
+    // B站视频对话框处理
+    const closeBilibiliDialog = () => {
+      bilibiliDialog.value.visible = false
+    }
+
+    const handleBilibiliSubmit = async (data) => {
+      try {
+        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/bilibili`, {
+          bilibiliId: data.bilibiliId,
+          replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+        })
+
+        cancelReply() // 清除回复状态
+        bilibiliDialog.value.visible = false
+        
+        // 等待WebSocket消息到达后滚动到底部
+        setTimeout(() => {
+          scrollToBottom(false)
+        }, 100)
+
+      } catch (error) {
+        console.error('发送B站视频失败:', error)
+        notificationStore.error('发送B站视频失败: ' + (error.response?.data?.message || error.message))
+      }
+    }
+
+    // Markdown对话框处理
+    const closeMarkdownDialog = () => {
+      markdownDialog.value.visible = false
+    }
+
+    const handleMarkdownSubmit = async (data) => {
+      try {
+        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/markdown`, {
+          markdownContent: data.markdownContent,
+          title: data.title,
+          replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+        })
+
+        cancelReply() // 清除回复状态
+        markdownDialog.value.visible = false
+        
+        // 等待WebSocket消息到达后滚动到底部
+        setTimeout(() => {
+          scrollToBottom(false)
+        }, 100)
+
+      } catch (error) {
+        console.error('发送Markdown内容失败:', error)
+        notificationStore.error('发送Markdown内容失败: ' + (error.response?.data?.message || error.message))
+      }
+    }
+    
+    // 处理图片加载错误
+    const handleImageError = (event) => {
+      event.target.src = '/avatars/default'
+      event.target.alt = '图片加载失败'
+    }
+
+    // 配置marked选项
+    marked.setOptions({
+      breaks: true,
+      gfm: true,
+      sanitize: false
+    })
+
+    // 使用marked库渲染Markdown内容
+    const renderMarkdown = (content) => {
+      if (!content) return ''
+      
+      try {
+        return marked(content)
+      } catch (error) {
+        console.error('Markdown解析错误:', error)
+        return '<p style="color: red;">Markdown解析错误</p>'
+      }
     }
     
     // 添加临时通知
@@ -958,17 +1435,25 @@ const kickDialogUser = computed(() => {
         // 处理用户消息和持久系统消息
         const newMessage = {
           id: messageData.id,
-          type: messageData.messageType === 'system' ? 'system' : 'user',
+          type: messageData.messageType === 'system' ? 'system' : 
+                messageData.messageType === 'image' ? 'image' :
+                messageData.messageType === 'bilibili' ? 'bilibili' :
+                messageData.messageType === 'markdown' ? 'markdown' : 'user',
           userName: messageData.user?.nickname || messageData.userName || '未知用户',
           userUid: messageData.userUid || messageData.sender_uid,
           userAvatar: messageData.user?.avatarUrl || messageData.userAvatar || '/avatars/default',
           text: messageData.content,
+          imageUrl: messageData.imageUrl,
+          bilibiliId: messageData.bilibiliId,
+          markdownContent: messageData.markdownContent,
           timestamp: messageData.createdAt,
           isOwn: messageData.userUid === authStore.user?.uid,
           isAdmin: messageData.user?.isAdmin || false,
           systemMessageType: messageData.systemMessageType,
           visibilityScope: messageData.visibilityScope,
-          visibleToUsers: messageData.visibleToUsers
+          visibleToUsers: messageData.visibleToUsers,
+          replyToMessageId: messageData.replyToMessageId,
+          replyToMessage: messageData.replyToMessage
         }
         
         // 记录用户是否在底部附近
@@ -1052,28 +1537,55 @@ const kickDialogUser = computed(() => {
     }
   })
   
-  // 用户被禁言/解除禁言
-  socket.value.on('user-muted', (data) => {
-    console.log('用户禁言状态变化:', data)
-    
-    if (data.targetUid === authStore.user?.uid) {
-      // 当前用户被禁言或解除禁言
-      if (data.isMuted) {
-        authStore.user.muteUntil = data.muteUntil
-        addTemporaryNotification(`您已被禁言，${data.duration}分钟后可以发言`, 'warning')
-      } else {
-        authStore.user.muteUntil = null
-        addTemporaryNotification('您的禁言已被解除', 'info')
-      }
-    }
-    
-    // 更新成员列表中的禁言状态
-    const member = roomMembers.value.find(m => m.uid === data.targetUid)
-    if (member) {
-      member.isMuted = data.isMuted
-      member.muteUntil = data.isMuted ? data.muteUntil : null
-    }
-  })
+        // 用户被禁言/解除禁言
+      socket.value.on('user-muted', (data) => {
+        console.log('用户禁言状态变化:', data)
+        
+        if (data.targetUid === authStore.user?.uid) {
+          // 当前用户被禁言或解除禁言
+          if (data.isMuted) {
+            authStore.user.muteUntil = data.muteUntil
+            addTemporaryNotification(`您已被禁言，${data.duration}分钟后可以发言`, 'warning')
+          } else {
+            authStore.user.muteUntil = null
+            addTemporaryNotification('您的禁言已被解除', 'info')
+          }
+        }
+        
+        // 更新成员列表中的禁言状态
+        const member = roomMembers.value.find(m => m.uid === data.targetUid)
+        if (member) {
+          member.isMuted = data.isMuted
+          member.muteUntil = data.isMuted ? data.muteUntil : null
+        }
+      })
+
+      // 消息被删除
+      socket.value.on('message-deleted', (data) => {
+        console.log('消息被删除:', data)
+        
+        // 找到要删除的消息
+        const messageIndex = messages.findIndex(msg => msg.id === data.messageId)
+        if (messageIndex > -1) {
+          const message = messages[messageIndex]
+          
+          // 先添加删除动画状态
+          message.isDeleting = true
+          
+          // 延迟删除，让动画播放完成
+          setTimeout(() => {
+            const currentIndex = messages.findIndex(msg => msg.id === data.messageId)
+            if (currentIndex > -1) {
+              messages.splice(currentIndex, 1)
+            }
+          }, 300) // 动画持续时间
+          
+          // 如果删除的不是当前用户的消息，显示通知
+          if (data.deletedBy !== authStore.user?.uid) {
+            addTemporaryNotification('有消息被删除', 'info')
+          }
+        }
+      })
     }
     
     // 断开WebSocket连接
@@ -1435,13 +1947,108 @@ const kickDialogUser = computed(() => {
     
 // 用户管理函数需要适配新的事件格式
 const handleShowUserContextMenu = (event, user, sourceType = 'member') => {
-  // 只有创建者才能显示管理菜单
-  if (!isCreator.value) return
+  // 只有创建者或管理员才能显示管理菜单
+  if (!isCreator.value && !currentUserIsAdmin.value) return
   
   // 不能对自己使用右键菜单
   if (user.uid === authStore.user?.uid) return
   
+  // 不能对创建者使用右键菜单
+  if (user.isCreator) return
+  
+  // 管理员不能对其他管理员使用右键菜单（除非自己是创建者）
+  if (!isCreator.value && user.isAdmin) return
+  
   showUserContextMenu(event, user, sourceType)
+}
+
+// 处理显示消息右键菜单
+const handleShowMessageContextMenu = (event, message) => {
+  showMessageContextMenu(event, message)
+}
+
+// 处理回复消息
+const handleReplyMessage = (message) => {
+  closeMessageContextMenu()
+  
+  // 设置回复状态
+  replyState.value = {
+    isReplying: true,
+    targetMessage: message
+  }
+  
+  // 聚焦到输入框
+  nextTick(() => {
+    const inputElement = document.querySelector('.message-input')
+    if (inputElement) {
+      inputElement.focus()
+    }
+  })
+}
+
+// 取消回复
+const cancelReply = () => {
+  replyState.value = {
+    isReplying: false,
+    targetMessage: null
+  }
+}
+
+// 滚动到指定消息
+const scrollToMessage = (messageId) => {
+  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+  if (messageElement && messageList.value) {
+    messageElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    })
+    
+    // 添加高亮效果
+    messageElement.classList.add('message-highlight')
+    setTimeout(() => {
+      messageElement.classList.remove('message-highlight')
+    }, 2000)
+  }
+}
+
+// 处理删除消息
+const handleDeleteMessage = (message) => {
+  closeMessageContextMenu()
+  
+  // 显示删除确认弹窗
+  deleteMessageDialog.value = {
+    visible: true,
+    targetMessage: message
+  }
+}
+
+// 确认删除消息
+const confirmDeleteMessage = async () => {
+  if (!deleteMessageDialog.value.targetMessage) return
+  
+  try {
+    await axios.delete(`/api/chatrooms/${roomId.value}/messages/${deleteMessageDialog.value.targetMessage.id}`)
+    
+    // 从本地消息列表中移除
+    const index = messages.findIndex(m => m.id === deleteMessageDialog.value.targetMessage.id)
+    if (index > -1) {
+      messages.splice(index, 1)
+    }
+    
+    notificationStore.success('消息已删除')
+    cancelDeleteMessage()
+  } catch (error) {
+    console.error('删除消息失败:', error)
+    notificationStore.error('删除失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 取消删除消息
+const cancelDeleteMessage = () => {
+  deleteMessageDialog.value = {
+    visible: false,
+    targetMessage: null
+  }
 }
 
 // 确认禁言
@@ -2279,7 +2886,13 @@ const confirmKickUser = async () => {
 
 /* 消息样式 */
 .message {
-  margin-bottom: 16px;
+  padding: 5px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.message:hover {
+  background: rgba(25, 118, 210, 0.1);
 }
 
 .message-continuous {
@@ -2287,7 +2900,7 @@ const confirmKickUser = async () => {
 }
 
 .message-first-in-group {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .message-last-in-group {
@@ -2309,6 +2922,10 @@ const confirmKickUser = async () => {
   width: 40px;
   display: flex;
   justify-content: center;
+}
+
+.message-markdown .message-content .markdown-message{
+  min-width: 100px;
 }
 
 .avatar-img {
@@ -2475,6 +3092,75 @@ const confirmKickUser = async () => {
   white-space: nowrap;
 }
 
+/* 消息高亮效果 */
+.message-highlight {
+  background: rgba(25, 118, 210, 0.1) !important;
+}
+
+/* 回复消息样式 */
+.reply-message {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: rgba(25, 118, 210, 0.05);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.reply-message:hover {
+  background: rgba(25, 118, 210, 0.1);
+}
+
+.reply-line {
+  width: 2px;
+  background: #1976d2;
+  border-radius: 1px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.reply-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-user {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1976d2;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.reply-text {
+  font-size: 13px;
+  color: #6c757d;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.message-own .reply-message {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.message-own .reply-user {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-own .reply-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-own .reply-line {
+  background: rgba(255, 255, 255, 0.8);
+}
+
 /* 输入区域 */
 .input-area {
   padding: 20px;
@@ -2485,7 +3171,78 @@ const confirmKickUser = async () => {
   z-index: 10;
 }
 
+/* 回复预览样式 */
+.reply-preview {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.reply-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1976d2;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.reply-info i {
+  font-size: 14px;
+}
+
+.reply-content {
+  flex: 1;
+  font-size: 13px;
+  color: #6c757d;
+  line-height: 1.3;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-cancel {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.reply-cancel:hover {
+  background: #e9ecef;
+  color: #dc3545;
+}
+
 .message-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.function-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.input-row {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -2618,6 +3375,17 @@ const confirmKickUser = async () => {
     padding: 16px;
   }
   
+  .function-buttons {
+    margin-bottom: 4px;
+  }
+  
+  .image-button,
+  .extend-button {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+  
   .temporary-notifications {
     top: 10px;
     right: 10px;
@@ -2651,6 +3419,374 @@ const confirmKickUser = async () => {
   .header-left,
   .header-right {
     gap: 8px;
+  }
+}
+
+/* 图片按钮样式 */
+.image-button {
+  width: 40px;
+  height: 40px;
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.image-button:hover:not(:disabled) {
+  background: #e9ecef;
+  color: #1976d2;
+  border-color: #1976d2;
+  transform: scale(1.05);
+}
+
+.image-button:disabled {
+  background: #f8f9fa;
+  color: #ccc;
+  border-color: #e9ecef;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 扩展按钮样式 */
+.extend-button {
+  width: 36px;
+  height: 36px;
+  background: #667eea;
+  color: white;
+  border: 1px solid #667eea;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.extend-button:hover:not(:disabled) {
+  background: #5a67d8;
+  border-color: #5a67d8;
+  transform: scale(1.05);
+}
+
+.extend-button:disabled {
+  background: #ccc;
+  color: #666;
+  border-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 图片消息样式 */
+.message-image {
+  margin: 4px 0;
+}
+
+.image-content {
+  max-width: min(500px, 100%);
+  max-height: 500px;
+  height: auto;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-content:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.image-caption {
+  margin-top: 8px;
+  font-size: 14px;
+  color: inherit;
+  line-height: 1.4;
+}
+
+/* 消息类型标记样式 */
+.message-type-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 6px;
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.message-type-header i {
+  font-size: 14px;
+}
+
+.bilibili-header {
+  color: #fb7299;
+}
+
+.bilibili-header span {
+  font-family: 'Monaco', 'Consolas', monospace;
+  background: rgba(251, 114, 153, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.markdown-header {
+  color: #333;
+}
+
+.markdown-header span {
+  background: rgba(51, 51, 51, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* 发送者消息中的类型标记样式 */
+.message-own .message-type-header {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-own .bilibili-header {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-own .bilibili-header span {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.message-own .markdown-header {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-own .markdown-header span {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* B站视频消息样式 */
+.bilibili-message {
+  max-width: 500px;
+  margin: 8px 0;
+}
+
+.bilibili-player {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  display: block;
+  aspect-ratio: 16/9;
+}
+
+/* Markdown消息样式 */
+.markdown-message {
+  max-width: 600px;
+  margin: 8px 0;
+}
+
+.markdown-content {
+  line-height: 1.6;
+  color: inherit;
+}
+
+/* Markdown内容样式 */
+.markdown-content :deep(h1),
+.markdown-content :deep(h2),
+.markdown-content :deep(h3),
+.markdown-content :deep(h4),
+.markdown-content :deep(h5),
+.markdown-content :deep(h6) {
+  margin: 0.8em 0 0.4em 0;
+  color: inherit;
+}
+
+.markdown-content :deep(h1) {
+  font-size: 1.6em;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 0.2em;
+}
+
+.markdown-content :deep(h2) {
+  font-size: 1.4em;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.2em;
+}
+
+.markdown-content :deep(h3) {
+  font-size: 1.2em;
+}
+
+.markdown-content :deep(p) {
+  margin: 0.6em 0;
+}
+
+.markdown-content :deep(code) {
+  background: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  font-size: 0.9em;
+  color: #e83e8c;
+}
+
+.markdown-content :deep(pre) {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  border-left: 3px solid #333;
+  margin: 12px 0;
+}
+
+.markdown-content :deep(pre code) {
+  background: none;
+  padding: 0;
+  color: #2c3e50;
+}
+
+.markdown-content :deep(strong) {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.markdown-content :deep(em) {
+  font-style: italic;
+  color: #6c757d;
+}
+
+.markdown-content :deep(a) {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.markdown-content :deep(a:hover) {
+  text-decoration: underline;
+}
+
+/* 消息删除动画样式 */
+.messages-transition-group {
+  position: relative;
+}
+
+/* 消息删除动画 */
+.message-delete-leave-active {
+  transition: all 0.3s ease-out;
+  transform-origin: left center;
+}
+
+.message-delete-leave-to {
+  opacity: 0;
+  transform: translateX(-100%) scale(0.8);
+  max-height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* 消息删除中的状态样式 */
+.message-deleting {
+  opacity: 0.5;
+  transform: scale(0.98);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.message-deleting::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  animation: shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* 消息移动动画（当其他消息被删除时） */
+.message-delete-move {
+  transition: transform 0.3s ease;
+}
+
+/* 系统消息删除动画特殊处理 */
+.message-system.message-delete-leave-active {
+  transition: all 0.25s ease-out;
+}
+
+.message-system.message-delete-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+  max-height: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* 删除动画的淡入效果优化 */
+.message-delete-enter-active {
+  transition: all 0.3s ease-in;
+}
+
+.message-delete-enter-from {
+  opacity: 0;
+  transform: translateX(30px) scale(0.95);
+}
+
+.message-delete-enter-to {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+/* 桌面端保持横向布局 */
+@media (min-width: 769px) {
+  .message-form {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .function-buttons {
+    gap: 8px;
+  }
+  
+  .input-row {
+    flex: 1;
+  }
+  
+  .image-button,
+  .extend-button {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+}
+
+/* 移动端删除动画优化 */
+@media (max-width: 768px) {
+  .message-delete-leave-to {
+    transform: translateX(-50%) scale(0.9);
+  }
+  
+  .message-deleting::after {
+    animation-duration: 1s;
   }
 }
 

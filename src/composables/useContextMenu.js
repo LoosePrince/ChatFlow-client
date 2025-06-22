@@ -10,6 +10,14 @@ export function useContextMenu() {
     sourceType: 'member' // 'member' 或 'message'
   })
 
+  // 消息右键菜单状态
+  const messageContextMenu = ref({
+    visible: false,
+    x: 0,
+    y: 0,
+    targetMessage: null
+  })
+
   // 禁言弹窗状态
   const muteDialog = ref({
     visible: false,
@@ -58,6 +66,44 @@ export function useContextMenu() {
     contextMenu.value.targetUser = null
   }
 
+  // 显示消息右键菜单
+  const showMessageContextMenu = (event, message) => {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    // 设置菜单位置
+    let x = event.clientX
+    let y = event.clientY
+    
+    // 确保菜单不会超出屏幕边界
+    const menuWidth = 150
+    const menuHeight = 100
+    
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth - 10
+    }
+    
+    if (y + menuHeight > window.innerHeight) {
+      y = window.innerHeight - menuHeight - 10
+    }
+    
+    // 关闭用户菜单
+    closeContextMenu()
+    
+    messageContextMenu.value = {
+      visible: true,
+      x,
+      y,
+      targetMessage: message
+    }
+  }
+
+  // 关闭消息右键菜单
+  const closeMessageContextMenu = () => {
+    messageContextMenu.value.visible = false
+    messageContextMenu.value.targetMessage = null
+  }
+
   // 显示禁言对话框
   const showMuteDialog = (user) => {
     closeContextMenu()
@@ -94,12 +140,14 @@ export function useContextMenu() {
     event.preventDefault()
     // 关闭现有的右键菜单
     closeContextMenu()
+    closeMessageContextMenu()
   }
 
   // 监听键盘事件（ESC键关闭菜单）
   const handleKeyDown = (event) => {
     if (event.key === 'Escape') {
       closeContextMenu()
+      closeMessageContextMenu()
       if (muteDialog.value.visible) {
         cancelMute()
       }
@@ -121,10 +169,13 @@ export function useContextMenu() {
 
   return {
     contextMenu,
+    messageContextMenu,
     muteDialog,
     kickDialog,
     showUserContextMenu,
     closeContextMenu,
+    showMessageContextMenu,
+    closeMessageContextMenu,
     showMuteDialog,
     cancelMute,
     showKickDialog,
