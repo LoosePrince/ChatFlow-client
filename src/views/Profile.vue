@@ -34,7 +34,7 @@
             <input 
               ref="avatarInput"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               @change="handleAvatarSelect"
               style="display: none"
             >
@@ -49,6 +49,14 @@
             </div>
           </div>
         </div>
+
+        <!-- 头像裁切组件 -->
+        <AvatarCropper
+          :visible="showCropper"
+          :imageSrc="selectedImageSrc"
+          @close="handleCropperClose"
+          @crop="handleCropResult"
+        />
 
         <!-- 设置表单 -->
         <div class="settings-form">
@@ -124,6 +132,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, useNotificationStore } from '@/stores'
 import axios from 'axios'
+import AvatarCropper from '@/components/common/AvatarCropper.vue'
 
 // 路由相关
 const router = useRouter()
@@ -135,6 +144,8 @@ const notificationStore = useNotificationStore()
 // 响应式数据
 const isLoading = ref(false)
 const avatarInput = ref(null)
+const showCropper = ref(false)
+const selectedImageSrc = ref('')
 
 // 表单数据
 const formData = reactive({
@@ -238,27 +249,48 @@ const triggerAvatarUpload = () => {
 }
 
 // 处理头像选择
-const handleAvatarSelect = async (event) => {
+const handleAvatarSelect = (event) => {
   const file = event.target.files[0]
   if (!file) return
   
-  // 检查文件类型
-  if (!file.type.startsWith('image/')) {
-    notificationStore.error('请选择图片文件')
+  // 验证文件类型
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    notificationStore.error('请选择 JPG、PNG 或 WebP 格式的图片')
     return
   }
   
-  // 检查文件大小（5MB）
-  if (file.size > 5 * 1024 * 1024) {
-    notificationStore.error('图片文件不能超过5MB')
+  // 验证文件大小（10MB，允许选择较大原图）
+  if (file.size > 10 * 1024 * 1024) {
+    notificationStore.error('图片大小不能超过10MB')
     return
   }
   
-  // 直接上传头像
-  const formData = new FormData()
-  formData.append('avatar', file)
+  // 读取文件并显示裁切器
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    selectedImageSrc.value = e.target.result
+    showCropper.value = true
+  }
+  reader.readAsDataURL(file)
   
+  // 清空文件输入，允许重复选择同一文件
+  event.target.value = ''
+}
+
+// 关闭裁切器
+const handleCropperClose = () => {
+  showCropper.value = false
+  selectedImageSrc.value = ''
+}
+
+// 处理裁切结果并上传
+const handleCropResult = async ({ file }) => {
   try {
+    // 上传头像
+    const formData = new FormData()
+    formData.append('avatar', file)
+    
     const response = await axios.post('/api/auth/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -278,9 +310,6 @@ const handleAvatarSelect = async (event) => {
     console.error('上传头像失败:', error)
     notificationStore.error('上传失败: ' + (error.response?.data?.message || error.message))
   }
-  
-  // 清空input
-  event.target.value = ''
 }
 
 // 生命周期钩子

@@ -50,12 +50,13 @@
               <input
                 ref="fileInput"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 @change="handleFileSelect"
                 class="file-input"
               >
               <div class="avatar-info">
-                <p>支持JPG、PNG格式，自动调整为64x64像素</p>
+                <p>支持JPG、PNG、WebP格式，将裁切为64x64像素</p>
+                <p class="size-limit">选择图片：10MB以内，上传后自动压缩至50KB（这对64x64像素来说完全足够）</p>
               </div>
             </div>
             <div v-if="errors.avatar" class="error-message">
@@ -63,6 +64,14 @@
               {{ errors.avatar }}
             </div>
           </div>
+
+          <!-- 头像裁切组件 -->
+          <AvatarCropper
+            :visible="showCropper"
+            :imageSrc="selectedImageSrc"
+            @close="handleCropperClose"
+            @crop="handleCropResult"
+          />
 
           <!-- 昵称输入 -->
           <div class="form-group">
@@ -249,6 +258,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import AvatarCropper from '@/components/common/AvatarCropper.vue'
 
 // 路由相关
 const router = useRouter()
@@ -279,6 +289,8 @@ const isLoading = ref(false)
 const showPassword = ref(false)
 const avatarPreview = ref('')
 const fileInput = ref(null)
+const showCropper = ref(false)
+const selectedImageSrc = ref('')
 
 // 密码强度计算
 const passwordStrength = computed(() => {
@@ -334,27 +346,31 @@ const handleFileSelect = (event) => {
   if (!file) return
   
   // 验证文件类型
-  if (!file.type.startsWith('image/')) {
-    errors.avatar = '请选择图片文件'
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowedTypes.includes(file.type)) {
+    errors.avatar = '请选择 JPG、PNG 或 WebP 格式的图片'
     return
   }
   
-  // 验证文件大小（5MB）
-  if (file.size > 5 * 1024 * 1024) {
-    errors.avatar = '图片大小不能超过5MB'
+  // 验证文件大小（10MB，允许选择较大原图）
+  if (file.size > 10 * 1024 * 1024) {
+    errors.avatar = '图片大小不能超过10MB'
     return
   }
   
   // 清除错误
   errors.avatar = ''
   
-  // 读取文件并创建预览
+  // 读取文件并显示裁切器
   const reader = new FileReader()
   reader.onload = (e) => {
-    avatarPreview.value = e.target.result
-    form.avatar = file
+    selectedImageSrc.value = e.target.result
+    showCropper.value = true
   }
   reader.readAsDataURL(file)
+  
+  // 清空文件输入，允许重复选择同一文件
+  event.target.value = ''
 }
 
 // 表单验证
@@ -484,6 +500,19 @@ const handleRegister = async () => {
 // 切换密码显示
 const togglePassword = () => {
   showPassword.value = !showPassword.value
+}
+
+// 关闭裁切器
+const handleCropperClose = () => {
+  showCropper.value = false
+  selectedImageSrc.value = ''
+}
+
+// 处理裁切结果
+const handleCropResult = ({ file, previewUrl }) => {
+  form.avatar = file
+  avatarPreview.value = previewUrl
+  errors.avatar = ''
 }
 
 // 返回首页
@@ -680,6 +709,12 @@ const goBack = () => {
   margin: 0;
   font-size: 12px;
   color: #7f8c8d;
+}
+
+.avatar-info .size-limit {
+  color: #dc3545;
+  font-weight: 500;
+  margin-top: 2px;
 }
 
 .form-input {
