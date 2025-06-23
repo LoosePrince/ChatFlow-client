@@ -1360,9 +1360,18 @@ onUnmounted(() => {
   color: white;
 }
 
+.dark .loading-state, .dark .empty-state {
+  color: #f1f5f9;
+}
+
 .loading-spinner {
   font-size: 2rem;
   margin-bottom: 1rem;
+  color: white;
+}
+
+.dark .loading-spinner {
+  color: #f1f5f9;
 }
 
 .empty-icon {

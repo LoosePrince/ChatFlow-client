@@ -4,7 +4,7 @@
     <Transition name="fade">
       <div v-if="isLoading" class="loading-overlay">
         <div class="loading-content">
-          <div class="spinner-border text-primary" role="status">
+          <div class="spinner-border loading-spinner-main" role="status">
             <span class="visually-hidden">加载中...</span>
           </div>
           <p class="mt-3 text-light">{{ loadingText }}</p>
@@ -92,6 +92,12 @@ provide('hideNotification', notificationStore.removeNotification)
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  transition: background 0.3s ease;
+}
+
+/* 夜间模式加载覆盖层 */
+.dark .loading-overlay {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
 .loading-content {
@@ -99,10 +105,32 @@ provide('hideNotification', notificationStore.removeNotification)
   color: white;
 }
 
+/* 夜间模式加载内容 */
+.dark .loading-content {
+  color: #f1f5f9;
+}
+
 .loading-content p {
   font-size: 1.1rem;
   font-weight: 500;
   margin: 0;
+}
+
+/* 夜间模式加载文字 */
+.dark .loading-content p {
+  color: #f1f5f9;
+}
+
+/* 主加载图标样式 */
+.loading-spinner-main {
+  color: #ffffff;
+  width: 3rem;
+  height: 3rem;
+}
+
+/* 夜间模式主加载图标 */
+.dark .loading-spinner-main {
+  color: #60a5fa;
 }
 
 /* 路由过渡动画 */

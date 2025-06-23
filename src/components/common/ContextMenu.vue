@@ -42,7 +42,7 @@
         class="context-menu-item"
         @click="$emit('showMute', targetUser)"
       >
-        <i class="fas fa-microphone-slash"></i>
+        <i class="fas fa-comment-slash"></i>
         <span>禁言用户</span>
       </div>
       <div 

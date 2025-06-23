@@ -14,7 +14,7 @@
       <div class="sidebar left-sidebar" :class="{ 'sidebar-hidden': !showRoomList }">
         <div class="sidebar-header">
           <h3>
-            <i class="fas fa-comments"></i>
+            <i class="fas fa-home"></i>
             加入的房间
           </h3>
           <button @click="toggleRoomList" class="sidebar-toggle">
@@ -93,7 +93,7 @@
           </div>
           <div class="header-right">
             <button @click="toggleMemberList" class="mobile-menu-btn">
-              <i class="fas fa-users"></i>
+              <i class="fas fa-user-friends"></i>
             </button>
           </div>
         </div>
@@ -130,7 +130,7 @@
                 </div>
                 
                 <div v-if="messages.length === 0 && !messagesPagination.isLoading" class="empty-messages">
-                  <i class="fas fa-comments"></i>
+                  <i class="fas fa-comment-dots"></i>
                   <p>暂无消息，开始聊天吧！</p>
                 </div>
               
@@ -211,6 +211,9 @@
                           <span v-else-if="message.replyToMessage.messageType === 'markdown'">
                             <i class="fab fa-markdown"></i> {{ message.replyToMessage.content || 'Markdown内容' }}
                           </span>
+                          <span v-else-if="message.replyToMessage.messageType === 'file'">
+                            <i class="fas fa-file"></i> {{ message.replyToMessage.fileName }}
+                          </span>
                           <span v-else>{{ message.replyToMessage.content }}</span>
                         </div>
                       </div>
@@ -241,6 +244,40 @@
                           frameborder="0"
                           allowfullscreen
                         ></iframe>
+                      </div>
+                      <!-- 文件消息 -->
+                      <div v-else-if="message.type === 'file'" class="file-message">
+                        <div class="message-type-header file-header">
+                          <i class="fas fa-file"></i>
+                          <span>文件</span>
+                        </div>
+                        <div class="file-content">
+                          <div class="file-info">
+                            <div class="file-icon">
+                              <i :class="getFileIcon(message.fileName)"></i>
+                            </div>
+                            <div class="file-details">
+                              <div class="file-name">{{ message.fileName }}</div>
+                              <div class="file-size">{{ formatFileSize(message.fileSize) }}</div>
+                              <div v-if="message.fileExpired" class="file-status expired">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                文件已过期
+                              </div>
+                              <div v-else class="file-status valid">
+                                <i class="fas fa-clock"></i>
+                                {{ formatFileExpiry(message.fileExpiry) }}
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            v-if="!message.fileExpired"
+                            @click="downloadFile(message.fileId, message.fileName)"
+                            class="download-btn"
+                            title="下载文件"
+                          >
+                            <i class="fas fa-download"></i>
+                          </button>
+                        </div>
                       </div>
                       <!-- Markdown消息 -->
                       <div v-else-if="message.type === 'markdown'" class="markdown-message">
@@ -283,6 +320,9 @@
                 </span>
                 <span v-else-if="replyState.targetMessage?.type === 'markdown'">
                   <i class="fab fa-markdown"></i> {{ replyState.targetMessage?.text || 'Markdown内容' }}
+                </span>
+                <span v-else-if="replyState.targetMessage?.type === 'file'">
+                  <i class="fas fa-file"></i> {{ replyState.targetMessage?.fileName }}
                 </span>
                 <span v-else>{{ replyState.targetMessage?.text }}</span>
               </div>
@@ -328,6 +368,16 @@
                   style="display: none"
                 >
                 
+                <!-- 隐藏的通用文件输入框 -->
+                <input
+                  ref="fileInput"
+                  type="file"
+                  @change="handleFileSelect"
+                  style="display: none"
+                  accept="*/*"
+                  title="选择文件（最大2MB）"
+                >
+                
                 <input
                   ref="messageInput"
                   v-model="newMessage"
@@ -365,7 +415,7 @@
       <div class="sidebar right-sidebar" :class="{ 'sidebar-hidden': !showMemberList }">
         <div class="sidebar-header">
           <h3>
-            <i class="fas fa-users"></i>
+            <i class="fas fa-user-friends"></i>
             成员列表 ({{ totalMemberCount }})
           </h3>
           <div class="button-container">
@@ -397,7 +447,7 @@
                   {{ member.nickname }}
                   <i v-if="member.isCreator" class="fas fa-crown creator-icon" title="房主"></i>
                   <i v-else-if="member.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
-                  <i v-if="member.isMuted" class="fas fa-microphone-slash muted-icon" title="已被禁言"></i>
+                  <i v-if="member.isMuted" class="fas fa-comment-slash muted-icon" title="已被禁言"></i>
                 </div>
                 <div class="member-uid">{{ member.uid }}</div>
               </div>
@@ -427,7 +477,7 @@
                   {{ member.nickname }}
                   <i v-if="member.isCreator" class="fas fa-crown creator-icon" title="房主"></i>
                   <i v-else-if="member.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
-                  <i v-if="member.isMuted" class="fas fa-microphone-slash muted-icon" title="已被禁言"></i>
+                  <i v-if="member.isMuted" class="fas fa-comment-slash muted-icon" title="已被禁言"></i>
                 </div>
                 <div class="member-uid">{{ member.uid }}</div>
               </div>
@@ -582,6 +632,39 @@
       @cancel="closeRoomNameDialog"
       @submit="handleRoomNameUpdate"
     />
+
+    <!-- 上传进度对话框 -->
+    <div v-if="uploadProgress.visible" class="upload-progress-overlay">
+      <div class="upload-progress-dialog">
+        <div class="upload-progress-header">
+          <i :class="uploadProgress.type === 'image' ? 'fas fa-image' : 'fas fa-file'"></i>
+          <span>{{ uploadProgress.type === 'image' ? '发送图片' : '发送文件' }}</span>
+        </div>
+        
+        <div class="upload-progress-content">
+          <div class="upload-file-name">
+            {{ uploadProgress.fileName }}
+          </div>
+          
+          <div class="upload-progress-bar">
+            <div class="upload-progress-fill" :style="{ width: uploadProgress.progress + '%' }"></div>
+          </div>
+          
+          <div class="upload-progress-text">
+            {{ uploadProgress.progress }}%
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片压缩确认对话框 -->
+    <ImageCompressionDialog
+      :visible="compressionDialog.visible"
+      :fileName="compressionDialog.fileName"
+      :fileSize="compressionDialog.fileSize"
+      @confirm="handleCompressionConfirm"
+      @cancel="handleCompressionCancel"
+    />
   </div>
 </template>
 
@@ -603,6 +686,7 @@ import BilibiliInputDialog from '@/components/common/BilibiliInputDialog.vue'
 import MarkdownInputDialog from '@/components/common/MarkdownInputDialog.vue'
 import RoomNameEditDialog from '@/components/common/RoomNameEditDialog.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import ImageCompressionDialog from '@/components/common/ImageCompressionDialog.vue'
 import { useContextMenu } from '@/composables/useContextMenu.js'
 import { marked } from 'marked'
 
@@ -622,6 +706,7 @@ defineOptions({
     const messageList = ref(null)
     const messageInput = ref(null)
     const imageInput = ref(null)
+    const fileInput = ref(null)
     const isLoading = ref(true)
     const isJoining = ref(false)
     const messages = reactive([])
@@ -886,7 +971,8 @@ const kickDialogUser = computed(() => {
           type: msg.messageType === 'system' ? 'system' : 
                 msg.messageType === 'image' ? 'image' :
                 msg.messageType === 'bilibili' ? 'bilibili' :
-                msg.messageType === 'markdown' ? 'markdown' : 'user',
+                msg.messageType === 'markdown' ? 'markdown' :
+                msg.messageType === 'file' ? 'file' : 'user',
           userName: msg.user?.nickname || msg.nickname || '未知用户',
           userUid: msg.userUid || msg.sender_uid,
           userAvatar: msg.user?.avatarUrl || msg.avatar_url || '/avatars/default',
@@ -894,6 +980,11 @@ const kickDialogUser = computed(() => {
           imageUrl: msg.imageUrl,
           bilibiliId: msg.bilibiliId,
           markdownContent: msg.markdownContent,
+          fileId: msg.fileId,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          fileExpiry: msg.fileExpiry,
+          fileExpired: msg.fileExpired,
           timestamp: msg.createdAt,
           isOwn: (msg.userUid || msg.sender_uid) === authStore.user?.uid,
           isAdmin: msg.user?.isAdmin || false,
@@ -1026,44 +1117,198 @@ const kickDialogUser = computed(() => {
       }
     }
     
-    // 发送图片消息
-    const sendImageMessage = async (file) => {
-      if (!canSendMessage.value) return
+    // 图片压缩函数
+    const compressImage = async (file, maxSize = 1024 * 1024, quality = 0.8) => {
+      return new Promise((resolve) => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const img = new Image()
+        
+        img.onload = () => {
+          // 计算新的尺寸
+          let { width, height } = img
+          const ratio = Math.min(1920 / width, 1080 / height) // 最大1920x1080
+          
+          if (ratio < 1) {
+            width *= ratio
+            height *= ratio
+          }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          // 绘制压缩后的图片
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          // 转换为blob并检查大小
+          canvas.toBlob((blob) => {
+            if (blob.size <= maxSize) {
+              resolve(blob)
+            } else {
+              // 如果还是太大，降低质量
+              const newQuality = Math.max(0.1, quality - 0.1)
+              if (newQuality >= 0.1) {
+                canvas.toBlob((newBlob) => {
+                  resolve(newBlob)
+                }, file.type, newQuality)
+              } else {
+                resolve(blob) // 已经是最低质量了
+              }
+            }
+          }, file.type, quality)
+        }
+        
+        img.src = URL.createObjectURL(file)
+      })
+    }
+
+    // 上传进度状态
+    const uploadProgress = ref({
+      visible: false,
+      progress: 0,
+      fileName: '',
+      type: 'image' // 'image' or 'file'
+    })
+
+    // 显示上传进度
+    const showUploadProgress = (fileName, type = 'image') => {
+      uploadProgress.value = {
+        visible: true,
+        progress: 0,
+        fileName,
+        type
+      }
+    }
+
+    // 隐藏上传进度
+    const hideUploadProgress = () => {
+      uploadProgress.value.visible = false
+    }
+
+    // 图片压缩确认对话框
+    const showImageCompressionDialog = (file) => {
+      compressionDialog.value = {
+        visible: true,
+        fileName: file.name,
+        fileSize: file.size,
+        file: file,
+        resolve: null
+      }
+    }
+
+    // 处理压缩确认对话框事件
+    const handleCompressionConfirm = async () => {
+      const file = compressionDialog.value.file
+      compressionDialog.value.visible = false
       
-      // 检查文件大小（1MB = 1024 * 1024 bytes）
-      const maxSize = 1024 * 1024
-      if (file.size > maxSize) {
-        notificationStore.error('图片大小不能超过1MB')
+      console.log('开始压缩和发送图片:', file?.name, file?.size)
+      console.log('当前认证状态:', {
+        isAuthenticated: authStore.isAuthenticated,
+        user: authStore.user,
+        canSendMessage: canSendMessage.value,
+        roomId: roomId.value
+      })
+      
+      if (!file) {
+        console.error('没有找到要压缩的文件')
         return
       }
       
-      // 检查文件类型
-      if (!file.type.startsWith('image/')) {
-        notificationStore.error('只能发送图片文件')
+      // 检查是否可以发送消息
+      if (!canSendMessage.value) {
+        console.error('当前无法发送消息')
+        console.error('详细状态:', {
+          isAuthenticated: authStore.isAuthenticated,
+          userMuteUntil: authStore.user?.muteUntil,
+          currentTime: new Date().toISOString()
+        })
+        notificationStore.error('当前无法发送消息，请检查网络连接或权限')
         return
       }
       
       try {
+        console.log('显示上传进度...')
+        showUploadProgress(file.name, 'image')
+        uploadProgress.value.progress = 30
+        
+        console.log('开始压缩图片...')
+        const compressedBlob = await compressImage(file)
+        let finalFile = new File([compressedBlob], file.name, { type: file.type })
+        
+        console.log('压缩完成，原始大小:', file.size, '压缩后大小:', finalFile.size)
+        uploadProgress.value.progress = 60
+        
+        // 如果压缩后还是太大，继续尝试更高压缩
+        const maxSize = 1024 * 1024
+        if (finalFile.size > maxSize) {
+          console.log('继续进行更高压缩...')
+          const moreCompressed = await compressImage(file, maxSize, 0.3)
+          finalFile = new File([moreCompressed], file.name, { type: file.type })
+          console.log('二次压缩完成，大小:', finalFile.size)
+        }
+        
+        if (finalFile.size > maxSize) {
+          console.error('压缩后文件仍然过大:', finalFile.size)
+          hideUploadProgress()
+          notificationStore.error('图片压缩后仍然过大，请选择更小的图片')
+          return
+        }
+        
+        console.log('开始准备上传...')
+        
         // 创建FormData
         const formData = new FormData()
-        formData.append('image', file)
+        formData.append('image', finalFile)
         formData.append('roomId', roomId.value)
         formData.append('messageType', 'image')
+        
+        console.log('FormData准备完毕，文件名:', finalFile.name, '文件大小:', finalFile.size)
         
         // 如果是回复消息，添加回复信息
         if (replyState.value.isReplying && replyState.value.targetMessage) {
           formData.append('replyToMessageId', replyState.value.targetMessage.id)
+          console.log('添加回复信息:', replyState.value.targetMessage.id)
         }
+        
+        // 验证FormData内容
+        console.log('FormData内容检查:')
+        for (let [key, value] of formData.entries()) {
+          console.log(`${key}:`, value instanceof File ? `File(${value.name}, ${value.size})` : value)
+        }
+        
+        uploadProgress.value.progress = 80
+        
+        console.log('开始上传图片到服务器...')
+        console.log('请求URL:', `/api/chatrooms/${roomId.value}/messages/image`)
+        console.log('请求基础URL:', axios.defaults.baseURL)
+        console.log('完整请求URL:', `${axios.defaults.baseURL}/api/chatrooms/${roomId.value}/messages/image`)
+        
+        // 检查认证头
+        console.log('认证头:', axios.defaults.headers.common['Authorization'])
         
         // 发送图片
         const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.lengthComputable) {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
+              console.log('上传进度:', uploadProgress.value.progress + '%')
+            }
           }
         })
         
-        // 图片发送成功，WebSocket会自动广播消息，不需要手动添加到消息列表
+        console.log('图片上传成功:', response.data)
+        uploadProgress.value.progress = 100
+        
+        // 图片发送成功，WebSocket会自动广播消息
         cancelReply() // 清除回复状态
+        
+        setTimeout(() => {
+          hideUploadProgress()
+        }, 500)
         
         // 等待WebSocket消息到达后滚动到底部
         setTimeout(() => {
@@ -1072,7 +1317,114 @@ const kickDialogUser = computed(() => {
         
       } catch (error) {
         console.error('发送图片失败:', error)
-        notificationStore.error('发送图片失败: ' + (error.response?.data?.message || error.message))
+        console.error('错误详情:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        })
+        hideUploadProgress()
+        
+        let errorMessage = '发送图片失败'
+        if (error.response?.status === 413) {
+          errorMessage = '图片太大，无法上传'
+        } else if (error.response?.status === 403) {
+          errorMessage = '没有权限发送图片'
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        
+        notificationStore.error(errorMessage)
+      }
+    }
+
+    const handleCompressionCancel = () => {
+      compressionDialog.value.visible = false
+      if (compressionDialog.value.resolve) {
+        compressionDialog.value.resolve(false)
+      }
+    }
+
+    // 发送图片消息
+    const sendImageMessage = async (file, skipSizeCheck = false) => {
+      if (!canSendMessage.value) return
+      
+      // 检查文件类型
+      if (!file.type.startsWith('image/')) {
+        notificationStore.error('只能发送图片文件')
+        return
+      }
+
+      let finalFile = file
+      
+      // 检查文件大小（1MB = 1024 * 1024 bytes）
+      const maxSize = 1024 * 1024
+      if (file.size > maxSize && !skipSizeCheck) {
+        // 显示压缩确认对话框
+        showImageCompressionDialog(file)
+        return // 对话框处理压缩和发送
+      }
+      
+      try {
+        if (!uploadProgress.value.visible) {
+          showUploadProgress(finalFile.name, 'image')
+        }
+        
+        // 创建FormData
+        const formData = new FormData()
+        formData.append('image', finalFile)
+        formData.append('roomId', roomId.value)
+        formData.append('messageType', 'image')
+        
+        // 如果是回复消息，添加回复信息
+        if (replyState.value.isReplying && replyState.value.targetMessage) {
+          formData.append('replyToMessageId', replyState.value.targetMessage.id)
+        }
+        
+        uploadProgress.value.progress = 80
+        
+        // 发送图片
+        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.lengthComputable) {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
+            }
+          }
+        })
+        
+        uploadProgress.value.progress = 100
+        
+        // 图片发送成功，WebSocket会自动广播消息
+        cancelReply() // 清除回复状态
+        
+        setTimeout(() => {
+          hideUploadProgress()
+        }, 500)
+        
+        // 等待WebSocket消息到达后滚动到底部
+        setTimeout(() => {
+          scrollToBottom(false)
+        }, 100)
+        
+      } catch (error) {
+        console.error('发送图片失败:', error)
+        hideUploadProgress()
+        
+        let errorMessage = '发送图片失败'
+        if (error.response?.status === 413) {
+          errorMessage = '图片文件过大'
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        
+        notificationStore.error(errorMessage)
       }
     }
     
@@ -1205,6 +1557,15 @@ const kickDialogUser = computed(() => {
     const roomNameDialog = ref({
       visible: false
     })
+
+    // 图片压缩确认对话框状态
+    const compressionDialog = ref({
+      visible: false,
+      fileName: '',
+      fileSize: 0,
+      file: null,
+      resolve: null
+    })
     
     // 打开图片预览
     const openImagePreview = (imageUrl, title = '') => {
@@ -1240,6 +1601,306 @@ const kickDialogUser = computed(() => {
         bilibiliDialog.value.visible = true
       } else if (type === 'markdown') {
         markdownDialog.value.visible = true
+      } else if (type === 'file') {
+        selectFile()
+      }
+    }
+
+    // 选择文件
+    const selectFile = () => {
+      if (fileInput.value) {
+        fileInput.value.click()
+      }
+    }
+
+    // 处理文件选择
+    const handleFileSelect = (event) => {
+      const file = event.target.files[0]
+      if (file) {
+        console.log('选择文件:', {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
+        })
+        sendFileMessage(file)
+      }
+      // 清空input的值，允许重复选择同一文件
+      event.target.value = ''
+    }
+
+    // 检查文件是否为图片
+    const isImageFile = (file) => {
+      return file.type && file.type.startsWith('image/')
+    }
+
+    // 发送文件消息
+    const sendFileMessage = async (file) => {
+      console.log('开始发送文件消息:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        canSendMessage: canSendMessage.value,
+        isImage: isImageFile(file)
+      })
+      
+      if (!canSendMessage.value) {
+        const errorMessage = '当前无法发送文件，请检查权限'
+        console.log('无法发送消息，权限检查失败')
+        notificationStore.error(errorMessage)
+        return
+      }
+      
+      // 如果是图片文件，使用图片发送方式
+      if (isImageFile(file)) {
+        console.log('检测到图片文件，使用图片发送方式')
+        await sendImageMessage(file)
+        return
+      }
+      
+      // 检查文件大小（2MB = 2 * 1024 * 1024 bytes）
+      const maxSize = 2 * 1024 * 1024
+      console.log('检查文件大小:', {
+        fileSize: file.size,
+        maxSize: maxSize,
+        sizeInMB: (file.size / (1024 * 1024)).toFixed(2),
+        maxSizeInMB: (maxSize / (1024 * 1024)).toFixed(2),
+        isOverLimit: file.size > maxSize
+      })
+      
+      if (file.size > maxSize) {
+        const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2)
+        const errorMessage = `文件大小超出限制：${fileSizeInMB}MB，最大允许2MB`
+        console.error('文件大小超出限制:', fileSizeInMB + 'MB > 2MB')
+        
+        // 显示通知
+        notificationStore.error(errorMessage)
+        
+        return
+      }
+      
+      // 如果文件为空或无效
+      if (!file || file.size === 0) {
+        const errorMessage = '选择的文件无效或为空'
+        console.error('文件无效或为空')
+        notificationStore.error(errorMessage)
+        return
+      }
+      
+      try {
+        console.log('开始上传文件...')
+        showUploadProgress(file.name, 'file')
+        
+        // 第一步：上传文件到服务器
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('chatroomId', roomId.value)
+        
+        // 如果是回复消息，添加回复信息
+        if (replyState.value.isReplying && replyState.value.targetMessage) {
+          formData.append('replyToMessageId', replyState.value.targetMessage.id)
+        }
+        
+        uploadProgress.value.progress = 20
+        
+        console.log('发送上传请求到服务器...')
+        // 上传文件
+        const uploadResponse = await axios.post('/api/files/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.lengthComputable) {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              uploadProgress.value.progress = 20 + (progress * 0.6) // 20-80%
+              console.log('上传进度:', uploadProgress.value.progress + '%')
+            }
+          }
+        })
+        
+        console.log('文件上传响应:', uploadResponse.data)
+        const { fileId, fileName, fileSize, expiryTime } = uploadResponse.data.data
+        
+        uploadProgress.value.progress = 90
+        
+        console.log('发送文件消息到聊天室...')
+        // 第二步：发送文件消息
+        const messageResponse = await axios.post(`/api/chatrooms/${roomId.value}/messages/file`, {
+          fileId,
+          fileName,
+          fileSize,
+          replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+        })
+        
+        console.log('文件消息发送成功:', messageResponse.data)
+        uploadProgress.value.progress = 100
+        
+        // 文件发送成功，WebSocket会自动广播消息
+        cancelReply() // 清除回复状态
+        
+        setTimeout(() => {
+          hideUploadProgress()
+        }, 500)
+        
+        // 等待WebSocket消息到达后滚动到底部
+        setTimeout(() => {
+          scrollToBottom(false)
+        }, 100)
+        
+      } catch (error) {
+        console.error('发送文件失败:', error)
+        console.error('错误详情:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          fileName: file.name,
+          fileSize: file.size
+        })
+        hideUploadProgress()
+        
+        let errorMessage = '发送文件失败'
+        if (error.response?.status === 413) {
+          errorMessage = `文件过大：${(file.size / (1024 * 1024)).toFixed(2)}MB，请选择小于2MB的文件`
+        } else if (error.response?.status === 403) {
+          errorMessage = '没有权限上传文件'
+        } else if (error.response?.status === 400 && error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        
+        console.error('最终错误消息:', errorMessage)
+        notificationStore.error(errorMessage)
+      }
+    }
+
+    // 获取文件图标
+    const getFileIcon = (fileName) => {
+      if (!fileName) return 'fas fa-file'
+      
+      const extension = fileName.split('.').pop()?.toLowerCase()
+      const iconMap = {
+        // 图片
+        'jpg': 'fas fa-file-image',
+        'jpeg': 'fas fa-file-image',
+        'png': 'fas fa-file-image',
+        'gif': 'fas fa-file-image',
+        'bmp': 'fas fa-file-image',
+        'webp': 'fas fa-file-image',
+        'svg': 'fas fa-file-image',
+        
+        // 文档
+        'pdf': 'fas fa-file-pdf',
+        'doc': 'fas fa-file-word',
+        'docx': 'fas fa-file-word',
+        'txt': 'fas fa-file-alt',
+        'rtf': 'fas fa-file-alt',
+        
+        // 表格
+        'xls': 'fas fa-file-excel',
+        'xlsx': 'fas fa-file-excel',
+        'csv': 'fas fa-file-csv',
+        
+        // 演示文稿
+        'ppt': 'fas fa-file-powerpoint',
+        'pptx': 'fas fa-file-powerpoint',
+        
+        // 压缩文件
+        'zip': 'fas fa-file-archive',
+        'rar': 'fas fa-file-archive',
+        '7z': 'fas fa-file-archive',
+        'tar': 'fas fa-file-archive',
+        'gz': 'fas fa-file-archive',
+        
+        // 音频
+        'mp3': 'fas fa-file-audio',
+        'wav': 'fas fa-file-audio',
+        'flac': 'fas fa-file-audio',
+        'aac': 'fas fa-file-audio',
+        
+        // 视频
+        'mp4': 'fas fa-file-video',
+        'avi': 'fas fa-file-video',
+        'mkv': 'fas fa-file-video',
+        'wmv': 'fas fa-file-video',
+        'mov': 'fas fa-file-video',
+        
+        // 代码
+        'js': 'fas fa-file-code',
+        'html': 'fas fa-file-code',
+        'css': 'fas fa-file-code',
+        'php': 'fas fa-file-code',
+        'py': 'fas fa-file-code',
+        'java': 'fas fa-file-code',
+        'cpp': 'fas fa-file-code',
+        'c': 'fas fa-file-code',
+        'vue': 'fas fa-file-code',
+        'json': 'fas fa-file-code'
+      }
+      
+      return iconMap[extension] || 'fas fa-file'
+    }
+
+    // 格式化文件大小
+    const formatFileSize = (bytes) => {
+      if (!bytes) return '0 B'
+      
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(1024))
+      return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+    }
+
+    // 格式化文件过期时间
+    const formatFileExpiry = (expiry) => {
+      if (!expiry) return ''
+      
+      const expiryDate = new Date(expiry)
+      const now = new Date()
+      const diffMs = expiryDate - now
+      
+      if (diffMs <= 0) return '已过期'
+      
+      const diffMinutes = Math.floor(diffMs / (1000 * 60))
+      const diffHours = Math.floor(diffMinutes / 60)
+      
+      if (diffHours > 0) {
+        return `${diffHours}小时${diffMinutes % 60}分钟后过期`
+      } else {
+        return `${diffMinutes}分钟后过期`
+      }
+    }
+
+    // 下载文件
+    const downloadFile = async (fileId, fileName) => {
+      try {
+        // 使用GET请求下载文件
+        const response = await axios.get(`/api/files/download/${fileId}`, {
+          responseType: 'blob'
+        })
+        
+        // 创建下载链接
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', fileName)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        
+        // 清理URL对象
+        window.URL.revokeObjectURL(url)
+        
+      } catch (error) {
+        console.error('下载文件失败:', error)
+        if (error.response?.status === 404) {
+          notificationStore.error('文件已过期或不存在')
+        } else if (error.response?.status === 410) {
+          notificationStore.error('文件已过期')
+        } else {
+          notificationStore.error('下载失败: ' + (error.response?.data?.message || error.message))
+        }
       }
     }
 
@@ -1466,7 +2127,6 @@ const kickDialogUser = computed(() => {
     
     // 连接WebSocket
     const connectWebSocket = () => {
-      console.log('准备连接WebSocket，token:', authStore.token)
       if (!authStore.token) {
         console.error('无法连接WebSocket：缺少认证令牌')
         return
@@ -1556,7 +2216,8 @@ const kickDialogUser = computed(() => {
           type: messageData.messageType === 'system' ? 'system' : 
                 messageData.messageType === 'image' ? 'image' :
                 messageData.messageType === 'bilibili' ? 'bilibili' :
-                messageData.messageType === 'markdown' ? 'markdown' : 'user',
+                messageData.messageType === 'markdown' ? 'markdown' :
+                messageData.messageType === 'file' ? 'file' : 'user',
           userName: messageData.user?.nickname || messageData.userName || '未知用户',
           userUid: messageData.userUid || messageData.sender_uid,
           userAvatar: messageData.user?.avatarUrl || messageData.userAvatar || '/avatars/default',
@@ -1564,6 +2225,11 @@ const kickDialogUser = computed(() => {
           imageUrl: messageData.imageUrl,
           bilibiliId: messageData.bilibiliId,
           markdownContent: messageData.markdownContent,
+          fileId: messageData.fileId,
+          fileName: messageData.fileName,
+          fileSize: messageData.fileSize,
+          fileExpiry: messageData.fileExpiry,
+          fileExpired: messageData.fileExpired,
           timestamp: messageData.createdAt,
           isOwn: messageData.userUid === authStore.user?.uid,
           isAdmin: messageData.user?.isAdmin || false,
@@ -1746,8 +2412,6 @@ const kickDialogUser = computed(() => {
         
         // 加载历史消息
         await loadMessages()
-        
-        notificationStore.success(`成功加入聊天室"${roomInfo.value.name}"`)
         
         // 连接WebSocket
         connectWebSocket()
@@ -2424,6 +3088,35 @@ const confirmKickUser = async () => {
   color: #f1f5f9;
 }
 
+/* 侧边栏图标颜色 */
+.sidebar-header h3 i {
+  color: #1976d2;
+  margin-right: 2px;
+}
+
+/* 房间列表图标 */
+.left-sidebar .sidebar-header h3 i {
+  color: #28a745;
+}
+
+/* 成员列表图标 */
+.right-sidebar .sidebar-header h3 i {
+  color: #17a2b8;
+}
+
+/* 暗色模式侧边栏图标 */
+.dark .sidebar-header h3 i {
+  color: #60a5fa;
+}
+
+.dark .left-sidebar .sidebar-header h3 i {
+  color: #10b981;
+}
+
+.dark .right-sidebar .sidebar-header h3 i {
+  color: #06b6d4;
+}
+
 .sidebar-toggle {
   background: none;
   border: none;
@@ -2489,7 +3182,7 @@ const confirmKickUser = async () => {
 .header-center {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .mobile-menu-btn {
@@ -2517,6 +3210,24 @@ const confirmKickUser = async () => {
 .dark .mobile-menu-btn:hover {
   background: #1e293b;
   color: #f1f5f9;
+}
+
+/* 移动端菜单按钮图标颜色 */
+.mobile-menu-btn i {
+  color: #1976d2;
+}
+
+.header-right .mobile-menu-btn i {
+  color: #17a2b8;
+}
+
+/* 暗色模式移动端菜单按钮图标 */
+.dark .mobile-menu-btn i {
+  color: #60a5fa;
+}
+
+.dark .header-right .mobile-menu-btn i {
+  color: #06b6d4;
 }
 
 .room-info {
@@ -3269,7 +3980,13 @@ const confirmKickUser = async () => {
 .empty-messages i {
   font-size: 3rem;
   margin-bottom: 1rem;
-  opacity: 0.5;
+  opacity: 0.7;
+  color: #17a2b8;
+}
+
+/* 暗色模式空消息图标 */
+.dark .empty-messages i {
+  color: #06b6d4;
 }
 
 /* 加载指示器样式 */
@@ -3306,10 +4023,21 @@ const confirmKickUser = async () => {
 
 .loading-more .loading-spinner i {
   font-size: 16px;
+  color: #1976d2;
 }
 
 .no-more-messages i {
   font-size: 14px;
+  color: #6c757d;
+}
+
+/* 暗色模式加载和历史消息图标 */
+.dark .loading-more .loading-spinner i {
+  color: #60a5fa;
+}
+
+.dark .no-more-messages i {
+  color: #94a3b8;
 }
 
 /* 消息样式 */
@@ -3541,6 +4269,11 @@ const confirmKickUser = async () => {
   opacity: 0.8;
 }
 
+/* 暗色模式系统图标 */
+.dark .system-icon {
+  color: #60a5fa;
+}
+
 .system-text {
   flex: 1;
   font-weight: 500;
@@ -3678,6 +4411,12 @@ const confirmKickUser = async () => {
 
 .reply-info i {
   font-size: 14px;
+  color: #1976d2;
+}
+
+/* 暗色模式回复图标 */
+.dark .reply-info i {
+  color: #60a5fa;
 }
 
 .reply-content {
@@ -3849,6 +4588,24 @@ const confirmKickUser = async () => {
 .dark .auth-notice {
   background: #450a0a;
   color: #fca5a5;
+}
+
+/* 提示信息图标颜色 */
+.mute-notice i {
+  color: #ffc107;
+}
+
+.auth-notice i {
+  color: #dc3545;
+}
+
+/* 暗色模式提示图标 */
+.dark .mute-notice i {
+  color: #fbbf24;
+}
+
+.dark .auth-notice i {
+  color: #ef4444;
 }
 
 /* 移动端响应式样式 */
@@ -4114,6 +4871,17 @@ const confirmKickUser = async () => {
   font-size: 11px;
 }
 
+.file-header {
+  color: #28a745;
+}
+
+.file-header span {
+  background: rgba(40, 167, 69, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
 /* 暗色模式Markdown标记 */
 .dark .markdown-header {
   color: #e2e8f0;
@@ -4122,6 +4890,16 @@ const confirmKickUser = async () => {
 .dark .markdown-header span {
   background: rgba(226, 232, 240, 0.2);
   color: #e2e8f0;
+}
+
+/* 暗色模式文件标记 */
+.dark .file-header {
+  color: #10b981;
+}
+
+.dark .file-header span {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
 }
 
 /* 发送者消息中的类型标记样式 */
@@ -4147,6 +4925,15 @@ const confirmKickUser = async () => {
   color: white;
 }
 
+.message-own .file-header {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-own .file-header span {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
 /* B站视频消息样式 */
 .bilibili-message {
   max-width: 500px;
@@ -4160,6 +4947,191 @@ const confirmKickUser = async () => {
   border-radius: 8px;
   display: block;
   aspect-ratio: 16/9;
+}
+
+/* 文件消息样式 */
+.file-message {
+  max-width: 400px;
+  margin: 8px 0;
+}
+
+.file-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.file-content:hover {
+  background: #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 暗色模式文件内容 */
+.dark .file-content {
+  background: #334155;
+  border: 1px solid #475569;
+}
+
+.dark .file-content:hover {
+  background: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e3f2fd;
+  border-radius: 8px;
+  color: #1976d2;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* 暗色模式文件图标 */
+.dark .file-icon {
+  background: #1e3a8a;
+  color: #60a5fa;
+}
+
+.file-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+  margin-bottom: 2px;
+  word-break: break-all;
+  line-height: 1.2;
+}
+
+/* 暗色模式文件名 */
+.dark .file-name {
+  color: #f1f5f9;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 2px;
+}
+
+/* 暗色模式文件大小 */
+.dark .file-size {
+  color: #94a3b8;
+}
+
+.file-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.file-status.valid {
+  color: #28a745;
+}
+
+.file-status.expired {
+  color: #dc3545;
+}
+
+/* 暗色模式文件状态 */
+.dark .file-status.valid {
+  color: #10b981;
+}
+
+.dark .file-status.expired {
+  color: #ef4444;
+}
+
+.download-btn {
+  width: 36px;
+  height: 36px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.download-btn:hover {
+  background: #218838;
+  transform: scale(1.05);
+}
+
+/* 暗色模式下载按钮 */
+.dark .download-btn {
+  background: #10b981;
+}
+
+.dark .download-btn:hover {
+  background: #059669;
+}
+
+/* 消息发送者的文件消息样式 */
+.message-own .file-content {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.message-own .file-content:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.message-own .file-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.message-own .file-name {
+  color: white;
+}
+
+.message-own .file-size {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-own .file-status.valid {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.message-own .file-status.expired {
+  color: #ffcccb;
+}
+
+.message-own .download-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.message-own .download-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Markdown消息样式 */
@@ -4398,6 +5370,144 @@ const confirmKickUser = async () => {
   
   .message-deleting::after {
     animation-duration: 1s;
+  }
+}
+
+/* 上传进度对话框样式 */
+.upload-progress-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(4px);
+}
+
+.upload-progress-dialog {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  min-width: 350px;
+  max-width: 90%;
+  overflow: hidden;
+  animation: uploadDialogFadeIn 0.3s ease-out;
+}
+
+@keyframes uploadDialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.upload-progress-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.upload-progress-header i {
+  font-size: 18px;
+}
+
+.upload-progress-content {
+  padding: 20px;
+}
+
+.upload-file-name {
+  color: #2c3e50;
+  font-weight: 500;
+  margin-bottom: 16px;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.upload-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.upload-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: progressShimmer 1.5s infinite;
+}
+
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.upload-progress-text {
+  text-align: center;
+  color: #667eea;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 暗色模式样式 */
+.dark .upload-progress-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.dark .upload-progress-dialog {
+  background: #1f2937;
+  color: #f1f5f9;
+}
+
+.dark .upload-file-name {
+  color: #f1f5f9;
+}
+
+.dark .upload-progress-bar {
+  background: #374151;
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+  .upload-progress-dialog {
+    min-width: auto;
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+  
+  .upload-progress-header,
+  .upload-progress-content {
+    padding: 16px;
   }
 }
 

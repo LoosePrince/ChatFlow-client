@@ -44,6 +44,22 @@
               <i class="fas fa-chevron-right"></i>
             </div>
           </div>
+          
+          <div 
+            class="type-option"
+            @click="selectType('file')"
+          >
+            <div class="type-icon file">
+              <i class="fas fa-file-upload"></i>
+            </div>
+            <div class="type-info">
+              <div class="type-title">文件</div>
+              <div class="type-description">发送文件，最大2MB，保存30分钟（图片自动转为图片消息）</div>
+            </div>
+            <div class="type-arrow">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -188,6 +204,10 @@ const selectType = (type) => {
 
 .type-icon.markdown {
   background: linear-gradient(135deg, #333 0%, #555 100%);
+}
+
+.type-icon.file {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
 }
 
 .type-info {
