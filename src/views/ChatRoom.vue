@@ -3855,6 +3855,9 @@ const confirmKickUser = async () => {
   position: relative;
   overflow: hidden;
   min-height: 0;
+  /* Safari 修复 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* 临时通知样式 */
@@ -3954,6 +3957,43 @@ const confirmKickUser = async () => {
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column-reverse;
+  /* Safari 滚动条修复 */
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Safari 和 Webkit 浏览器滚动条样式 */
+.message-list::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.message-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.message-list::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+/* 暗色模式滚动条 */
+.dark .message-list {
+  scrollbar-color: #475569 transparent;
+}
+
+.dark .message-list::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
+
+.dark .message-list::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
 }
 
 .messages-container {
@@ -4115,13 +4155,16 @@ const confirmKickUser = async () => {
 }
 
 .message-own .message-content {
-  background: #1976d2;
-  color: white;
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
 }
 
 /* 暗色模式自己的消息 */
 .dark .message-own .message-content {
-  background: #3b82f6;
+  background: #1e3a8a;
+  color: #bfdbfe;
+  border: 1px solid #3730a3;
 }
 
 .message-content::before {
@@ -4143,13 +4186,13 @@ const confirmKickUser = async () => {
 .message-own .message-content::before {
   left: auto;
   right: -8px;
-  border-left-color: #1976d2;
+  border-left-color: #e3f2fd;
   border-right-color: transparent;
 }
 
 /* 暗色模式自己消息的箭头 */
 .dark .message-own .message-content::before {
-  border-left-color: #3b82f6;
+  border-left-color: #1e3a8a;
 }
 
 .message-header {
@@ -4162,7 +4205,7 @@ const confirmKickUser = async () => {
 
 
 .message-own .user-name {
-  color: #e3f2fd;
+  color: #1976d2;
 }
 
 .admin-icon {
@@ -4182,7 +4225,7 @@ const confirmKickUser = async () => {
 }
 
 .message-own .message-time {
-  color: #bbdefb;
+  color: #1976d2;
 }
 
 .message-body {
@@ -4204,7 +4247,7 @@ const confirmKickUser = async () => {
 }
 
 .message-own .message-text {
-  color: white;
+  color: #1976d2;
 }
 
 .message-time-inline {
@@ -4222,7 +4265,8 @@ const confirmKickUser = async () => {
 }
 
 .message-own .message-time-inline {
-  color: rgba(255, 255, 255, 0.7);
+  color: #1976d2;
+  opacity: 0.8;
 }
 
 /* 系统消息样式 */
@@ -4344,19 +4388,21 @@ const confirmKickUser = async () => {
 }
 
 .message-own .reply-message {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(25, 118, 210, 0.1);
+  border: 1px solid rgba(25, 118, 210, 0.2);
 }
 
 .message-own .reply-user {
-  color: rgba(255, 255, 255, 0.9);
+  color: #1976d2;
 }
 
 .message-own .reply-text {
-  color: rgba(255, 255, 255, 0.7);
+  color: #1976d2;
+  opacity: 0.8;
 }
 
 .message-own .reply-line {
-  background: rgba(255, 255, 255, 0.8);
+  background: #1976d2;
 }
 
 /* 输入区域 */
@@ -4904,34 +4950,34 @@ const confirmKickUser = async () => {
 
 /* 发送者消息中的类型标记样式 */
 .message-own .message-type-header {
-  color: rgba(255, 255, 255, 0.9);
+  color: #1976d2;
 }
 
 .message-own .bilibili-header {
-  color: rgba(255, 255, 255, 0.9);
+  color: #fb7299;
 }
 
 .message-own .bilibili-header span {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(251, 114, 153, 0.2);
+  color: #fb7299;
 }
 
 .message-own .markdown-header {
-  color: rgba(255, 255, 255, 0.9);
+  color: #1976d2;
 }
 
 .message-own .markdown-header span {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(25, 118, 210, 0.2);
+  color: #1976d2;
 }
 
 .message-own .file-header {
-  color: rgba(255, 255, 255, 0.9);
+  color: #28a745;
 }
 
 .message-own .file-header span {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
 }
 
 /* B站视频消息样式 */
@@ -5096,42 +5142,43 @@ const confirmKickUser = async () => {
 
 /* 消息发送者的文件消息样式 */
 .message-own .file-content {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(25, 118, 210, 0.1);
+  border: 1px solid rgba(25, 118, 210, 0.2);
 }
 
 .message-own .file-content:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(25, 118, 210, 0.15);
 }
 
 .message-own .file-icon {
-  background: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.9);
+  background: rgba(25, 118, 210, 0.2);
+  color: #1976d2;
 }
 
 .message-own .file-name {
-  color: white;
+  color: #1976d2;
 }
 
 .message-own .file-size {
-  color: rgba(255, 255, 255, 0.7);
+  color: #1976d2;
+  opacity: 0.7;
 }
 
 .message-own .file-status.valid {
-  color: rgba(255, 255, 255, 0.8);
+  color: #28a745;
 }
 
 .message-own .file-status.expired {
-  color: #ffcccb;
+  color: #dc3545;
 }
 
 .message-own .download-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: #28a745;
   color: white;
 }
 
 .message-own .download-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #218838;
 }
 
 /* Markdown消息样式 */
