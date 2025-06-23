@@ -47,6 +47,14 @@
             <i class="fas fa-home"></i>
             返回首页
           </button>
+          <!-- 主题切换和退出房间按钮 -->
+          <div class="footer-action-buttons">
+            <ThemeToggle />
+            <button @click="confirmLeaveRoom" class="leave-button-footer">
+              <i class="fas fa-sign-out-alt"></i>
+              <span class="leave-text">退出房间</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -86,10 +94,6 @@
           <div class="header-right">
             <button @click="toggleMemberList" class="mobile-menu-btn">
               <i class="fas fa-users"></i>
-            </button>
-            <button @click="confirmLeaveRoom" class="leave-button">
-              <i class="fas fa-sign-out-alt"></i>
-              <span class="leave-text">退出房间</span>
             </button>
           </div>
         </div>
@@ -248,6 +252,7 @@
                         <div 
                           class="markdown-content"
                           v-html="renderMarkdown(message.markdownContent)"
+                          @click="handleMarkdownImageClick"
                         ></div>
                       </div>
                       <!-- 文本消息 -->
@@ -364,7 +369,6 @@
             成员列表 ({{ totalMemberCount }})
           </h3>
           <div class="button-container">
-            <ThemeToggle />
             <button @click="toggleMemberList" class="sidebar-toggle">
               <i class="fas fa-times"></i>
             </button>
@@ -1344,12 +1348,47 @@ const kickDialogUser = computed(() => {
       sanitize: false
     })
 
+    // 处理markdown中的图片点击事件
+    const handleMarkdownImageClick = (event) => {
+      const img = event.target
+      if (img.tagName === 'IMG' && img.classList.contains('markdown-image')) {
+        event.preventDefault()
+        // 优先使用原始URL，如果没有则使用src
+        const imageUrl = img.dataset.originalSrc || img.src
+        const imageTitle = img.alt || img.title || '图片预览'
+        
+        console.log('点击markdown图片:', { imageUrl, imageTitle })
+        openImagePreview(imageUrl, imageTitle)
+      }
+    }
+
     // 使用marked库渲染Markdown内容
     const renderMarkdown = (content) => {
       if (!content) return ''
       
       try {
-        return marked(content)
+        // 配置marked渲染器
+        const renderer = new marked.Renderer()
+        
+        // 自定义图片渲染
+        renderer.image = function(href, title, text) {
+          // 确保href是字符串
+          const imageUrl = typeof href === 'string' ? href : (href?.href || href?.url || '')
+          
+          if (!imageUrl) {
+            return `<span style="color: #dc3545; font-style: italic;">图片链接无效</span>`
+          }
+          
+          // 安全地处理title和alt属性
+          const safeTitle = title ? title.replace(/"/g, '&quot;') : ''
+          const safeAlt = text ? text.replace(/"/g, '&quot;') : ''
+          const titleAttr = safeTitle ? ` title="${safeTitle}"` : ''
+          const altAttr = safeAlt ? ` alt="${safeAlt}"` : ''
+          
+          return `<img src="${imageUrl}" data-original-src="${imageUrl}"${titleAttr}${altAttr} class="markdown-image" style="max-width: 100%; height: auto; cursor: pointer; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">`
+        }
+        
+        return marked(content, { renderer })
       } catch (error) {
         console.error('Markdown解析错误:', error)
         return '<p style="color: red;">Markdown解析错误</p>'
@@ -2584,26 +2623,7 @@ const confirmKickUser = async () => {
   color: #94a3b8;
 }
 
-.leave-button {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background 0.3s ease;
-}
 
-.leave-button:hover {
-  background: #c82333;
-}
-
-.leave-text {
-  display: inline;
-}
 
 /* 房间列表样式 */
 .room-list {
@@ -2738,6 +2758,58 @@ const confirmKickUser = async () => {
 
 .dark .home-button:hover {
   background: #2563eb;
+}
+
+/* 底部操作按钮容器 */
+.footer-action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+/* 底部退出按钮样式 */
+.leave-button-footer {
+  flex: 1;
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  transition: background 0.3s ease;
+}
+
+.leave-button-footer:hover {
+  background: #c82333;
+}
+
+/* 暗色模式底部退出按钮 */
+.dark .leave-button-footer {
+  background: #ef4444;
+}
+
+.dark .leave-button-footer:hover {
+  background: #dc2626;
+}
+
+/* 移动端底部按钮优化 */
+@media (max-width: 768px) {
+  .footer-action-buttons {
+    gap: 8px;
+  }
+  
+  .leave-button-footer {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  
+  .leave-button-footer .leave-text {
+    display: none;
+  }
 }
 
 /* 成员列表样式 */
@@ -3818,9 +3890,7 @@ const confirmKickUser = async () => {
     display: none;
   }
   
-  .leave-text {
-    display: none;
-  }
+
   
   .room-info h1 {
     font-size: 18px;
@@ -3986,7 +4056,6 @@ const confirmKickUser = async () => {
 }
 
 .image-content {
-  max-width: min(500px, 100%);
   max-height: 500px;
   height: auto;
   border-radius: 8px;
@@ -4121,10 +4190,20 @@ const confirmKickUser = async () => {
   padding-bottom: 0.2em;
 }
 
+/* 暗色模式标题边框 */
+.dark .markdown-content :deep(h1) {
+  border-bottom-color: #475569;
+}
+
 .markdown-content :deep(h2) {
   font-size: 1.4em;
   border-bottom: 1px solid #e9ecef;
   padding-bottom: 0.2em;
+}
+
+/* 暗色模式标题边框 */
+.dark .markdown-content :deep(h2) {
+  border-bottom-color: #475569;
 }
 
 .markdown-content :deep(h3) {
@@ -4144,6 +4223,12 @@ const confirmKickUser = async () => {
   color: #e83e8c;
 }
 
+/* 暗色模式代码 */
+.dark .markdown-content :deep(code) {
+  background: #374151;
+  color: #f472b6;
+}
+
 .markdown-content :deep(pre) {
   background: #f8f9fa;
   padding: 12px;
@@ -4153,10 +4238,21 @@ const confirmKickUser = async () => {
   margin: 12px 0;
 }
 
+/* 暗色模式代码块 */
+.dark .markdown-content :deep(pre) {
+  background: #374151;
+  border-left-color: #9ca3af;
+}
+
 .markdown-content :deep(pre code) {
   background: none;
   padding: 0;
   color: #2c3e50;
+}
+
+/* 暗色模式代码块内容 */
+.dark .markdown-content :deep(pre code) {
+  color: #e5e7eb;
 }
 
 .markdown-content :deep(strong) {
@@ -4164,9 +4260,19 @@ const confirmKickUser = async () => {
   color: #2c3e50;
 }
 
+/* 暗色模式粗体 */
+.dark .markdown-content :deep(strong) {
+  color: #f1f5f9;
+}
+
 .markdown-content :deep(em) {
   font-style: italic;
   color: #6c757d;
+}
+
+/* 暗色模式斜体 */
+.dark .markdown-content :deep(em) {
+  color: #94a3b8;
 }
 
 .markdown-content :deep(a) {

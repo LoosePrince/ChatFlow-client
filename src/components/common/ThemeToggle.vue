@@ -5,7 +5,7 @@
     <button 
       class="theme-btn"
       @click="handleToggle"
-      @mouseenter="showOptions = true"
+      @mouseenter="handleMouseEnter"
       @mouseleave="startHideTimer"
       :title="currentConfig.description"
     >
@@ -17,7 +17,9 @@
     <Transition name="theme-options">
       <div 
         v-show="showOptions"
+        ref="optionsRef"
         class="theme-options"
+        :style="optionsStyle"
         @mouseenter="clearHideTimer"
         @mouseleave="startHideTimer"
       >
@@ -63,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 
 // Props
@@ -80,6 +82,8 @@ const themeStore = useThemeStore()
 // 响应式数据
 const showOptions = ref(false)
 const toggleRef = ref(null)
+const optionsRef = ref(null)
+const optionsStyle = ref({})
 let hideTimer = null
 
 // 主题选项
@@ -90,13 +94,67 @@ const currentConfig = computed(() => {
   return themeStore.getThemeConfig(themeStore.mode)
 })
 
+// 计算弹窗位置
+const calculatePosition = async () => {
+  await nextTick()
+  
+  if (!toggleRef.value || !optionsRef.value) return
+  
+  const toggleRect = toggleRef.value.getBoundingClientRect()
+  const optionsRect = optionsRef.value.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  
+  // 默认位置：按钮下方，右对齐
+  let top = toggleRect.height + 8
+  let left = 'auto'
+  let right = 0
+  let bottom = 'auto'
+  
+  // 检查右边界
+  if (toggleRect.right - optionsRect.width < 0) {
+    // 如果右对齐会超出左边界，改为左对齐
+    left = 0
+    right = 'auto'
+  }
+  
+  // 检查下边界
+  if (toggleRect.bottom + optionsRect.height + 8 > viewportHeight) {
+    // 如果下方空间不足，显示在按钮上方
+    top = 'auto'
+    bottom = toggleRect.height + 8
+  }
+  
+  // 检查上边界（当显示在上方时）
+  if (bottom !== 'auto' && toggleRect.top - optionsRect.height - 8 < 0) {
+    // 如果上方空间也不足，优先显示在下方，允许滚动
+    top = toggleRect.height + 8
+    bottom = 'auto'
+  }
+  
+  optionsStyle.value = {
+    position: 'absolute',
+    top: typeof top === 'number' ? `${top}px` : top,
+    left: typeof left === 'number' ? `${left}px` : left,
+    right: typeof right === 'number' ? `${right}px` : right,
+    bottom: typeof bottom === 'number' ? `${bottom}px` : bottom,
+    zIndex: 50
+  }
+}
+
 // 方法
-const handleToggle = () => {
+const handleToggle = async () => {
   if (showOptions.value) {
     hideOptions()
   } else {
     showOptions.value = true
+    await calculatePosition()
   }
+}
+
+const handleMouseEnter = async () => {
+  showOptions.value = true
+  await calculatePosition()
 }
 
 const selectTheme = (theme) => {
@@ -130,13 +188,31 @@ const handleClickOutside = (event) => {
   }
 }
 
+// 监听窗口大小变化
+const handleResize = () => {
+  if (showOptions.value) {
+    calculatePosition()
+  }
+}
+
+// 监听showOptions变化，在显示时重新计算位置
+watch(showOptions, async (newValue) => {
+  if (newValue) {
+    await calculatePosition()
+  }
+})
+
 // 生命周期
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('resize', handleResize)
+  window.addEventListener('scroll', handleResize)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('resize', handleResize)
+  window.removeEventListener('scroll', handleResize)
   clearHideTimer()
 })
 </script>
@@ -162,8 +238,9 @@ onUnmounted(() => {
 }
 
 .theme-options {
-  @apply absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 z-50;
+  @apply absolute w-72 bg-white rounded-xl shadow-lg border border-gray-200;
   @apply dark:bg-gray-800 dark:border-gray-600;
+  /* 位置将由JavaScript动态控制 */
 }
 
 .options-header {

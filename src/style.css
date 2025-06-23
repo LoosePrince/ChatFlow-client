@@ -95,6 +95,10 @@ body {
   margin: auto;
 }
 
+.theme-btn {
+  display: block !important;
+}
+
 .btn-primary {
   background: var(--primary-color);
   border-color: var(--primary-color);
