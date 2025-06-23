@@ -197,7 +197,7 @@
                     </div>
                     
                     <!-- 回复信息 -->
-                    <div v-if="message.replyToMessage" class="reply-message" @click="scrollToMessage(message.replyToMessage.id)">
+                    <div v-if="message.replyToMessage" class="reply-message" @click="scrollToMessage(message.replyToMessage.id, true)">
                       <div class="reply-line"></div>
                       <div class="reply-content">
                         <div class="reply-user">{{ message.replyToMessage.user.nickname }}</div>
@@ -932,12 +932,11 @@ const kickDialogUser = computed(() => {
       currentPage: 0,
       pageSize: 30,
       hasMore: true,
-      isLoading: false,
-      oldestMessageId: null
+      isLoading: false
     })
     
     // 加载聊天室历史消息 - 重新设计为分页加载
-    const loadMessages = async (loadMore = false) => {
+    const loadMessages = async (loadMore = false, scrollToMessageId = null) => {
       if (messagesPagination.isLoading || (!loadMore && messagesPagination.currentPage > 0)) {
         return
       }
@@ -947,12 +946,7 @@ const kickDialogUser = computed(() => {
       try {
         const params = {
           limit: messagesPagination.pageSize,
-          page: messagesPagination.currentPage
-        }
-        
-        // 如果是加载更多，使用最旧消息的ID作为参考点
-        if (loadMore && messagesPagination.oldestMessageId) {
-          params.before = messagesPagination.oldestMessageId
+          offset: messagesPagination.currentPage * messagesPagination.pageSize
         }
         
         const response = await axios.get(`/api/chatrooms/${roomId.value}/messages`, { params })
@@ -966,7 +960,11 @@ const kickDialogUser = computed(() => {
           (msg.messageType === 'system' && msg.systemMessageType === 'persistent')
         )
         
-        const formattedMessages = persistentMessages.map(msg => ({
+        // 检查是否有重复消息（防止重复加载）
+        const existingIds = new Set(messages.map(m => m.id))
+        const newMessages = persistentMessages.filter(msg => !existingIds.has(msg.id))
+        
+        const formattedMessages = newMessages.map(msg => ({
           id: msg.id,
           type: msg.messageType === 'system' ? 'system' : 
                 msg.messageType === 'image' ? 'image' :
@@ -997,7 +995,8 @@ const kickDialogUser = computed(() => {
         
         if (loadMore) {
           // 加载更多时，将新消息插入到数组开头（保持时间顺序）
-          messages.unshift(...formattedMessages.reverse())
+          // 后端已经按时间顺序返回（最早的在前面），所以直接插入
+          messages.unshift(...formattedMessages)
         } else {
           // 首次加载，直接替换消息数组
           messages.splice(0, messages.length, ...formattedMessages)
@@ -1007,15 +1006,13 @@ const kickDialogUser = computed(() => {
         messagesPagination.hasMore = formattedMessages.length === messagesPagination.pageSize
         messagesPagination.currentPage++
         
-        // 更新最旧消息ID
-        if (messages.length > 0) {
-          messagesPagination.oldestMessageId = messages[0].id
-        }
-        
-        // 首次加载时滚动到底部，加载更多时保持当前位置
+        // 首次加载时滚动到底部，加载更多时滚动到指定消息
         await nextTick()
         if (!loadMore) {
-          scrollToBottom()
+          scrollToBottom(false)
+        } else if (scrollToMessageId) {
+          // 滚动到指定消息（通常是加载前的第一条消息），不显示高亮效果
+          scrollToMessage(scrollToMessageId, false)
         } else {
           // 加载更多后，保持滚动位置相对稳定
           maintainScrollPosition()
@@ -1035,17 +1032,24 @@ const kickDialogUser = computed(() => {
         return
       }
       
-      await loadMessages(true)
+      // 记住当前第一条消息的ID，用于加载后定位
+      const firstMessageId = messages.length > 0 ? messages[0].id : null
+      
+      await loadMessages(true, firstMessageId)
     }
     
     // 保持滚动位置（加载更多消息后使用）
     const maintainScrollPosition = () => {
       if (messageList.value) {
-        // 滚动到距离底部一定距离的位置，避免跳动
-        const scrollHeight = messageList.value.scrollHeight
-        const clientHeight = messageList.value.clientHeight
-        const newScrollTop = scrollHeight - clientHeight - 100 // 保持100px的缓冲
-        messageList.value.scrollTop = Math.max(0, newScrollTop)
+        // 在加载更多历史消息后，我们希望用户保持在他们之前查看的位置
+        // 由于我们使用了 flex-direction: column-reverse，滚动位置会自动保持合适的位置
+        // 但为了确保稳定性，我们可以稍微调整一下
+        const currentScrollTop = messageList.value.scrollTop
+        
+        // 如果用户在很靠近顶部的位置，给一个小的缓冲区
+        if (currentScrollTop < 50) {
+          messageList.value.scrollTop = 50
+        }
       }
     }
     
@@ -1055,10 +1059,16 @@ const kickDialogUser = computed(() => {
         return
       }
       
-      const { scrollTop } = messageList.value
+      const { scrollTop, scrollHeight, clientHeight } = messageList.value
       
-      // 当滚动到顶部附近时，加载更多历史消息
-      if (scrollTop < 100) {
+      // 在 column-reverse 布局中：
+      // - scrollTop = 0 时在底部（最新消息）
+      // - scrollTop = 负数且接近 -(scrollHeight - clientHeight) 时在顶部（最旧消息）
+      const maxNegativeScroll = -(scrollHeight - clientHeight)
+      const distanceFromTop = Math.abs(scrollTop - maxNegativeScroll)
+      
+      // 当距离顶部小于100px时，加载更多历史消息
+      if (distanceFromTop < 100) {
         loadMoreMessages()
       }
     }
@@ -1078,8 +1088,9 @@ const kickDialogUser = computed(() => {
     const isNearBottom = () => {
       if (!messageList.value) return true
       
-      const { scrollTop, scrollHeight, clientHeight } = messageList.value
-      return scrollHeight - scrollTop - clientHeight < 50
+      const { scrollTop } = messageList.value
+      // 在 column-reverse 布局中，scrollTop 为 0 或接近 0 时表示在底部（最新消息处）
+      return scrollTop < 50
     }
     
     // 选择图片
@@ -2777,7 +2788,7 @@ const cancelReply = () => {
 }
 
 // 滚动到指定消息
-const scrollToMessage = (messageId) => {
+const scrollToMessage = (messageId, withHighlight = true) => {
   const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
   if (messageElement && messageList.value) {
     messageElement.scrollIntoView({
@@ -2785,11 +2796,13 @@ const scrollToMessage = (messageId) => {
       block: 'center'
     })
     
-    // 添加高亮效果
-    messageElement.classList.add('message-highlight')
-    setTimeout(() => {
-      messageElement.classList.remove('message-highlight')
-    }, 2000)
+    // 只在需要时添加高亮效果
+    if (withHighlight) {
+      messageElement.classList.add('message-highlight')
+      setTimeout(() => {
+        messageElement.classList.remove('message-highlight')
+      }, 2000)
+    }
   }
 }
 
@@ -3860,6 +3873,26 @@ const confirmKickUser = async () => {
   transform: translateZ(0);
 }
 
+/* 移动端和Safari滚动修复 */
+@media (max-width: 768px) {
+  .messages-area {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .message-list {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* 针对iOS Safari的特殊处理 */
+@supports (-webkit-appearance: none) and (not (appearance: none)) {
+  .message-list {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+}
+
 /* 临时通知样式 */
 .temporary-notifications {
   position: absolute;
@@ -4162,37 +4195,9 @@ const confirmKickUser = async () => {
 
 /* 暗色模式自己的消息 */
 .dark .message-own .message-content {
-  background: #1e3a8a;
-  color: #bfdbfe;
-  border: 1px solid #3730a3;
-}
-
-.message-content::before {
-  content: '';
-  position: absolute;
-  top: 12px;
-  left: -8px;
-  width: 0;
-  height: 0;
-  border: 8px solid transparent;
-  border-right-color: white;
-}
-
-/* 暗色模式消息箭头 */
-.dark .message-content::before {
-  border-right-color: #334155;
-}
-
-.message-own .message-content::before {
-  left: auto;
-  right: -8px;
-  border-left-color: #e3f2fd;
-  border-right-color: transparent;
-}
-
-/* 暗色模式自己消息的箭头 */
-.dark .message-own .message-content::before {
-  border-left-color: #1e3a8a;
+  background: #334155;
+  color: #ffffff;
+  border: 1px solid #1e293b;
 }
 
 .message-header {
@@ -4206,6 +4211,11 @@ const confirmKickUser = async () => {
 
 .message-own .user-name {
   color: #1976d2;
+}
+
+/* 暗色模式自己消息的用户名 */
+.dark .message-own .user-name {
+  color: #ffffff;
 }
 
 .admin-icon {
@@ -4226,6 +4236,11 @@ const confirmKickUser = async () => {
 
 .message-own .message-time {
   color: #1976d2;
+}
+
+/* 暗色模式自己消息的时间 */
+.dark .message-own .message-time {
+  color: #ffffff;
 }
 
 .message-body {
@@ -4250,6 +4265,11 @@ const confirmKickUser = async () => {
   color: #1976d2;
 }
 
+/* 暗色模式自己消息的文本 */
+.dark .message-own .message-text {
+  color: #ffffff;
+}
+
 .message-time-inline {
   color: #6c757d;
   font-size: 10px;
@@ -4266,6 +4286,12 @@ const confirmKickUser = async () => {
 
 .message-own .message-time-inline {
   color: #1976d2;
+  opacity: 0.8;
+}
+
+/* 暗色模式自己消息的内联时间 */
+.dark .message-own .message-time-inline {
+  color: #ffffff;
   opacity: 0.8;
 }
 
