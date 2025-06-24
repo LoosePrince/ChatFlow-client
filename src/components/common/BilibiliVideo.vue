@@ -6,7 +6,30 @@
       <span>加载视频信息中...</span>
     </div>
 
-    <!-- 错误状态 -->
+    <!-- 回退模式：仅显示视频播放器 -->
+    <div v-else-if="fallbackMode" class="video-content fallback-mode">
+      <!-- 视频播放器 -->
+      <div class="video-player">
+        <iframe 
+          :src="`//player.bilibili.com/player.html?bvid=${bvid}&autoplay=0`"
+          class="bilibili-iframe"
+          frameborder="0"
+          allowfullscreen
+        ></iframe>
+      </div>
+      
+      <!-- 简化信息 -->
+      <div class="video-info">
+        <div class="video-header">
+          <div class="video-meta">
+            <span class="bvid">{{ bvid }}</span>
+            <span class="fallback-note">{{ fallbackError || '信息加载失败，仅显示播放器' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 错误状态（保留用于其他致命错误） -->
     <div v-else-if="error" class="video-error">
       <i class="fas fa-exclamation-triangle"></i>
       <div class="error-content">
@@ -99,12 +122,40 @@ const props = defineProps({
 const loading = ref(true)
 const error = ref(null)
 const videoInfo = ref(null)
+const fallbackMode = ref(false)
+const fallbackError = ref(null)
+
+// 简化错误信息
+const getSimplifiedError = (errorMessage) => {
+  if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network Error')) {
+    return '网络连接失败'
+  }
+  if (errorMessage.includes('API端点不存在') || errorMessage.includes('端点不存在')) {
+    return 'API端点不存在'
+  }
+  if (errorMessage.includes('404') || errorMessage.includes('Not Found')) {
+    return '接口不存在'
+  }
+  if (errorMessage.includes('API不支持')) {
+    return 'API不支持'
+  }
+  if (errorMessage.includes('服务暂不可用')) {
+    return '服务暂不可用'
+  }
+  if (errorMessage.includes('获取视频信息失败')) {
+    return '获取信息失败'
+  }
+  // 默认简化处理，截取前20个字符
+  return errorMessage.length > 20 ? errorMessage.substring(0, 20) + '...' : errorMessage
+}
 
 // 获取视频信息
 const fetchVideoInfo = async () => {
   try {
     loading.value = true
     error.value = null
+    fallbackMode.value = false
+    fallbackError.value = null
     
     // 使用后端代理API
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
@@ -117,18 +168,28 @@ const fetchVideoInfo = async () => {
       throw new Error(result.message || '获取视频信息失败')
     }
   } catch (err) {
-    console.error('获取B站视频信息失败:', err)
-    if (err.message.includes('Failed to fetch')) {
-      error.value = '无法连接到服务器，请检查网络连接'
+    console.warn('获取B站视频信息失败，回退为仅显示播放器:', err)
+    
+    // 检查是否为网络错误或API不支持错误，如果是则回退为仅显示播放器
+    if (err.message.includes('Failed to fetch') || 
+        err.message.includes('Network Error') ||
+        err.message.includes('获取视频信息失败') ||
+        err.message.includes('API不支持') ||
+        err.message.includes('服务暂不可用') ||
+        err.message.includes('API端点不存在') ||
+        err.message.includes('端点不存在') ||
+        err.message.includes('404') ||
+        err.message.includes('Not Found')) {
+      fallbackMode.value = true
+      fallbackError.value = getSimplifiedError(err.message)
     } else {
+      // 其他致命错误仍然显示错误信息
       error.value = err.message || '获取视频信息失败'
     }
   } finally {
     loading.value = false
   }
 }
-
-
 
 // 格式化时长
 const formatDuration = (seconds) => {
@@ -205,8 +266,6 @@ const getResolutionText = (dimension) => {
   
   return `${width}×${height}`
 }
-
-
 
 onMounted(() => {
   fetchVideoInfo()
@@ -303,8 +362,6 @@ onMounted(() => {
   background: rgba(239, 68, 68, 0.2);
 }
 
-
-
 /* 视频播放器 */
 .video-player {
   position: relative;
@@ -318,7 +375,28 @@ onMounted(() => {
   border: none;
 }
 
+/* 回退模式样式 */
+.fallback-mode {
+  border-left: 3px solid #ffc107;
+}
 
+.dark .fallback-mode {
+  border-left-color: #f59e0b;
+}
+
+.fallback-note {
+  background: rgba(255, 193, 7, 0.1);
+  color: #856404;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dark .fallback-note {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
 
 /* 视频信息 */
 .video-info {
