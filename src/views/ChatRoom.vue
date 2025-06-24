@@ -11,52 +11,21 @@
     <!-- 聊天室内容 -->
     <div v-else class="chatroom-layout">
       <!-- 左侧房间列表 (桌面端) -->
-      <div class="sidebar left-sidebar" :class="{ 'sidebar-hidden': !showRoomList }">
-        <div class="sidebar-header">
-          <h3>
-            <i class="fas fa-home"></i>
-            加入的房间
-          </h3>
-          <button @click="toggleRoomList" class="sidebar-toggle">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="room-list">
-          <div 
-            v-for="room in joinedRooms" 
-            :key="room.roomId"
-            :class="['room-item', { 'room-active': room.roomId === roomId }]"
-            @click="switchRoom(room.roomId)"
-          >
-            <div class="room-info">
-              <div class="room-name">{{ room.name }}</div>
-              <div class="room-id">{{ room.roomId }}</div>
-            </div>
-            <div class="room-status">
-              <span v-if="room.unreadCount > 0" class="unread-badge">{{ room.unreadCount }}</span>
-              <i :class="['connection-dot', room.connected ? 'connected' : 'disconnected']"></i>
-            </div>
-          </div>
-        </div>
-        <div class="sidebar-footer">
-          <button @click="goToRoomSelect" class="join-chat-button">
-            <i class="fas fa-plus"></i>
-            添加聊天室
-          </button>
-          <button @click="goHome" class="home-button">
-            <i class="fas fa-home"></i>
-            返回首页
-          </button>
-          <!-- 主题切换和退出房间按钮 -->
-          <div class="footer-action-buttons">
-            <ThemeToggle />
-            <button @click="confirmLeaveRoom" class="leave-button-footer">
-              <i class="fas fa-sign-out-alt"></i>
-              <span class="leave-text">退出房间</span>
-            </button>
-          </div>
-        </div>
-      </div>
+             <LeftSidebar
+         :show="showRoomList"
+         :rooms="joinedRooms"
+         :currentRoomId="roomId"
+         :currentUser="authStore.user"
+         @toggle="toggleRoomList"
+         @switchRoom="switchRoom"
+         @goToRoomSelect="goToRoomSelect"
+         @goHome="goHome"
+         @confirmLeaveRoom="confirmLeaveRoom"
+         @roomSettings="handleRoomSettings"
+         @leaveRoom="handleLeaveSpecificRoom"
+         @userProfile="handleUserProfile"
+         @currentRoomSettings="handleCurrentRoomSettings"
+       />
 
       <!-- 主聊天区域 -->
       <div class="main-content">
@@ -81,15 +50,7 @@
             </div>
           </div>
           <div class="header-center">
-            <span class="user-info">
-              <img 
-                :src="userAvatarUrl" 
-                :alt="authStore.user?.nickname"
-                class="user-avatar"
-              >
-              <span class="user-name">{{ authStore.user?.nickname }}</span>
-              <span class="user-uid">{{ authStore.user?.uid }}</span>
-            </span>
+            <!-- 用户信息已移动到左侧边栏 -->
           </div>
           <div class="header-right">
             <button @click="toggleMemberList" class="mobile-menu-btn">
@@ -303,98 +264,39 @@
           </div>
 
           <div class="input-area">
-            <!-- 回复状态显示 -->
-            <div v-if="replyState.isReplying" class="reply-preview">
-              <div class="reply-info">
-                <i class="fas fa-reply"></i>
-                <span>回复 {{ replyState.targetMessage?.userName }}</span>
-              </div>
-              <div class="reply-content">
-                <span v-if="replyState.targetMessage?.type === 'image'">
-                  <i class="fas fa-image"></i> 图片
-                </span>
-                <span v-else-if="replyState.targetMessage?.type === 'bilibili'">
-                  <i class="fab fa-bilibili"></i> B站视频 {{ replyState.targetMessage?.bilibiliId }}
-                </span>
-                <span v-else-if="replyState.targetMessage?.type === 'markdown'">
-                  <i class="fab fa-markdown"></i> {{ replyState.targetMessage?.text || 'Markdown内容' }}
-                </span>
-                <span v-else-if="replyState.targetMessage?.type === 'file'">
-                  <i class="fas fa-file"></i> {{ replyState.targetMessage?.fileName }}
-                </span>
-                <span v-else>{{ replyState.targetMessage?.text }}</span>
-              </div>
-              <button @click="cancelReply" class="reply-cancel">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
+            <!-- 隐藏的文件输入框 -->
+            <input
+              ref="imageInput"
+              type="file"
+              accept="image/*"
+              @change="handleImageSelect"
+              style="display: none"
+            >
             
-            <form @submit.prevent="sendMessage" class="message-form">
-              <!-- 功能按钮行 -->
-              <div class="function-buttons">
-                <!-- 图片选择按钮 -->
-                <button 
-                  type="button" 
-                  @click="selectImage" 
-                  :disabled="!canSendMessage"
-                  class="image-button"
-                  title="发送图片"
-                >
-                  <i class="fas fa-image"></i>
-                </button>
-                
-                <!-- 扩展消息类型按钮 -->
-                <button 
-                  type="button" 
-                  @click="showMessageTypeSelector" 
-                  :disabled="!canSendMessage"
-                  class="extend-button"
-                  title="更多消息类型"
-                >
-                  <i class="fas fa-plus"></i>
-                </button>
-              </div>
-              
-              <!-- 输入行 -->
-              <div class="input-row">
-                <!-- 隐藏的文件输入框 -->
-                <input
-                  ref="imageInput"
-                  type="file"
-                  accept="image/*"
-                  @change="handleImageSelect"
-                  style="display: none"
-                >
-                
-                <!-- 隐藏的通用文件输入框 -->
-                <input
-                  ref="fileInput"
-                  type="file"
-                  @change="handleFileSelect"
-                  style="display: none"
-                  accept="*/*"
-                  title="选择文件（最大2MB）"
-                >
-                
-                <input
-                  ref="messageInput"
-                  v-model="newMessage"
-                  type="text"
-                  placeholder="输入消息..."
-                  :disabled="!canSendMessage"
-                  class="message-input"
-                  maxlength="500"
-                  @paste="handlePaste"
-                >
-                <button 
-                  type="submit" 
-                  :disabled="!canSendMessage || !newMessage.trim()" 
-                  class="send-button"
-                >
-                  <i class="fas fa-paper-plane"></i>
-                </button>
-              </div>
-            </form>
+            <!-- 隐藏的通用文件输入框 -->
+            <input
+              ref="fileInput"
+              type="file"
+              @change="handleFileSelect"
+              style="display: none"
+              accept="*/*"
+              title="选择文件（最大2MB）"
+            >
+            
+            <!-- 新的消息输入组件 -->
+            <MessageInput
+              ref="messageInputComponent"
+              v-model="newMessage"
+              :canSendMessage="canSendMessage"
+              :replyState="replyState"
+              :maxLength="500"
+              placeholder="输入消息..."
+              @sendMessage="handleSendMessage"
+              @cancelReply="cancelReply"
+              @selectImage="selectImage"
+              @showMessageTypeSelector="showMessageTypeSelector"
+              @paste="handlePaste"
+            />
             
             <div v-if="!canSendMessage && muteTimeRemaining > 0" class="mute-notice">
               <i class="fas fa-clock"></i>
@@ -410,105 +312,12 @@
       </div>
 
       <!-- 右侧成员列表 (桌面端) -->
-      <div class="sidebar right-sidebar" :class="{ 'sidebar-hidden': !showMemberList }">
-        <div class="sidebar-header">
-          <h3>
-            <i class="fas fa-user-friends"></i>
-            成员列表 ({{ totalMemberCount }})
-          </h3>
-          <div class="button-container">
-            <button @click="toggleMemberList" class="sidebar-toggle">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-        <div class="member-list">
-          <!-- 在线成员 -->
-          <div v-if="onlineMembers.length > 0" class="member-section">
-            <div class="section-title">
-              <i class="fas fa-circle online-dot"></i>
-              在线 ({{ onlineMembers.length }})
-            </div>
-            <div 
-              v-for="member in onlineMembers" 
-              :key="member.uid"
-              class="member-item"
-              @contextmenu="handleShowUserContextMenu($event, member, 'member')"
-            >
-              <img 
-                :src="getAvatarUrl(member.avatarUrl)" 
-                :alt="member.nickname"
-                class="member-avatar"
-              >
-              <div class="member-info">
-                <div class="member-name">
-                  {{ member.nickname }}
-                  <i v-if="member.isCreator" class="fas fa-crown creator-icon" title="房主"></i>
-                  <i v-else-if="member.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
-                  <i v-if="member.isMuted" class="fas fa-comment-slash muted-icon" title="已被禁言"></i>
-                </div>
-                <div class="member-uid">{{ member.uid }}</div>
-              </div>
-              <div class="member-status online">在线</div>
-            </div>
-          </div>
-
-          <!-- 离线成员 -->
-          <div v-if="offlineMembers.length > 0" class="member-section">
-            <div class="section-title">
-              <i class="fas fa-circle offline-dot"></i>
-              离线 ({{ offlineMembers.length }})
-            </div>
-            <div 
-              v-for="member in offlineMembers" 
-              :key="member.uid"
-              class="member-item"
-              @contextmenu="handleShowUserContextMenu($event, member, 'member')"
-            >
-              <img 
-                :src="getAvatarUrl(member.avatarUrl)" 
-                :alt="member.nickname"
-                class="member-avatar"
-              >
-              <div class="member-info">
-                <div class="member-name">
-                  {{ member.nickname }}
-                  <i v-if="member.isCreator" class="fas fa-crown creator-icon" title="房主"></i>
-                  <i v-else-if="member.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
-                  <i v-if="member.isMuted" class="fas fa-comment-slash muted-icon" title="已被禁言"></i>
-                </div>
-                <div class="member-uid">{{ member.uid }}</div>
-              </div>
-              <div class="member-status offline">离线</div>
-            </div>
-          </div>
-
-          <!-- 已退出成员 -->
-          <div v-if="leftMembers.length > 0" class="member-section">
-            <div class="section-title">
-              <i class="fas fa-circle left-dot"></i>
-              已退出 ({{ leftMembers.length }})
-            </div>
-            <div 
-              v-for="member in leftMembers" 
-              :key="member.uid"
-              class="member-item"
-              @contextmenu="handleShowUserContextMenu($event, member, 'member')"
-            >
-              <img 
-                :src="getAvatarUrl(member.avatarUrl)" 
-                :alt="member.nickname"
-                class="member-avatar"
-              >
-              <div class="member-info">
-                <div class="member-name">{{ member.nickname }}</div>
-                <div class="member-uid">{{ member.uid }}</div>
-              </div>
-              <div class="member-status left">已退出</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <RightSidebar
+        :show="showMemberList"
+        :members="roomMembers"
+        @toggle="toggleMemberList"
+        @showUserContextMenu="handleShowUserContextMenu"
+      />
     </div>
 
     <!-- 移动端遮罩层 -->
@@ -543,7 +352,7 @@
     </div>
 
     <!-- 右键菜单组件 -->
-          <ContextMenu
+    <ContextMenu
         :visible="contextMenu.visible"
         :x="contextMenu.x"
         :y="contextMenu.y"
@@ -686,6 +495,9 @@ import RoomNameEditDialog from '@/components/common/RoomNameEditDialog.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import ImageCompressionDialog from '@/components/common/ImageCompressionDialog.vue'
 import BilibiliVideo from '@/components/common/BilibiliVideo.vue'
+import LeftSidebar from '@/components/common/LeftSidebar.vue'
+import RightSidebar from '@/components/common/RightSidebar.vue'
+import MessageInput from '@/components/common/MessageInput.vue'
 import { useContextMenu } from '@/composables/useContextMenu.js'
 import { marked } from 'marked'
 
@@ -703,7 +515,7 @@ defineOptions({
     const roomInfo = ref(null)
     const newMessage = ref('')
     const messageList = ref(null)
-    const messageInput = ref(null)
+    const messageInputComponent = ref(null)
     const imageInput = ref(null)
     const fileInput = ref(null)
     const isLoading = ref(true)
@@ -854,21 +666,7 @@ const kickDialogUser = computed(() => {
       return currentMember?.isAdmin || false
     })
     
-    const onlineMembers = computed(() => {
-      return roomMembers.value.filter(member => member.status === 'online')
-    })
-    
-    const offlineMembers = computed(() => {
-      return roomMembers.value.filter(member => member.status === 'offline')
-    })
-    
-    const leftMembers = computed(() => {
-      return roomMembers.value.filter(member => member.status === 'left')
-    })
-    
-    const totalMemberCount = computed(() => {
-      return roomMembers.value.length
-    })
+
     
     // 处理连续消息的计算属性
     const processedMessages = computed(() => {
@@ -1436,6 +1234,17 @@ const kickDialogUser = computed(() => {
         
         notificationStore.error(errorMessage)
       }
+    }
+    
+    // 处理来自MessageInput组件的发送消息事件
+    const handleSendMessage = async (messageText) => {
+      if (!messageText.trim() || !canSendMessage.value) return
+      
+      // 设置消息内容
+      newMessage.value = messageText
+      
+      // 调用现有的发送消息逻辑
+      await sendMessage()
     }
     
     // 发送消息
@@ -2548,6 +2357,49 @@ const kickDialogUser = computed(() => {
         router.push({ name: 'ChatRoom', params: { roomId: newRoomId } })
       }
     }
+
+    // 处理房间设置
+    const handleRoomSettings = (room) => {
+      // 触发房间名称编辑对话框
+      showRoomNameDialog()
+    }
+
+    // 处理用户设置
+    const handleUserProfile = () => {
+      // 跳转到个人设置页面
+      router.push({ name: 'Profile' })
+    }
+
+    // 处理当前房间设置
+    const handleCurrentRoomSettings = () => {
+      // 触发房间名称编辑对话框
+      showRoomNameDialog()
+    }
+
+    // 处理离开特定房间
+    const handleLeaveSpecificRoom = (room) => {
+      if (room.roomId === roomId.value) {
+        // 如果是当前房间，使用现有的确认对话框
+        confirmLeaveRoom()
+      } else {
+        // 如果是其他房间，直接离开
+        leaveSpecificRoom(room.roomId)
+      }
+    }
+
+    // 离开特定房间
+    const leaveSpecificRoom = async (targetRoomId) => {
+      try {
+        await axios.post(`/api/chatrooms/${targetRoomId}/leave`)
+        notificationStore.success('已退出房间')
+        
+        // 刷新房间列表
+        await loadJoinedRooms()
+      } catch (error) {
+        console.error('退出房间失败:', error)
+        notificationStore.error('退出失败: ' + (error.response?.data?.message || error.message))
+      }
+    }
     
     // 确认退出房间
     const confirmLeaveRoom = () => {
@@ -2779,9 +2631,8 @@ const handleReplyMessage = (message) => {
   
   // 聚焦到输入框
   nextTick(() => {
-    const inputElement = document.querySelector('.message-input')
-    if (inputElement) {
-      inputElement.focus()
+    if (messageInputComponent.value) {
+      messageInputComponent.value.focus()
     }
   })
 }
@@ -3031,137 +2882,7 @@ const confirmKickUser = async () => {
   background: #1e293b;
 }
 
-/* 侧边栏通用样式 */
-.sidebar {
-  width: 280px;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s ease;
-  z-index: 20;
-}
 
-/* 暗色模式侧边栏 */
-.dark .sidebar {
-  background: #0f172a;
-}
-
-.left-sidebar {
-  border-right: 1px solid #e9ecef;
-}
-
-/* 暗色模式左侧边栏 */
-.dark .left-sidebar {
-  border-right: 1px solid #475569;
-}
-
-.right-sidebar {
-  border-left: 1px solid #e9ecef;
-}
-
-.right-sidebar .button-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-}
-
-/* 暗色模式右侧边栏 */
-.dark .right-sidebar {
-  border-left: 1px solid #475569;
-}
-
-.sidebar-hidden {
-  transform: translateX(-100%);
-}
-
-.right-sidebar.sidebar-hidden {
-  transform: translateX(100%);
-}
-
-.sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8f9fa;
-}
-
-/* 暗色模式侧边栏头部 */
-.dark .sidebar-header {
-  border-bottom: 1px solid #475569;
-  background: #1e293b;
-}
-
-.sidebar-header h3 {
-  margin: 0;
-  font-size: 16px;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* 暗色模式侧边栏标题 */
-.dark .sidebar-header h3 {
-  color: #f1f5f9;
-}
-
-/* 侧边栏图标颜色 */
-.sidebar-header h3 i {
-  color: #1976d2;
-  margin-right: 2px;
-}
-
-/* 房间列表图标 */
-.left-sidebar .sidebar-header h3 i {
-  color: #28a745;
-}
-
-/* 成员列表图标 */
-.right-sidebar .sidebar-header h3 i {
-  color: #17a2b8;
-}
-
-/* 暗色模式侧边栏图标 */
-.dark .sidebar-header h3 i {
-  color: #60a5fa;
-}
-
-.dark .left-sidebar .sidebar-header h3 i {
-  color: #10b981;
-}
-
-.dark .right-sidebar .sidebar-header h3 i {
-  color: #06b6d4;
-}
-
-.sidebar-toggle {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  display: none;
-}
-
-.sidebar-toggle:hover {
-  background: #e9ecef;
-  color: #2c3e50;
-}
-
-/* 暗色模式侧边栏切换按钮 */
-.dark .sidebar-toggle {
-  color: #94a3b8;
-}
-
-.dark .sidebar-toggle:hover {
-  background: #334155;
-  color: #f1f5f9;
-}
 
 /* 主内容区域 */
 .main-content {
@@ -3312,401 +3033,13 @@ const confirmKickUser = async () => {
   font-size: 16px;
 }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
+/* 用户信息样式已移动到 LeftSidebar.vue */
 
-/* 暗色模式用户信息 */
-.dark .user-info {
-  background: #1e293b;
-}
 
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-}
 
-.user-name {
-  font-weight: 600;
-  color: #2c3e50;
-  margin-right: 3px;
-}
 
-/* 暗色模式用户名 */
-.dark .user-name {
-  color: #f1f5f9;
-}
 
-.user-uid {
-  font-size: 12px;
-  color: #6c757d;
-}
 
-/* 暗色模式用户ID */
-.dark .user-uid {
-  color: #94a3b8;
-}
-
-
-
-/* 房间列表样式 */
-.room-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.room-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: 8px;
-}
-
-.room-item:hover {
-  background: #f8f9fa;
-}
-
-/* 暗色模式房间项悬停 */
-.dark .room-item:hover {
-  background: #334155;
-}
-
-.room-active {
-  background: #e3f2fd;
-}
-
-/* 暗色模式活跃房间 */
-.dark .room-active {
-  background: #19233c;
-}
-
-.room-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.unread-badge {
-  background: #dc3545;
-  color: white;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  min-width: 18px;
-  text-align: center;
-}
-
-.connection-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.connection-dot.connected {
-  color: #28a745;
-}
-
-.connection-dot.disconnected {
-  color: #6c757d;
-}
-
-.sidebar-footer {
-  padding: 15px;
-  border-top: 1px solid #e9ecef;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* 暗色模式侧边栏底部 */
-.dark .sidebar-footer {
-  border-top: 1px solid #475569;
-}
-
-.join-chat-button,
-.home-button {
-  width: 100%;
-  border: none;
-  padding: 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  transition: background 0.2s ease;
-}
-
-.join-chat-button {
-  border: 1px solid #28a745;
-  color: #28a745;
-  background: transparent;
-}
-
-.join-chat-button:hover {
-  border-color: #218838;
-  color: #218838;
-}
-
-/* 暗色模式加入聊天按钮 */
-.dark .join-chat-button {
-  border: 1px solid #10b981;
-  color: #10b981;
-}
-
-.dark .join-chat-button:hover {
-  border-color: #059669;
-  color: #059669;
-  background: rgba(16, 185, 129, 0.1);
-}
-
-.home-button {
-  background: #1976d2;
-  color: white;
-}
-
-.home-button:hover {
-  background: #1565c0;
-}
-
-/* 暗色模式首页按钮 */
-.dark .home-button {
-  background: #3b82f6;
-}
-
-.dark .home-button:hover {
-  background: #2563eb;
-}
-
-/* 底部操作按钮容器 */
-.footer-action-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-/* 底部退出按钮样式 */
-.leave-button-footer {
-  flex: 1;
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 13px;
-  transition: background 0.3s ease;
-}
-
-.leave-button-footer:hover {
-  background: #c82333;
-}
-
-/* 暗色模式底部退出按钮 */
-.dark .leave-button-footer {
-  background: #ef4444;
-}
-
-.dark .leave-button-footer:hover {
-  background: #dc2626;
-}
-
-/* 移动端底部按钮优化 */
-@media (max-width: 768px) {
-  .footer-action-buttons {
-    gap: 8px;
-  }
-  
-  .leave-button-footer {
-    font-size: 12px;
-    padding: 8px 10px;
-  }
-  
-  .leave-button-footer .leave-text {
-    display: none;
-  }
-}
-
-/* 成员列表样式 */
-.member-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.member-section {
-  margin-bottom: 20px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #6c757d;
-  margin-bottom: 10px;
-  padding: 0 8px;
-}
-
-/* 暗色模式章节标题 */
-.dark .section-title {
-  color: #94a3b8;
-}
-
-.online-dot {
-  color: #28a745;
-  font-size: 10px;
-}
-
-/* 暗色模式在线状态点 */
-.dark .online-dot {
-  color: #10b981;
-}
-
-.offline-dot {
-  color: #ffc107;
-  font-size: 10px;
-}
-
-/* 暗色模式离线状态点 */
-.dark .offline-dot {
-  color: #f59e0b;
-}
-
-.left-dot {
-  color: #6c757d;
-  font-size: 10px;
-}
-
-/* 暗色模式离开状态点 */
-.dark .left-dot {
-  color: #6b7280;
-}
-
-.member-item {
-  display: flex;
-  align-items: center;
-  padding: 10px 8px;
-  border-radius: 6px;
-  transition: background 0.2s ease;
-  margin-bottom: 4px;
-}
-
-.member-item:hover {
-  background: #f8f9fa;
-}
-
-/* 暗色模式成员项悬停 */
-.dark .member-item:hover {
-  background: #334155;
-}
-
-.member-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-right: 10px;
-}
-
-.member-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.member-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 暗色模式成员名称 */
-.dark .member-name {
-  color: #f1f5f9;
-}
-
-.member-uid {
-  font-size: 11px;
-  color: #6c757d;
-}
-
-/* 暗色模式成员UID */
-.dark .member-uid {
-  color: #94a3b8;
-}
-
-.creator-icon {
-  color: #ffd700;
-  font-size: 12px;
-}
-
-/* 暗色模式创建者图标 */
-.dark .creator-icon {
-  color: #fbbf24;
-}
-
-.admin-icon {
-  color: #1976d2;
-  font-size: 12px;
-}
-
-/* 暗色模式管理员图标 */
-.dark .admin-icon {
-  color: #60a5fa;
-}
-
-.muted-icon {
-  color: #dc3545;
-  font-size: 12px;
-  margin-left: 4px;
-}
-
-/* 暗色模式禁言图标 */
-.dark .muted-icon {
-  color: #ef4444;
-}
-
-.member-status {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.member-status.online {
-  background: #d4edda;
-  color: #155724;
-}
-
-.member-status.offline {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.member-status.left {
-  background: #f8d7da;
-  color: #721c24;
-}
 
 /* 移动端遮罩层 */
 .mobile-overlay {
@@ -4211,8 +3544,8 @@ const confirmKickUser = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
   font-size: 12px;
+  gap: 4px;
 }
 
 
@@ -4227,7 +3560,6 @@ const confirmKickUser = async () => {
 
 .admin-icon {
   color: #ffc107;
-  margin-left: 4px;
   font-size: 10px;
 }
 
@@ -4287,9 +3619,11 @@ const confirmKickUser = async () => {
   line-height: 1.4;
   color: #2c3e50;
   word-break: break-word;
+  white-space: break-spaces;
   flex: 1;
   overflow: hidden;
   text-align: justify;
+  font-size: 14px;
 }
 
 /* 暗色模式消息文本 */
@@ -4442,7 +3776,7 @@ const confirmKickUser = async () => {
 }
 
 .reply-text {
-  font-size: 13px;
+  font-size: 12px;
   color: #6c757d;
   line-height: 1.3;
   white-space: nowrap;
@@ -4484,190 +3818,9 @@ const confirmKickUser = async () => {
   border-top: 1px solid #475569;
 }
 
-/* 回复预览样式 */
-.reply-preview {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  position: relative;
-}
 
-/* 暗色模式回复预览 */
-.dark .reply-preview {
-  background: #1e293b;
-  border: 1px solid #475569;
-}
 
-.reply-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #1976d2;
-  font-weight: 600;
-  min-width: 0;
-}
 
-/* 暗色模式回复信息 */
-.dark .reply-info {
-  color: #60a5fa;
-}
-
-.reply-info i {
-  font-size: 14px;
-  color: #1976d2;
-}
-
-/* 暗色模式回复图标 */
-.dark .reply-info i {
-  color: #60a5fa;
-}
-
-.reply-content {
-  flex: 1;
-  font-size: 13px;
-  color: #6c757d;
-  line-height: 1.3;
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 暗色模式回复内容 */
-.dark .reply-content {
-  color: #94a3b8;
-}
-
-.reply-cancel {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.reply-cancel:hover {
-  background: #e9ecef;
-  color: #dc3545;
-}
-
-/* 暗色模式回复取消按钮 */
-.dark .reply-cancel {
-  color: #94a3b8;
-}
-
-.dark .reply-cancel:hover {
-  background: #475569;
-  color: #ef4444;
-}
-
-.message-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.function-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-start;
-}
-
-.input-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.message-input {
-  flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 25px;
-  outline: none;
-  font-size: 14px;
-  transition: border-color 0.3s ease;
-}
-
-.message-input:focus {
-  border-color: #1976d2;
-}
-
-/* 暗色模式消息输入框 */
-.dark .message-input {
-  background: #334155;
-  border: 1px solid #475569;
-  color: #f1f5f9;
-}
-
-.dark .message-input:focus {
-  border-color: #60a5fa;
-}
-
-.dark .message-input::placeholder {
-  color: #94a3b8;
-}
-
-.message-input:disabled {
-  background: #f8f9fa;
-  color: #6c757d;
-  cursor: not-allowed;
-}
-
-/* 暗色模式禁用状态 */
-.dark .message-input:disabled {
-  background: #1e293b;
-  color: #64748b;
-}
-
-.send-button {
-  width: 48px;
-  height: 48px;
-  background: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.send-button:hover:not(:disabled) {
-  background: #1565c0;
-  transform: scale(1.05);
-}
-
-/* 暗色模式发送按钮悬停 */
-.dark .send-button:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.send-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* 暗色模式发送按钮禁用 */
-.dark .send-button:disabled {
-  background: #64748b;
-}
 
 .mute-notice,
 .auth-notice {
@@ -4723,28 +3876,11 @@ const confirmKickUser = async () => {
     position: relative;
   }
   
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    z-index: 30;
-    width: 280px;
-  }
-  
-  .left-sidebar {
-    left: 0;
-  }
-  
-  .right-sidebar {
-    right: 0;
-  }
-  
   .mobile-overlay {
     display: block;
   }
   
-  .mobile-menu-btn,
-  .sidebar-toggle {
+  .mobile-menu-btn {
     display: flex;
   }
   
@@ -4779,16 +3915,7 @@ const confirmKickUser = async () => {
     padding: 16px;
   }
   
-  .function-buttons {
-    margin-bottom: 4px;
-  }
-  
-  .image-button,
-  .extend-button {
-    width: 32px;
-    height: 32px;
-    font-size: 13px;
-  }
+
   
   .temporary-notifications {
     top: 10px;
@@ -4804,9 +3931,6 @@ const confirmKickUser = async () => {
 }
 
 @media (max-width: 480px) {
-  .sidebar {
-    width: 100%;
-  }
   
   .chatroom-header {
     padding: 10px 12px;
@@ -4826,95 +3950,7 @@ const confirmKickUser = async () => {
   }
 }
 
-/* 图片按钮样式 */
-.image-button {
-  width: 36px;
-  height: 36px;
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  font-size: 14px;
-}
 
-.image-button:hover:not(:disabled) {
-  background: #e9ecef;
-  color: #1976d2;
-  border-color: #1976d2;
-  transform: scale(1.05);
-}
-
-/* 暗色模式图片按钮悬停 */
-.dark .image-button:hover:not(:disabled) {
-  background: #475569;
-  color: #60a5fa;
-  border-color: #60a5fa;
-}
-
-.image-button:disabled {
-  background: #f8f9fa;
-  color: #ccc;
-  border-color: #e9ecef;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* 暗色模式图片按钮禁用 */
-.dark .image-button:disabled {
-  background: #1e293b;
-  color: #64748b;
-  border-color: #475569;
-}
-
-/* 扩展按钮样式 */
-.extend-button {
-  width: 36px;
-  height: 36px;
-  background: #667eea;
-  color: white;
-  border: 1px solid #667eea;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.extend-button:hover:not(:disabled) {
-  background: #5a67d8;
-  border-color: #5a67d8;
-  transform: scale(1.05);
-}
-
-/* 暗色模式扩展按钮悬停 */
-.dark .extend-button:hover:not(:disabled) {
-  background: #2563eb;
-  border-color: #2563eb;
-}
-
-.extend-button:disabled {
-  background: #ccc;
-  color: #666;
-  border-color: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* 暗色模式扩展按钮禁用 */
-.dark .extend-button:disabled {
-  background: #64748b;
-  color: #475569;
-  border-color: #64748b;
-}
 
 /* 图片消息样式 */
 .message-image {
@@ -4937,7 +3973,7 @@ const confirmKickUser = async () => {
 
 .image-caption {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 13px;
   color: inherit;
   line-height: 1.4;
 }
@@ -5224,6 +4260,7 @@ const confirmKickUser = async () => {
 .markdown-content {
   line-height: 1.6;
   color: inherit;
+  font-size: 14px;
 }
 
 /* Markdown内容样式 */
@@ -5238,7 +4275,7 @@ const confirmKickUser = async () => {
 }
 
 .markdown-content :deep(h1) {
-  font-size: 1.6em;
+  font-size: 1.4em;
   border-bottom: 2px solid #e9ecef;
   padding-bottom: 0.2em;
 }
@@ -5249,7 +4286,7 @@ const confirmKickUser = async () => {
 }
 
 .markdown-content :deep(h2) {
-  font-size: 1.4em;
+  font-size: 1.2em;
   border-bottom: 1px solid #e9ecef;
   padding-bottom: 0.2em;
 }
@@ -5260,7 +4297,7 @@ const confirmKickUser = async () => {
 }
 
 .markdown-content :deep(h3) {
-  font-size: 1.2em;
+  font-size: 1.1em;
 }
 
 .markdown-content :deep(p) {
@@ -5272,7 +4309,7 @@ const confirmKickUser = async () => {
   padding: 2px 4px;
   border-radius: 3px;
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
-  font-size: 0.9em;
+  font-size: 0.85em;
   color: #e83e8c;
 }
 
@@ -5419,29 +4456,7 @@ const confirmKickUser = async () => {
   transform: translateX(0) scale(1);
 }
 
-/* 桌面端保持横向布局 */
-@media (min-width: 769px) {
-  .message-form {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .function-buttons {
-    gap: 8px;
-  }
-  
-  .input-row {
-    flex: 1;
-  }
-  
-  .image-button,
-  .extend-button {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-  }
-}
+
 
 /* 移动端删除动画优化 */
 @media (max-width: 768px) {
@@ -5601,7 +4616,7 @@ const confirmKickUser = async () => {
   }
 
   .message-text {
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 

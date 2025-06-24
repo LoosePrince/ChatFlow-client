@@ -85,6 +85,8 @@ const toggleRef = ref(null)
 const optionsRef = ref(null)
 const optionsStyle = ref({})
 let hideTimer = null
+let hoverShowTime = null // 记录悬停显示的时间
+const HOVER_PROTECTION_TIME = 1000 // 悬停保护时间1秒
 
 // 主题选项
 const themeOptions = ['light', 'dark', 'auto']
@@ -145,14 +147,25 @@ const calculatePosition = async () => {
 // 方法
 const handleToggle = async () => {
   if (showOptions.value) {
+    // 检查是否在悬停保护时间内
+    const now = Date.now()
+    if (hoverShowTime && (now - hoverShowTime) < HOVER_PROTECTION_TIME) {
+      // 在保护时间内，不关闭面板
+      return
+    }
     hideOptions()
   } else {
     showOptions.value = true
+    hoverShowTime = null // 点击显示时清除悬停时间
     await calculatePosition()
   }
 }
 
 const handleMouseEnter = async () => {
+  if (!showOptions.value) {
+    // 只有在面板未显示时才记录悬停时间
+    hoverShowTime = Date.now()
+  }
   showOptions.value = true
   await calculatePosition()
 }
@@ -179,6 +192,7 @@ const clearHideTimer = () => {
 const hideOptions = () => {
   clearHideTimer()
   showOptions.value = false
+  hoverShowTime = null // 隐藏时清除悬停时间
 }
 
 // 点击外部关闭

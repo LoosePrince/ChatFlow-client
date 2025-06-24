@@ -3,7 +3,7 @@
   <div 
     v-if="visible" 
     class="context-menu" 
-    :style="{ left: x + 'px', top: y + 'px' }"
+    :style="{ left: adjustedPosition.x + 'px', top: adjustedPosition.y + 'px' }"
     @click.stop
   >
     <div class="context-menu-header">
@@ -76,7 +76,10 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { calculateContextMenuPosition, getEstimatedMenuSize } from '@/utils/menuPosition.js'
+
+const props = defineProps({
   visible: {
     type: Boolean,
     default: false
@@ -100,6 +103,43 @@ defineProps({
 })
 
 defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
+
+// 计算菜单项数量
+const menuItemCount = computed(() => {
+  if (!props.targetUser || props.targetUser.isCreator) {
+    return 0 // 创建者没有操作菜单
+  }
+  
+  let count = 0
+  
+  // 管理员相关操作（只有创建者可见）
+  if (props.currentUserIsCreator) {
+    count += 1 // 设为管理员/取消管理员
+  }
+  
+  // 禁言操作
+  count += 1 // 禁言/取消禁言
+  
+  // 移出房间
+  count += 1 // 移出用户
+  
+  return count
+})
+
+// 计算调整后的菜单位置
+const adjustedPosition = computed(() => {
+  if (!props.visible) {
+    return { x: props.x, y: props.y }
+  }
+  
+  // 获取菜单预估尺寸（包含头部、菜单项数量、分隔线）
+  const itemCount = menuItemCount.value
+  const hasDivider = itemCount > 1 // 如果有多个操作，会有分隔线
+  const { width, height } = getEstimatedMenuSize(itemCount, true, hasDivider)
+  
+  // 用户右键菜单使用专门的定位策略
+  return calculateContextMenuPosition(props.x, props.y, width, height)
+})
 </script>
 
 <style scoped>
@@ -110,18 +150,19 @@ defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 99;
+  z-index: 999;
 }
 
 .context-menu {
   position: fixed;
   background: white;
-  border: 1px solid #e9ecef;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 100;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
   min-width: 200px;
   overflow: hidden;
+  backdrop-filter: blur(8px);
   animation: contextMenuFadeIn 0.15s ease-out;
 }
 
@@ -139,7 +180,7 @@ defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
 .context-menu-header {
   padding: 12px;
   background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -177,48 +218,49 @@ defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
 .context-menu-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 8px 14px;
   cursor: pointer;
-  transition: background 0.2s ease;
-  font-size: 14px;
-  color: #2c3e50;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  color: #374151;
 }
 
 .context-menu-item:hover {
-  background: #f8f9fa;
+  background: #f3f4f6;
 }
 
 .context-menu-item.danger {
-  color: #dc3545;
+  color: #ef4444;
 }
 
 .context-menu-item.danger:hover {
-  background: #f8d7da;
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .context-menu-item i {
-  width: 16px;
+  width: 14px;
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .context-menu-divider {
   height: 1px;
-  background: #e9ecef;
+  background: #e5e7eb;
   margin: 4px 0;
 }
 
 /* 暗色模式样式 */
 .dark .context-menu {
-  background: #1e293b;
-  border: 1px solid #475569;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
 .dark .context-menu-header {
   background: #0f172a;
-  border-bottom: 1px solid #475569;
+  border-bottom: 1px solid #374151;
 }
 
 .dark .context-menu-nickname {
@@ -230,23 +272,24 @@ defineEmits(['close', 'setAdmin', 'showMute', 'unmute', 'showKick'])
 }
 
 .dark .context-menu-item {
-  color: #f1f5f9;
+  color: #f3f4f6;
 }
 
 .dark .context-menu-item:hover {
-  background: #334155;
+  background: #374151;
 }
 
 .dark .context-menu-item.danger {
-  color: #ef4444;
+  color: #f87171;
 }
 
 .dark .context-menu-item.danger:hover {
-  background: #450a0a;
+  background: #3f1f1f;
+  color: #f87171;
 }
 
 .dark .context-menu-divider {
-  background: #475569;
+  background: #374151;
 }
 
 @media (max-width: 480px) {
