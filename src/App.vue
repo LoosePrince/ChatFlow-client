@@ -37,6 +37,7 @@ import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import { useThemeStore } from '@/stores/theme'
+import { useRouteCacheStore } from '@/stores/routeCache'
 import NotificationContainer from '@/components/common/NotificationContainer.vue'
 
 // 响应式数据
@@ -47,6 +48,7 @@ const loadingText = ref('正在初始化应用...')
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 const themeStore = useThemeStore()
+const routeCacheStore = useRouteCacheStore()
 
 // 应用初始化
 onMounted(async () => {
@@ -55,6 +57,11 @@ onMounted(async () => {
     
     // 初始化主题
     themeStore.initializeTheme()
+    
+    loadingText.value = '正在初始化路由缓存...'
+    
+    // 初始化路由缓存
+    routeCacheStore.initialize()
     
     loadingText.value = '正在检查用户状态...'
     

@@ -86,11 +86,50 @@ const initializeApp = async () => {
     const authStore = useAuthStore()
     await authStore.initialize() // 异步初始化认证状态
     console.log('认证状态初始化完成')
+    
+    // 检查并恢复路由缓存
+    await checkAndRestoreRoute(authStore)
   } catch (error) {
     console.error('认证状态初始化失败:', error)
   } finally {
     // 无论初始化成功与否都挂载应用
     app.mount('#app')
+  }
+}
+
+// 检查并恢复路由缓存
+const checkAndRestoreRoute = async (authStore) => {
+  try {
+    // 导入路由缓存store
+    const { useRouteCacheStore } = await import('./stores/routeCache')
+    const routeCacheStore = useRouteCacheStore()
+    
+    // 初始化路由缓存store
+    routeCacheStore.initialize()
+    
+    // 只有在首页且用户已认证时才恢复路由
+    const isHomePage = window.location.hash === '#/' || window.location.hash === '' || window.location.hash === '#'
+    
+    if (isHomePage) {
+      const cachedRoute = routeCacheStore.getCachedRoute()
+      const shouldRestore = routeCacheStore.shouldRestoreRoute()
+      
+      if (cachedRoute && authStore.isAuthenticated && shouldRestore) {
+        // 等待应用挂载后再进行路由跳转
+        setTimeout(() => {
+          router.push({
+            name: cachedRoute.name,
+            params: cachedRoute.params,
+            query: cachedRoute.query
+          }).catch((error) => {
+            console.error('路由恢复失败:', error)
+            routeCacheStore.clearCache() // 恢复失败时清除缓存
+          })
+        }, 300) // 增加延时，确保Vue Router完全初始化
+      }
+    }
+  } catch (error) {
+    console.error('路由缓存恢复失败:', error)
   }
 }
 

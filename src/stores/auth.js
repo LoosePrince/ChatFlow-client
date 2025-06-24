@@ -192,7 +192,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
   
   // 登出
-  const logout = () => {
+  const logout = async () => {
+    // 清除路由缓存
+    try {
+      const { useRouteCacheStore } = await import('@/stores/routeCache')
+      const routeCacheStore = useRouteCacheStore()
+      routeCacheStore.manualClear()
+    } catch (error) {
+      console.error('清除路由缓存失败:', error)
+    }
+    
     clearAuth()
   }
   

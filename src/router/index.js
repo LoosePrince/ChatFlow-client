@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useRouteCacheStore } from '@/stores/routeCache'
 
 // 路由组件懒加载
 const Home = () => import('@/views/Home.vue')
@@ -155,6 +156,21 @@ router.beforeEach(async (to, from, next) => {
   }
 
   next()
+})
+
+// 路由后置守卫 - 保存路由缓存
+router.afterEach((to, from) => {
+  try {
+    const routeCacheStore = useRouteCacheStore()
+    
+    // 保存当前路由到缓存
+    routeCacheStore.saveRoute(to)
+    
+    // 更新最后访问时间
+    routeCacheStore.updateLastVisit()
+  } catch (error) {
+    console.error('路由缓存保存失败:', error)
+  }
 })
 
 // 路由错误处理
