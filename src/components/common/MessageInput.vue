@@ -140,6 +140,14 @@
           </div>
         </div>
       </div>
+      
+      <!-- 底部提醒 -->
+      <div class="dialog-footer">
+        <div class="footer-tip">
+          <i class="fas fa-lightbulb"></i>
+          <span>提示：选择后可通过长按发送按钮重新修改发送方案</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -1022,5 +1030,42 @@ defineExpose({
     top: 8px;
     right: 8px;
   }
+}
+
+.dialog-footer {
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+/* 暗色模式对话框底部 */
+.dark .dialog-footer {
+  border-top: 1px solid #475569;
+  background: #334155;
+}
+
+.footer-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6c757d;
+  text-align: center;
+  justify-content: center;
+}
+
+/* 暗色模式底部提示 */
+.dark .footer-tip {
+  color: #94a3b8;
+}
+
+.footer-tip i {
+  color: #fbbf24;
+  font-size: 14px;
+}
+
+/* 暗色模式提示图标 */
+.dark .footer-tip i {
+  color: #f59e0b;
 }
 </style> 
