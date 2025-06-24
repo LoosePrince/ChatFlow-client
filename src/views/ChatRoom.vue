@@ -234,16 +234,7 @@
                       </div>
                       <!-- B站视频消息 -->
                       <div v-else-if="message.type === 'bilibili'" class="bilibili-message">
-                        <div class="message-type-header bilibili-header">
-                          <i class="fab fa-bilibili"></i>
-                          <span>{{ message.bilibiliId }}</span>
-                        </div>
-                        <iframe 
-                          :src="`//player.bilibili.com/player.html?bvid=${message.bilibiliId}&autoplay=0`"
-                          class="bilibili-player"
-                          frameborder="0"
-                          allowfullscreen
-                        ></iframe>
+                        <BilibiliVideo :bvid="message.bilibiliId" />
                       </div>
                       <!-- 文件消息 -->
                       <div v-else-if="message.type === 'file'" class="file-message">
@@ -687,6 +678,7 @@ import MarkdownInputDialog from '@/components/common/MarkdownInputDialog.vue'
 import RoomNameEditDialog from '@/components/common/RoomNameEditDialog.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import ImageCompressionDialog from '@/components/common/ImageCompressionDialog.vue'
+import BilibiliVideo from '@/components/common/BilibiliVideo.vue'
 import { useContextMenu } from '@/composables/useContextMenu.js'
 import { marked } from 'marked'
 
@@ -2009,7 +2001,15 @@ const kickDialogUser = computed(() => {
     
     // 处理图片加载错误
     const handleImageError = (event) => {
-      event.target.src = '/avatars/default'
+      // 避免无限循环，如果已经是默认图片则不再重试
+      if (event.target.src.includes('avatars/default') || event.target.dataset.errorHandled) {
+        event.target.style.display = 'none'
+        return
+      }
+      
+      event.target.dataset.errorHandled = 'true'
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+      event.target.src = `${baseUrl}/avatars/default`
       event.target.alt = '图片加载失败'
     }
 
@@ -4920,17 +4920,7 @@ const confirmKickUser = async () => {
   font-size: 14px;
 }
 
-.bilibili-header {
-  color: #fb7299;
-}
 
-.bilibili-header span {
-  font-family: 'Monaco', 'Consolas', monospace;
-  background: rgba(251, 114, 153, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-}
 
 .markdown-header {
   color: #333;
@@ -4979,15 +4969,6 @@ const confirmKickUser = async () => {
   color: #1976d2;
 }
 
-.message-own .bilibili-header {
-  color: #fb7299;
-}
-
-.message-own .bilibili-header span {
-  background: rgba(251, 114, 153, 0.2);
-  color: #fb7299;
-}
-
 .message-own .markdown-header {
   color: #1976d2;
 }
@@ -5008,17 +4989,7 @@ const confirmKickUser = async () => {
 
 /* B站视频消息样式 */
 .bilibili-message {
-  max-width: 500px;
   margin: 8px 0;
-}
-
-.bilibili-player {
-  width: 100%;
-  height: 100%;
-  border: none;
-  border-radius: 8px;
-  display: block;
-  aspect-ratio: 16/9;
 }
 
 /* 文件消息样式 */
