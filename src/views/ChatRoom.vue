@@ -196,6 +196,11 @@
                       <span class="message-time">{{ formatTime(message.timestamp) }}</span>
                     </div>
                     
+                    <!-- 非文本消息的时间显示（连续消息中） -->
+                    <div v-else-if="message.type !== 'user' && message.type !== 'system' && !message.showHeader" class="message-time-header">
+                      <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                    </div>
+                    
                     <!-- 回复信息 -->
                     <div v-if="message.replyToMessage" class="reply-message" @click="scrollToMessage(message.replyToMessage.id, true)">
                       <div class="reply-line"></div>
@@ -284,8 +289,10 @@
                         ></div>
                       </div>
                       <!-- 文本消息 -->
-                      <div v-else class="message-text">{{ message.text }}</div>
-                      <div v-if="!message.showHeader" class="message-time-inline">{{ formatTime(message.timestamp) }}</div>
+                      <div v-else class="message-text">
+                        {{ message.text }}
+                        <span v-if="!message.showHeader && message.type === 'user'" class="message-time-inline">{{ formatTime(message.timestamp) }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -897,7 +904,7 @@ const kickDialogUser = computed(() => {
           isFirstInGroup: !isContinuous,
           isLastInGroup: !isNextContinuous,
           showAvatar: !isContinuous,
-          showHeader: !isContinuous
+          showHeader: !isContinuous || (message.type !== 'user' && message.type !== 'system')
         }
       })
     })
@@ -4243,10 +4250,37 @@ const confirmKickUser = async () => {
   color: #ffffff;
 }
 
+/* 非文本消息的时间头部样式 */
+.message-time-header {
+  margin-bottom: 4px;
+  text-align: right;
+}
+
+.message-time-header .message-time {
+  font-size: 11px;
+  color: #6c757d;
+  opacity: 0.8;
+}
+
+/* 暗色模式时间头部 */
+.dark .message-time-header .message-time {
+  color: #94a3b8;
+}
+
+/* 自己消息的时间头部 */
+.message-own .message-time-header .message-time {
+  color: #1976d2;
+  opacity: 0.8;
+}
+
+/* 暗色模式自己消息的时间头部 */
+.dark .message-own .message-time-header .message-time {
+  color: #ffffff;
+  opacity: 0.8;
+}
+
 .message-body {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  width: 100%;
 }
 
 .message-text {
@@ -4254,6 +4288,8 @@ const confirmKickUser = async () => {
   color: #2c3e50;
   word-break: break-word;
   flex: 1;
+  overflow: hidden;
+  text-align: justify;
 }
 
 /* 暗色模式消息文本 */
@@ -4275,8 +4311,9 @@ const confirmKickUser = async () => {
   font-size: 10px;
   opacity: 0.7;
   white-space: nowrap;
-  align-self: flex-end;
-  margin-bottom: 2px;
+  float: right;
+  margin-left: 8px;
+  line-height: inherit;
 }
 
 /* 暗色模式内联时间 */
@@ -4735,7 +4772,7 @@ const confirmKickUser = async () => {
   }
   
   .message-content {
-    max-width: 85%;
+    max-width: calc(100% - 80px);
   }
   
   .input-area {
@@ -5552,6 +5589,19 @@ const confirmKickUser = async () => {
   .upload-progress-header,
   .upload-progress-content {
     padding: 16px;
+  }
+
+  .message-list {
+    padding: 10px;
+  }
+
+  .system-message-content {
+    display: block;
+    text-align: center;
+  }
+
+  .message-text {
+    font-size: 14px;
   }
 }
 
