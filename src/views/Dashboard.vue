@@ -544,7 +544,7 @@ onUnmounted(() => {
 .dashboard-container {
   min-height: 100vh;
   background: linear-gradient(rgba(26, 26, 46, 0.3), rgba(22, 33, 62, 0.4)),
-              url('https://tvax3.sinaimg.cn//large/0072Vf1pgy1foxln98mdaj31hc0u018i.jpg');
+              url('/bg.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -556,7 +556,7 @@ onUnmounted(() => {
 
 .dark .dashboard-container {
   background: linear-gradient(rgba(26, 26, 46, 0.5), rgba(22, 33, 62, 0.6)),
-              url('https://tvax3.sinaimg.cn//large/0072Vf1pgy1foxln98mdaj31hc0u018i.jpg');
+              url('/bg.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

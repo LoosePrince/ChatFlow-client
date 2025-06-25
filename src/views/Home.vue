@@ -361,7 +361,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   background: linear-gradient(rgba(26, 26, 46, 0.3), rgba(22, 33, 62, 0.4)),
-              url('https://tvax3.sinaimg.cn//large/0072Vf1pgy1foxln98mdaj31hc0u018i.jpg');
+              url('/bg.jpg');
   background-size: cover;
   background-position: center;
   display: flex;
@@ -372,7 +372,7 @@ onMounted(() => {
 
 .dark .background-image {
   background: linear-gradient(rgba(26, 26, 46, 0.5), rgba(22, 33, 62, 0.6)),
-              url('https://tvax3.sinaimg.cn//large/0072Vf1pgy1foxln98mdaj31hc0u018i.jpg');
+              url('/bg.jpg');
   background-size: cover;
   background-position: center;
 }
