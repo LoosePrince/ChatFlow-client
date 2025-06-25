@@ -4,11 +4,10 @@ import { useRouteCacheStore } from '@/stores/routeCache'
 
 // 路由组件懒加载
 const Home = () => import('@/views/Home.vue')
-const Login = () => import('@/views/Login.vue')
-const Register = () => import('@/views/Register.vue')
 const Profile = () => import('@/views/Profile.vue')
 const ChatRoom = () => import('@/views/ChatRoom.vue')
 const RoomSelect = () => import('@/views/RoomSelect.vue')
+const Dashboard = () => import('@/views/Dashboard.vue')
 const UserAgreement = () => import('@/views/UserAgreement.vue')
 const PrivacyPolicy = () => import('@/views/PrivacyPolicy.vue')
 const NotFound = () => import('@/views/NotFound.vue')
@@ -24,21 +23,12 @@ const routes = [
     }
   },
   {
-    path: '/login',
-    name: 'Login',
-    component: Login,
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard,
     meta: {
-      title: '登录',
-      guest: true
-    }
-  },
-  {
-    path: '/register', 
-    name: 'Register',
-    component: Register,
-    meta: {
-      title: '注册',
-      guest: true
+      title: '仪表板',
+      requiresAuth: true
     }
   },
   {

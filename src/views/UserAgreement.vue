@@ -6,13 +6,13 @@
           <i class="fas fa-arrow-left"></i> 返回
         </button>
         <h1 class="text-center mb-4">ChatFlow 用户协议</h1>
-        <p class="text-muted text-center">最后更新：2025年6月21日</p>
+        <p class="text-muted text-center">最后更新：2025年6月25日</p>
       </div>
 
       <div class="agreement-content">
         <div class="section">
           <h2>1. 协议接受</h2>
-          <p>欢迎使用 ChatFlow！本用户协议（以下简称"协议"）是您与 ChatFlow 开发团队之间关于使用 ChatFlow 服务的法律协议。通过访问或使用我们的服务，您表示同意受本协议的约束。</p>
+          <p>欢迎使用 ChatFlow！本用户协议（以下简称"协议"）是您与 ChatFlow 开发者之间关于使用 ChatFlow 服务的法律协议。通过访问或使用我们的服务，您表示同意受本协议的约束。</p>
         </div>
 
         <div class="section">
@@ -97,9 +97,11 @@
           <h2>11. 联系我们</h2>
           <p>如对本协议有任何疑问，请通过以下方式联系我们：</p>
           <ul>
-            <li>邮箱：support@chatflow.com</li>
-            <li>项目地址：https://github.com/your-username/chatflow</li>
+            <li>邮箱：1377820366@qq.com</li>
+            <li>项目地址：https://github.com/LoosePrince/</li>
+            <li>问题反馈：在项目 GitHub 页面提交 Issue</li>
           </ul>
+          <p>我们会在收到您的询问后30天内回复。</p>
         </div>
       </div>
 
@@ -213,6 +215,16 @@ const goBack = () => {
 
 .section li {
   margin-bottom: 0.5rem;
+}
+
+.section strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+/* 暗色模式下的强调文字 */
+.dark .section strong {
+  color: #f1f5f9;
 }
 
 .agreement-footer {

@@ -506,45 +506,45 @@ defineOptions({
   name: 'ChatRoom'
 })
 
-    const router = useRouter()
-    const route = useRoute()
-    const authStore = useAuthStore()
-    const notificationStore = useNotificationStore()
-    const chatroomStore = useChatroomStore()
-    const roomId = computed(() => route.params.roomId)
-    const roomInfo = ref(null)
-    const newMessage = ref('')
-    const messageList = ref(null)
-    const messageInputComponent = ref(null)
-    const imageInput = ref(null)
-    const fileInput = ref(null)
-    const isLoading = ref(true)
-    const isJoining = ref(false)
-    const messages = reactive([])
-    const socket = ref(null)
-    const onlineUsers = ref([])
-    const temporaryNotifications = ref([])
-    const currentTime = ref(Date.now()) // 添加响应式时间变量
-    
-    // 新增状态
-    const showRoomList = ref(true) // 桌面端默认显示
-    const showMemberList = ref(true) // 桌面端默认显示
-    const showLeaveConfirm = ref(false)
-    const isMobile = ref(false)
-    const joinedRooms = ref([])
-    const roomMembers = ref([])
-    
-    // 删除消息确认弹窗状态
-    const deleteMessageDialog = ref({
-      visible: false,
-      targetMessage: null
-    })
-    
-    // 回复状态
-    const replyState = ref({
-      isReplying: false,
-      targetMessage: null
-    })
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
+const chatroomStore = useChatroomStore()
+const roomId = computed(() => route.params.roomId)
+const roomInfo = ref(null)
+const newMessage = ref('')
+const messageList = ref(null)
+const messageInputComponent = ref(null)
+const imageInput = ref(null)
+const fileInput = ref(null)
+const isLoading = ref(true)
+const isJoining = ref(false)
+const messages = reactive([])
+const socket = ref(null)
+const onlineUsers = ref([])
+const temporaryNotifications = ref([])
+const currentTime = ref(Date.now()) // 添加响应式时间变量
+
+// 新增状态
+const showRoomList = ref(true) // 桌面端默认显示
+const showMemberList = ref(true) // 桌面端默认显示
+const showLeaveConfirm = ref(false)
+const isMobile = ref(false)
+const joinedRooms = ref([])
+const roomMembers = ref([])
+
+// 删除消息确认弹窗状态
+const deleteMessageDialog = ref({
+  visible: false,
+  targetMessage: null
+})
+
+// 回复状态
+const replyState = ref({
+  isReplying: false,
+  targetMessage: null
+})
 
 // 使用右键菜单功能
 const {
@@ -598,2004 +598,2004 @@ const kickDialogUser = computed(() => {
   }
 })
     
-    const userAvatarUrl = computed(() => {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
-      
-      if (!authStore.user?.avatarUrl) {
-        return `${baseUrl}/avatars/default`
-      }
-      
-      // 如果是完整URL，直接返回
-      if (authStore.user.avatarUrl.startsWith('http') || authStore.user.avatarUrl.startsWith('data:')) {
-        return authStore.user.avatarUrl
-      }
-      
-      // 使用新的固定头像URL格式
-      return `${baseUrl}${authStore.user.avatarUrl}`
-    })
-    
-    const canSendMessage = computed(() => {
-      if (!authStore.isAuthenticated) return false
+const userAvatarUrl = computed(() => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
   
-  // 检查用户的禁言状态（包括注册用户和匿名用户）
-        if (authStore.user?.muteUntil) {
-          const muteUntil = new Date(authStore.user.muteUntil)
-          const now = new Date()
-          return now >= muteUntil
-        }
+  if (!authStore.user?.avatarUrl) {
+    return `${baseUrl}/avatars/default`
+  }
   
-      return true
-    })
-    
-    // 计算禁言剩余时间
-    const muteTimeRemaining = computed(() => {
-  if (!authStore.user?.muteUntil) return 0
-      
+  // 如果是完整URL，直接返回
+  if (authStore.user.avatarUrl.startsWith('http') || authStore.user.avatarUrl.startsWith('data:')) {
+    return authStore.user.avatarUrl
+  }
+  
+  // 使用新的固定头像URL格式
+  return `${baseUrl}${authStore.user.avatarUrl}`
+})
+
+const canSendMessage = computed(() => {
+  if (!authStore.isAuthenticated) return false
+
+// 检查用户的禁言状态（包括注册用户和匿名用户）
+    if (authStore.user?.muteUntil) {
       const muteUntil = new Date(authStore.user.muteUntil)
-      const now = new Date(currentTime.value) // 使用响应式时间变量
-      const remaining = muteUntil - now
-      
-      return Math.max(0, remaining)
-    })
-    
-    // 格式化禁言剩余时间
-    const formatMuteTime = (milliseconds) => {
-      if (milliseconds <= 0) return ''
-      
-      const totalSeconds = Math.ceil(milliseconds / 1000)
-      const hours = Math.floor(totalSeconds / 3600)
-      const minutes = Math.floor((totalSeconds % 3600) / 60)
-      const seconds = totalSeconds % 60
-      
-      if (hours > 0) {
-        return `${hours}小时${minutes}分钟${seconds}秒`
-      } else if (minutes > 0) {
-        return `${minutes}分钟${seconds}秒`
-      } else {
-        return `${seconds}秒`
-      }
+      const now = new Date()
+      return now >= muteUntil
     }
-    
-    // 新增计算属性
-    const isCreator = computed(() => {
-      return roomInfo.value?.creatorUid === authStore.user?.uid
-    })
 
-    const currentUserIsAdmin = computed(() => {
-      const currentMember = roomMembers.value.find(member => member.uid === authStore.user?.uid)
-      return currentMember?.isAdmin || false
-    })
-    
+  return true
+})
 
+// 计算禁言剩余时间
+const muteTimeRemaining = computed(() => {
+if (!authStore.user?.muteUntil) return 0
+  
+  const muteUntil = new Date(authStore.user.muteUntil)
+  const now = new Date(currentTime.value) // 使用响应式时间变量
+  const remaining = muteUntil - now
+  
+  return Math.max(0, remaining)
+})
+
+// 格式化禁言剩余时间
+const formatMuteTime = (milliseconds) => {
+  if (milliseconds <= 0) return ''
+  
+  const totalSeconds = Math.ceil(milliseconds / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  
+  if (hours > 0) {
+    return `${hours}小时${minutes}分钟${seconds}秒`
+  } else if (minutes > 0) {
+    return `${minutes}分钟${seconds}秒`
+  } else {
+    return `${seconds}秒`
+  }
+}
+
+// 新增计算属性
+const isCreator = computed(() => {
+  return roomInfo.value?.creatorUid === authStore.user?.uid
+})
+
+const currentUserIsAdmin = computed(() => {
+  const currentMember = roomMembers.value.find(member => member.uid === authStore.user?.uid)
+  return currentMember?.isAdmin || false
+})
+
+
+
+// 处理连续消息的计算属性
+const processedMessages = computed(() => {
+  return messages.map((message, index) => {
+    const prevMessage = index > 0 ? messages[index - 1] : null
+    const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
     
-    // 处理连续消息的计算属性
-    const processedMessages = computed(() => {
-      return messages.map((message, index) => {
-        const prevMessage = index > 0 ? messages[index - 1] : null
-        const nextMessage = index < messages.length - 1 ? messages[index + 1] : null
-        
-        // 系统消息不参与连续消息处理
-        if (message.type === 'system') {
-          return {
-            ...message,
-            isFirstInGroup: true,
-            isLastInGroup: true,
-            showAvatar: false,
-            showHeader: false
-          }
-        }
-        
-        // 判断是否与前一条消息是同一用户的连续消息
-        const isContinuous = prevMessage && 
-          prevMessage.type !== 'system' &&
-          prevMessage.userUid === message.userUid &&
-          message.timestamp - prevMessage.timestamp < 300000 // 5分钟内算连续消息
-        
-        // 判断是否与后一条消息是同一用户的连续消息
-        const isNextContinuous = nextMessage && 
-          nextMessage.type !== 'system' &&
-          nextMessage.userUid === message.userUid &&
-          nextMessage.timestamp - message.timestamp < 300000 // 5分钟内算连续消息
-        
-        return {
-          ...message,
-          isFirstInGroup: !isContinuous,
-          isLastInGroup: !isNextContinuous,
-          showAvatar: !isContinuous,
-          showHeader: !isContinuous || (message.type !== 'user' && message.type !== 'system')
-        }
-      })
-    })
-    
-    // 验证聊天室是否存在
-    const validateChatroom = async () => {
-      try {
-        const response = await axios.get(`/api/chatrooms/${roomId.value}`)
-        roomInfo.value = response.data.data
-        return true
-      } catch (error) {
-        console.error('聊天室验证失败:', error)
-        if (error.response?.status === 404) {
-          notificationStore.error('聊天室不存在或已被关闭')
-        } else {
-          notificationStore.error('无法连接到聊天室')
-        }
-        return false
+    // 系统消息不参与连续消息处理
+    if (message.type === 'system') {
+      return {
+        ...message,
+        isFirstInGroup: true,
+        isLastInGroup: true,
+        showAvatar: false,
+        showHeader: false
       }
     }
     
-    // 消息分页状态
-    const messagesPagination = reactive({
-      currentPage: 0,
-      pageSize: 30,
-      hasMore: true,
-      isLoading: false
-    })
+    // 判断是否与前一条消息是同一用户的连续消息
+    const isContinuous = prevMessage && 
+      prevMessage.type !== 'system' &&
+      prevMessage.userUid === message.userUid &&
+      message.timestamp - prevMessage.timestamp < 300000 // 5分钟内算连续消息
     
-    // 加载聊天室历史消息 - 重新设计为分页加载
-    const loadMessages = async (loadMore = false, scrollToMessageId = null) => {
-      if (messagesPagination.isLoading || (!loadMore && messagesPagination.currentPage > 0)) {
-        return
-      }
-      
-      messagesPagination.isLoading = true
-      
-      try {
-        const params = {
-          limit: messagesPagination.pageSize,
-          offset: messagesPagination.currentPage * messagesPagination.pageSize
-        }
-        
-        const response = await axios.get(`/api/chatrooms/${roomId.value}/messages`, { params })
-        
-        const messageData = response.data.data
-        const messagesArray = Array.isArray(messageData) ? messageData : messageData.messages || []
-        
-        // 只过滤掉临时系统消息，保留持久系统消息
-        const persistentMessages = messagesArray.filter(msg => 
-          msg.messageType !== 'system' || 
-          (msg.messageType === 'system' && msg.systemMessageType === 'persistent')
-        )
-        
-        // 检查是否有重复消息（防止重复加载）
-        const existingIds = new Set(messages.map(m => m.id))
-        const newMessages = persistentMessages.filter(msg => !existingIds.has(msg.id))
-        
-        const formattedMessages = newMessages.map(msg => ({
-          id: msg.id,
-          type: msg.messageType === 'system' ? 'system' : 
-                msg.messageType === 'image' ? 'image' :
-                msg.messageType === 'bilibili' ? 'bilibili' :
-                msg.messageType === 'markdown' ? 'markdown' :
-                msg.messageType === 'file' ? 'file' : 'user',
-          userName: msg.user?.nickname || msg.nickname || '未知用户',
-          userUid: msg.userUid || msg.sender_uid,
-          userAvatar: msg.user?.avatarUrl || msg.avatar_url || '/avatars/default',
-          text: msg.content,
-          imageUrl: msg.imageUrl,
-          bilibiliId: msg.bilibiliId,
-          markdownContent: msg.markdownContent,
-          fileId: msg.fileId,
-          fileName: msg.fileName,
-          fileSize: msg.fileSize,
-          fileExpiry: msg.fileExpiry,
-          fileExpired: msg.fileExpired,
-          timestamp: msg.createdAt,
-          isOwn: (msg.userUid || msg.sender_uid) === authStore.user?.uid,
-          isAdmin: msg.user?.isAdmin || false,
-          systemMessageType: msg.systemMessageType,
-          visibilityScope: msg.visibilityScope,
-          visibleToUsers: msg.visibleToUsers,
-          replyToMessageId: msg.replyToMessageId,
-          replyToMessage: msg.replyToMessage
-        }))
-        
-        if (loadMore) {
-          // 加载更多时，将新消息插入到数组开头（保持时间顺序）
-          // 后端已经按时间顺序返回（最早的在前面），所以直接插入
-          messages.unshift(...formattedMessages)
-        } else {
-          // 首次加载，直接替换消息数组
-          messages.splice(0, messages.length, ...formattedMessages)
-        }
-        
-        // 更新分页状态
-        messagesPagination.hasMore = formattedMessages.length === messagesPagination.pageSize
-        messagesPagination.currentPage++
-        
-        // 首次加载时滚动到底部，加载更多时滚动到指定消息
-        await nextTick()
-        if (!loadMore) {
-          scrollToBottom(false)
-        } else if (scrollToMessageId) {
-          // 滚动到指定消息（通常是加载前的第一条消息），不显示高亮效果
-          scrollToMessage(scrollToMessageId, false)
-        } else {
-          // 加载更多后，保持滚动位置相对稳定
-          maintainScrollPosition()
-        }
-        
-      } catch (error) {
-        console.error('加载消息失败:', error)
-        notificationStore.error('加载聊天记录失败')
-      } finally {
-        messagesPagination.isLoading = false
-      }
+    // 判断是否与后一条消息是同一用户的连续消息
+    const isNextContinuous = nextMessage && 
+      nextMessage.type !== 'system' &&
+      nextMessage.userUid === message.userUid &&
+      nextMessage.timestamp - message.timestamp < 300000 // 5分钟内算连续消息
+    
+    return {
+      ...message,
+      isFirstInGroup: !isContinuous,
+      isLastInGroup: !isNextContinuous,
+      showAvatar: !isContinuous,
+      showHeader: !isContinuous || (message.type !== 'user' && message.type !== 'system')
+    }
+  })
+})
+
+// 验证聊天室是否存在
+const validateChatroom = async () => {
+  try {
+    const response = await axios.get(`/api/chatrooms/${roomId.value}`)
+    roomInfo.value = response.data.data
+    return true
+  } catch (error) {
+    console.error('聊天室验证失败:', error)
+    if (error.response?.status === 404) {
+      notificationStore.error('聊天室不存在或已被关闭')
+    } else {
+      notificationStore.error('无法连接到聊天室')
+    }
+    return false
+  }
+}
+
+// 消息分页状态
+const messagesPagination = reactive({
+  currentPage: 0,
+  pageSize: 30,
+  hasMore: true,
+  isLoading: false
+})
+
+// 加载聊天室历史消息 - 重新设计为分页加载
+const loadMessages = async (loadMore = false, scrollToMessageId = null) => {
+  if (messagesPagination.isLoading || (!loadMore && messagesPagination.currentPage > 0)) {
+    return
+  }
+  
+  messagesPagination.isLoading = true
+  
+  try {
+    const params = {
+      limit: messagesPagination.pageSize,
+      offset: messagesPagination.currentPage * messagesPagination.pageSize
     }
     
-    // 加载更多历史消息
-    const loadMoreMessages = async () => {
-      if (!messagesPagination.hasMore || messagesPagination.isLoading) {
-        return
-      }
-      
-      // 记住当前第一条消息的ID，用于加载后定位
-      const firstMessageId = messages.length > 0 ? messages[0].id : null
-      
-      await loadMessages(true, firstMessageId)
+    const response = await axios.get(`/api/chatrooms/${roomId.value}/messages`, { params })
+    
+    const messageData = response.data.data
+    const messagesArray = Array.isArray(messageData) ? messageData : messageData.messages || []
+    
+    // 只过滤掉临时系统消息，保留持久系统消息
+    const persistentMessages = messagesArray.filter(msg => 
+      msg.messageType !== 'system' || 
+      (msg.messageType === 'system' && msg.systemMessageType === 'persistent')
+    )
+    
+    // 检查是否有重复消息（防止重复加载）
+    const existingIds = new Set(messages.map(m => m.id))
+    const newMessages = persistentMessages.filter(msg => !existingIds.has(msg.id))
+    
+    const formattedMessages = newMessages.map(msg => ({
+      id: msg.id,
+      type: msg.messageType === 'system' ? 'system' : 
+            msg.messageType === 'image' ? 'image' :
+            msg.messageType === 'bilibili' ? 'bilibili' :
+            msg.messageType === 'markdown' ? 'markdown' :
+            msg.messageType === 'file' ? 'file' : 'user',
+      userName: msg.user?.nickname || msg.nickname || '未知用户',
+      userUid: msg.userUid || msg.sender_uid,
+      userAvatar: msg.user?.avatarUrl || msg.avatar_url || '/avatars/default',
+      text: msg.content,
+      imageUrl: msg.imageUrl,
+      bilibiliId: msg.bilibiliId,
+      markdownContent: msg.markdownContent,
+      fileId: msg.fileId,
+      fileName: msg.fileName,
+      fileSize: msg.fileSize,
+      fileExpiry: msg.fileExpiry,
+      fileExpired: msg.fileExpired,
+      timestamp: msg.createdAt,
+      isOwn: (msg.userUid || msg.sender_uid) === authStore.user?.uid,
+      isAdmin: msg.user?.isAdmin || false,
+      systemMessageType: msg.systemMessageType,
+      visibilityScope: msg.visibilityScope,
+      visibleToUsers: msg.visibleToUsers,
+      replyToMessageId: msg.replyToMessageId,
+      replyToMessage: msg.replyToMessage
+    }))
+    
+    if (loadMore) {
+      // 加载更多时，将新消息插入到数组开头（保持时间顺序）
+      // 后端已经按时间顺序返回（最早的在前面），所以直接插入
+      messages.unshift(...formattedMessages)
+    } else {
+      // 首次加载，直接替换消息数组
+      messages.splice(0, messages.length, ...formattedMessages)
     }
     
-    // 保持滚动位置（加载更多消息后使用）
-    const maintainScrollPosition = () => {
-      if (messageList.value) {
-        // 在加载更多历史消息后，我们希望用户保持在他们之前查看的位置
-        // 由于我们使用了 flex-direction: column-reverse，滚动位置会自动保持合适的位置
-        // 但为了确保稳定性，我们可以稍微调整一下
-        const currentScrollTop = messageList.value.scrollTop
-        
-        // 如果用户在很靠近顶部的位置，给一个小的缓冲区
-        if (currentScrollTop < 50) {
-          messageList.value.scrollTop = 50
-        }
-      }
+    // 更新分页状态
+    messagesPagination.hasMore = formattedMessages.length === messagesPagination.pageSize
+    messagesPagination.currentPage++
+    
+    // 首次加载时滚动到底部，加载更多时滚动到指定消息
+    await nextTick()
+    if (!loadMore) {
+      scrollToBottom(false)
+    } else if (scrollToMessageId) {
+      // 滚动到指定消息（通常是加载前的第一条消息），不显示高亮效果
+      scrollToMessage(scrollToMessageId, false)
+    } else {
+      // 加载更多后，保持滚动位置相对稳定
+      maintainScrollPosition()
     }
     
-    // 监听滚动事件，实现上拉加载更多
-    const handleScroll = () => {
-      if (!messageList.value || messagesPagination.isLoading || !messagesPagination.hasMore) {
-        return
-      }
-      
-      const { scrollTop, scrollHeight, clientHeight } = messageList.value
-      
-      // 在 column-reverse 布局中：
-      // - scrollTop = 0 时在底部（最新消息）
-      // - scrollTop = 负数且接近 -(scrollHeight - clientHeight) 时在顶部（最旧消息）
-      const maxNegativeScroll = -(scrollHeight - clientHeight)
-      const distanceFromTop = Math.abs(scrollTop - maxNegativeScroll)
-      
-      // 当距离顶部小于100px时，加载更多历史消息
-      if (distanceFromTop < 100) {
-        loadMoreMessages()
-      }
-    }
+  } catch (error) {
+    console.error('加载消息失败:', error)
+    notificationStore.error('加载聊天记录失败')
+  } finally {
+    messagesPagination.isLoading = false
+  }
+}
+
+// 加载更多历史消息
+const loadMoreMessages = async () => {
+  if (!messagesPagination.hasMore || messagesPagination.isLoading) {
+    return
+  }
+  
+  // 记住当前第一条消息的ID，用于加载后定位
+  const firstMessageId = messages.length > 0 ? messages[0].id : null
+  
+  await loadMessages(true, firstMessageId)
+}
+
+// 保持滚动位置（加载更多消息后使用）
+const maintainScrollPosition = () => {
+  if (messageList.value) {
+    // 在加载更多历史消息后，我们希望用户保持在他们之前查看的位置
+    // 由于我们使用了 flex-direction: column-reverse，滚动位置会自动保持合适的位置
+    // 但为了确保稳定性，我们可以稍微调整一下
+    const currentScrollTop = messageList.value.scrollTop
     
-    // 滚动到底部
-    const scrollToBottom = (smooth = true) => {
-      if (messageList.value) {
-        const scrollOptions = {
-          top: messageList.value.scrollHeight,
-          behavior: smooth ? 'smooth' : 'instant'
-        }
-        messageList.value.scrollTo(scrollOptions)
-      }
+    // 如果用户在很靠近顶部的位置，给一个小的缓冲区
+    if (currentScrollTop < 50) {
+      messageList.value.scrollTop = 50
     }
-    
-    // 检查是否在底部附近
-    const isNearBottom = () => {
-      if (!messageList.value) return true
-      
-      const { scrollTop } = messageList.value
-      // 在 column-reverse 布局中，scrollTop 为 0 或接近 0 时表示在底部（最新消息处）
-      return scrollTop < 50
+  }
+}
+
+// 监听滚动事件，实现上拉加载更多
+const handleScroll = () => {
+  if (!messageList.value || messagesPagination.isLoading || !messagesPagination.hasMore) {
+    return
+  }
+  
+  const { scrollTop, scrollHeight, clientHeight } = messageList.value
+  
+  // 在 column-reverse 布局中：
+  // - scrollTop = 0 时在底部（最新消息）
+  // - scrollTop = 负数且接近 -(scrollHeight - clientHeight) 时在顶部（最旧消息）
+  const maxNegativeScroll = -(scrollHeight - clientHeight)
+  const distanceFromTop = Math.abs(scrollTop - maxNegativeScroll)
+  
+  // 当距离顶部小于100px时，加载更多历史消息
+  if (distanceFromTop < 100) {
+    loadMoreMessages()
+  }
+}
+
+// 滚动到底部
+const scrollToBottom = (smooth = true) => {
+  if (messageList.value) {
+    const scrollOptions = {
+      top: messageList.value.scrollHeight,
+      behavior: smooth ? 'smooth' : 'instant'
     }
-    
-    // 选择图片
-    const selectImage = () => {
-      if (imageInput.value) {
-        imageInput.value.click()
-      }
-    }
-    
-    // 处理图片选择
-    const handleImageSelect = (event) => {
-      const file = event.target.files[0]
+    messageList.value.scrollTo(scrollOptions)
+  }
+}
+
+// 检查是否在底部附近
+const isNearBottom = () => {
+  if (!messageList.value) return true
+  
+  const { scrollTop } = messageList.value
+  // 在 column-reverse 布局中，scrollTop 为 0 或接近 0 时表示在底部（最新消息处）
+  return scrollTop < 50
+}
+
+// 选择图片
+const selectImage = () => {
+  if (imageInput.value) {
+    imageInput.value.click()
+  }
+}
+
+// 处理图片选择
+const handleImageSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    sendImageMessage(file)
+  }
+  // 清空input的值，允许重复选择同一文件
+  event.target.value = ''
+}
+
+// 处理粘贴事件
+const handlePaste = (event) => {
+  const items = event.clipboardData?.items
+  if (!items) return
+  
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (item.type.startsWith('image/')) {
+      event.preventDefault()
+      const file = item.getAsFile()
       if (file) {
         sendImageMessage(file)
       }
-      // 清空input的值，允许重复选择同一文件
-      event.target.value = ''
+      break
     }
-    
-    // 处理粘贴事件
-    const handlePaste = (event) => {
-      const items = event.clipboardData?.items
-      if (!items) return
-      
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i]
-        if (item.type.startsWith('image/')) {
-          event.preventDefault()
-          const file = item.getAsFile()
-          if (file) {
-            sendImageMessage(file)
-          }
-          break
-        }
-      }
-    }
-    
-    // 图片压缩函数
-    const compressImage = async (file, maxSize = 1024 * 1024, quality = 0.8) => {
-      return new Promise((resolve) => {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        const img = new Image()
-        
-        img.onload = () => {
-          // 计算新的尺寸
-          let { width, height } = img
-          const ratio = Math.min(1920 / width, 1080 / height) // 最大1920x1080
-          
-          if (ratio < 1) {
-            width *= ratio
-            height *= ratio
-          }
-          
-          canvas.width = width
-          canvas.height = height
-          
-          // 绘制压缩后的图片
-          ctx.drawImage(img, 0, 0, width, height)
-          
-          // 转换为blob并检查大小
-          canvas.toBlob((blob) => {
-            if (blob.size <= maxSize) {
-              resolve(blob)
-            } else {
-              // 如果还是太大，降低质量
-              const newQuality = Math.max(0.1, quality - 0.1)
-              if (newQuality >= 0.1) {
-                canvas.toBlob((newBlob) => {
-                  resolve(newBlob)
-                }, file.type, newQuality)
-              } else {
-                resolve(blob) // 已经是最低质量了
-              }
-            }
-          }, file.type, quality)
-        }
-        
-        img.src = URL.createObjectURL(file)
-      })
-    }
+  }
+}
 
-    // 上传进度状态
-    const uploadProgress = ref({
-      visible: false,
-      progress: 0,
-      fileName: '',
-      type: 'image' // 'image' or 'file'
+// 图片压缩函数
+const compressImage = async (file, maxSize = 1024 * 1024, quality = 0.8) => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // 计算新的尺寸
+      let { width, height } = img
+      const ratio = Math.min(1920 / width, 1080 / height) // 最大1920x1080
+      
+      if (ratio < 1) {
+        width *= ratio
+        height *= ratio
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // 绘制压缩后的图片
+      ctx.drawImage(img, 0, 0, width, height)
+      
+      // 转换为blob并检查大小
+      canvas.toBlob((blob) => {
+        if (blob.size <= maxSize) {
+          resolve(blob)
+        } else {
+          // 如果还是太大，降低质量
+          const newQuality = Math.max(0.1, quality - 0.1)
+          if (newQuality >= 0.1) {
+            canvas.toBlob((newBlob) => {
+              resolve(newBlob)
+            }, file.type, newQuality)
+          } else {
+            resolve(blob) // 已经是最低质量了
+          }
+        }
+      }, file.type, quality)
+    }
+    
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+// 上传进度状态
+const uploadProgress = ref({
+  visible: false,
+  progress: 0,
+  fileName: '',
+  type: 'image' // 'image' or 'file'
+})
+
+// 显示上传进度
+const showUploadProgress = (fileName, type = 'image') => {
+  uploadProgress.value = {
+    visible: true,
+    progress: 0,
+    fileName,
+    type
+  }
+}
+
+// 隐藏上传进度
+const hideUploadProgress = () => {
+  uploadProgress.value.visible = false
+}
+
+// 图片压缩确认对话框
+const showImageCompressionDialog = (file) => {
+  compressionDialog.value = {
+    visible: true,
+    fileName: file.name,
+    fileSize: file.size,
+    file: file,
+    resolve: null
+  }
+}
+
+// 处理压缩确认对话框事件
+const handleCompressionConfirm = async () => {
+  const file = compressionDialog.value.file
+  compressionDialog.value.visible = false
+  
+  console.log('开始压缩和发送图片:', file?.name, file?.size)
+  console.log('当前认证状态:', {
+    isAuthenticated: authStore.isAuthenticated,
+    user: authStore.user,
+    canSendMessage: canSendMessage.value,
+    roomId: roomId.value
+  })
+  
+  if (!file) {
+    console.error('没有找到要压缩的文件')
+    return
+  }
+  
+  // 检查是否可以发送消息
+  if (!canSendMessage.value) {
+    console.error('当前无法发送消息')
+    console.error('详细状态:', {
+      isAuthenticated: authStore.isAuthenticated,
+      userMuteUntil: authStore.user?.muteUntil,
+      currentTime: new Date().toISOString()
     })
-
-    // 显示上传进度
-    const showUploadProgress = (fileName, type = 'image') => {
-      uploadProgress.value = {
-        visible: true,
-        progress: 0,
-        fileName,
-        type
-      }
-    }
-
-    // 隐藏上传进度
-    const hideUploadProgress = () => {
-      uploadProgress.value.visible = false
-    }
-
-    // 图片压缩确认对话框
-    const showImageCompressionDialog = (file) => {
-      compressionDialog.value = {
-        visible: true,
-        fileName: file.name,
-        fileSize: file.size,
-        file: file,
-        resolve: null
-      }
-    }
-
-    // 处理压缩确认对话框事件
-    const handleCompressionConfirm = async () => {
-      const file = compressionDialog.value.file
-      compressionDialog.value.visible = false
-      
-      console.log('开始压缩和发送图片:', file?.name, file?.size)
-      console.log('当前认证状态:', {
-        isAuthenticated: authStore.isAuthenticated,
-        user: authStore.user,
-        canSendMessage: canSendMessage.value,
-        roomId: roomId.value
-      })
-      
-      if (!file) {
-        console.error('没有找到要压缩的文件')
-        return
-      }
-      
-      // 检查是否可以发送消息
-      if (!canSendMessage.value) {
-        console.error('当前无法发送消息')
-        console.error('详细状态:', {
-          isAuthenticated: authStore.isAuthenticated,
-          userMuteUntil: authStore.user?.muteUntil,
-          currentTime: new Date().toISOString()
-        })
-        notificationStore.error('当前无法发送消息，请检查网络连接或权限')
-        return
-      }
-      
-      try {
-        console.log('显示上传进度...')
-        showUploadProgress(file.name, 'image')
-        uploadProgress.value.progress = 30
-        
-        console.log('开始压缩图片...')
-        const compressedBlob = await compressImage(file)
-        let finalFile = new File([compressedBlob], file.name, { type: file.type })
-        
-        console.log('压缩完成，原始大小:', file.size, '压缩后大小:', finalFile.size)
-        uploadProgress.value.progress = 60
-        
-        // 如果压缩后还是太大，继续尝试更高压缩
-        const maxSize = 1024 * 1024
-        if (finalFile.size > maxSize) {
-          console.log('继续进行更高压缩...')
-          const moreCompressed = await compressImage(file, maxSize, 0.3)
-          finalFile = new File([moreCompressed], file.name, { type: file.type })
-          console.log('二次压缩完成，大小:', finalFile.size)
-        }
-        
-        if (finalFile.size > maxSize) {
-          console.error('压缩后文件仍然过大:', finalFile.size)
-          hideUploadProgress()
-          notificationStore.error('图片压缩后仍然过大，请选择更小的图片')
-          return
-        }
-        
-        console.log('开始准备上传...')
-        
-        // 创建FormData
-        const formData = new FormData()
-        formData.append('image', finalFile)
-        formData.append('roomId', roomId.value)
-        formData.append('messageType', 'image')
-        
-        console.log('FormData准备完毕，文件名:', finalFile.name, '文件大小:', finalFile.size)
-        
-        // 如果是回复消息，添加回复信息
-        if (replyState.value.isReplying && replyState.value.targetMessage) {
-          formData.append('replyToMessageId', replyState.value.targetMessage.id)
-          console.log('添加回复信息:', replyState.value.targetMessage.id)
-        }
-        
-        // 验证FormData内容
-        console.log('FormData内容检查:')
-        for (let [key, value] of formData.entries()) {
-          console.log(`${key}:`, value instanceof File ? `File(${value.name}, ${value.size})` : value)
-        }
-        
-        uploadProgress.value.progress = 80
-        
-        console.log('开始上传图片到服务器...')
-        console.log('请求URL:', `/api/chatrooms/${roomId.value}/messages/image`)
-        console.log('请求基础URL:', axios.defaults.baseURL)
-        console.log('完整请求URL:', `${axios.defaults.baseURL}/api/chatrooms/${roomId.value}/messages/image`)
-        
-        // 检查认证头
-        console.log('认证头:', axios.defaults.headers.common['Authorization'])
-        
-        // 发送图片
-        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.lengthComputable) {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-              uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
-              console.log('上传进度:', uploadProgress.value.progress + '%')
-            }
-          }
-        })
-        
-        console.log('图片上传成功:', response.data)
-        uploadProgress.value.progress = 100
-        
-        // 图片发送成功，WebSocket会自动广播消息
-        cancelReply() // 清除回复状态
-        
-        setTimeout(() => {
-          hideUploadProgress()
-        }, 500)
-        
-        // 等待WebSocket消息到达后滚动到底部
-        setTimeout(() => {
-          scrollToBottom(false)
-        }, 100)
-        
-      } catch (error) {
-        console.error('发送图片失败:', error)
-        console.error('错误详情:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status
-        })
-        hideUploadProgress()
-        
-        let errorMessage = '发送图片失败'
-        if (error.response?.status === 413) {
-          errorMessage = '图片太大，无法上传'
-        } else if (error.response?.status === 403) {
-          errorMessage = '没有权限发送图片'
-        } else if (error.response?.data?.message) {
-          errorMessage = error.response.data.message
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-        
-        notificationStore.error(errorMessage)
-      }
-    }
-
-    const handleCompressionCancel = () => {
-      compressionDialog.value.visible = false
-      if (compressionDialog.value.resolve) {
-        compressionDialog.value.resolve(false)
-      }
-    }
-
-    // 发送图片消息
-    const sendImageMessage = async (file, skipSizeCheck = false) => {
-      if (!canSendMessage.value) return
-      
-      // 检查文件类型
-      if (!file.type.startsWith('image/')) {
-        notificationStore.error('只能发送图片文件')
-        return
-      }
-
-      let finalFile = file
-      
-      // 检查文件大小（1MB = 1024 * 1024 bytes）
-      const maxSize = 1024 * 1024
-      if (file.size > maxSize && !skipSizeCheck) {
-        // 显示压缩确认对话框
-        showImageCompressionDialog(file)
-        return // 对话框处理压缩和发送
-      }
-      
-      try {
-        if (!uploadProgress.value.visible) {
-          showUploadProgress(finalFile.name, 'image')
-        }
-        
-        // 创建FormData
-        const formData = new FormData()
-        formData.append('image', finalFile)
-        formData.append('roomId', roomId.value)
-        formData.append('messageType', 'image')
-        
-        // 如果是回复消息，添加回复信息
-        if (replyState.value.isReplying && replyState.value.targetMessage) {
-          formData.append('replyToMessageId', replyState.value.targetMessage.id)
-        }
-        
-        uploadProgress.value.progress = 80
-        
-        // 发送图片
-        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.lengthComputable) {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-              uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
-            }
-          }
-        })
-        
-        uploadProgress.value.progress = 100
-        
-        // 图片发送成功，WebSocket会自动广播消息
-        cancelReply() // 清除回复状态
-        
-        setTimeout(() => {
-          hideUploadProgress()
-        }, 500)
-        
-        // 等待WebSocket消息到达后滚动到底部
-        setTimeout(() => {
-          scrollToBottom(false)
-        }, 100)
-        
-      } catch (error) {
-        console.error('发送图片失败:', error)
-        hideUploadProgress()
-        
-        let errorMessage = '发送图片失败'
-        if (error.response?.status === 413) {
-          errorMessage = '图片文件过大'
-        } else if (error.response?.data?.message) {
-          errorMessage = error.response.data.message
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-        
-        notificationStore.error(errorMessage)
-      }
+    notificationStore.error('当前无法发送消息，请检查网络连接或权限')
+    return
+  }
+  
+  try {
+    console.log('显示上传进度...')
+    showUploadProgress(file.name, 'image')
+    uploadProgress.value.progress = 30
+    
+    console.log('开始压缩图片...')
+    const compressedBlob = await compressImage(file)
+    let finalFile = new File([compressedBlob], file.name, { type: file.type })
+    
+    console.log('压缩完成，原始大小:', file.size, '压缩后大小:', finalFile.size)
+    uploadProgress.value.progress = 60
+    
+    // 如果压缩后还是太大，继续尝试更高压缩
+    const maxSize = 1024 * 1024
+    if (finalFile.size > maxSize) {
+      console.log('继续进行更高压缩...')
+      const moreCompressed = await compressImage(file, maxSize, 0.3)
+      finalFile = new File([moreCompressed], file.name, { type: file.type })
+      console.log('二次压缩完成，大小:', finalFile.size)
     }
     
-    // 处理来自MessageInput组件的发送消息事件
-    const handleSendMessage = async (messageText) => {
-      if (!messageText.trim() || !canSendMessage.value) return
-      
-      // 设置消息内容
-      newMessage.value = messageText
-      
-      // 调用现有的发送消息逻辑
-      await sendMessage()
+    if (finalFile.size > maxSize) {
+      console.error('压缩后文件仍然过大:', finalFile.size)
+      hideUploadProgress()
+      notificationStore.error('图片压缩后仍然过大，请选择更小的图片')
+      return
     }
     
-    // 发送消息
-    const sendMessage = async () => {
-      if (!newMessage.value.trim() || !canSendMessage.value) return
-      
-      // 准备消息数据
-      const messageData = {
-        roomId: roomId.value,
+    console.log('开始准备上传...')
+    
+    // 创建FormData
+    const formData = new FormData()
+    formData.append('image', finalFile)
+    formData.append('roomId', roomId.value)
+    formData.append('messageType', 'image')
+    
+    console.log('FormData准备完毕，文件名:', finalFile.name, '文件大小:', finalFile.size)
+    
+    // 如果是回复消息，添加回复信息
+    if (replyState.value.isReplying && replyState.value.targetMessage) {
+      formData.append('replyToMessageId', replyState.value.targetMessage.id)
+      console.log('添加回复信息:', replyState.value.targetMessage.id)
+    }
+    
+    // 验证FormData内容
+    console.log('FormData内容检查:')
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value instanceof File ? `File(${value.name}, ${value.size})` : value)
+    }
+    
+    uploadProgress.value.progress = 80
+    
+    console.log('开始上传图片到服务器...')
+    console.log('请求URL:', `/api/chatrooms/${roomId.value}/messages/image`)
+    console.log('请求基础URL:', axios.defaults.baseURL)
+    console.log('完整请求URL:', `${axios.defaults.baseURL}/api/chatrooms/${roomId.value}/messages/image`)
+    
+    // 检查认证头
+    console.log('认证头:', axios.defaults.headers.common['Authorization'])
+    
+    // 发送图片
+    const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.lengthComputable) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
+          console.log('上传进度:', uploadProgress.value.progress + '%')
+        }
+      }
+    })
+    
+    console.log('图片上传成功:', response.data)
+    uploadProgress.value.progress = 100
+    
+    // 图片发送成功，WebSocket会自动广播消息
+    cancelReply() // 清除回复状态
+    
+    setTimeout(() => {
+      hideUploadProgress()
+    }, 500)
+    
+    // 等待WebSocket消息到达后滚动到底部
+    setTimeout(() => {
+      scrollToBottom(false)
+    }, 100)
+    
+  } catch (error) {
+    console.error('发送图片失败:', error)
+    console.error('错误详情:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    })
+    hideUploadProgress()
+    
+    let errorMessage = '发送图片失败'
+    if (error.response?.status === 413) {
+      errorMessage = '图片太大，无法上传'
+    } else if (error.response?.status === 403) {
+      errorMessage = '没有权限发送图片'
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    notificationStore.error(errorMessage)
+  }
+}
+
+const handleCompressionCancel = () => {
+  compressionDialog.value.visible = false
+  if (compressionDialog.value.resolve) {
+    compressionDialog.value.resolve(false)
+  }
+}
+
+// 发送图片消息
+const sendImageMessage = async (file, skipSizeCheck = false) => {
+  if (!canSendMessage.value) return
+  
+  // 检查文件类型
+  if (!file.type.startsWith('image/')) {
+    notificationStore.error('只能发送图片文件')
+    return
+  }
+
+  let finalFile = file
+  
+  // 检查文件大小（1MB = 1024 * 1024 bytes）
+  const maxSize = 1024 * 1024
+  if (file.size > maxSize && !skipSizeCheck) {
+    // 显示压缩确认对话框
+    showImageCompressionDialog(file)
+    return // 对话框处理压缩和发送
+  }
+  
+  try {
+    if (!uploadProgress.value.visible) {
+      showUploadProgress(finalFile.name, 'image')
+    }
+    
+    // 创建FormData
+    const formData = new FormData()
+    formData.append('image', finalFile)
+    formData.append('roomId', roomId.value)
+    formData.append('messageType', 'image')
+    
+    // 如果是回复消息，添加回复信息
+    if (replyState.value.isReplying && replyState.value.targetMessage) {
+      formData.append('replyToMessageId', replyState.value.targetMessage.id)
+    }
+    
+    uploadProgress.value.progress = 80
+    
+    // 发送图片
+    const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.lengthComputable) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
+        }
+      }
+    })
+    
+    uploadProgress.value.progress = 100
+    
+    // 图片发送成功，WebSocket会自动广播消息
+    cancelReply() // 清除回复状态
+    
+    setTimeout(() => {
+      hideUploadProgress()
+    }, 500)
+    
+    // 等待WebSocket消息到达后滚动到底部
+    setTimeout(() => {
+      scrollToBottom(false)
+    }, 100)
+    
+  } catch (error) {
+    console.error('发送图片失败:', error)
+    hideUploadProgress()
+    
+    let errorMessage = '发送图片失败'
+    if (error.response?.status === 413) {
+      errorMessage = '图片文件过大'
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    notificationStore.error(errorMessage)
+  }
+}
+
+// 处理来自MessageInput组件的发送消息事件
+const handleSendMessage = async (messageText) => {
+  if (!messageText.trim() || !canSendMessage.value) return
+  
+  // 设置消息内容
+  newMessage.value = messageText
+  
+  // 调用现有的发送消息逻辑
+  await sendMessage()
+}
+
+// 发送消息
+const sendMessage = async () => {
+  if (!newMessage.value.trim() || !canSendMessage.value) return
+  
+  // 准备消息数据
+  const messageData = {
+    roomId: roomId.value,
+    content: newMessage.value.trim(),
+    messageType: 'text'
+  }
+  
+  // 如果是回复消息，添加回复信息
+  if (replyState.value.isReplying && replyState.value.targetMessage) {
+    messageData.replyToMessageId = replyState.value.targetMessage.id
+  }
+  
+  if (socket.value && socket.value.connected) {
+    // 使用WebSocket发送消息
+    socket.value.emit('send-message', messageData)
+    
+    newMessage.value = ''
+    cancelReply() // 清除回复状态
+  } else {
+    // 如果WebSocket未连接，使用HTTP API作为备选
+    try {
+      const httpData = {
         content: newMessage.value.trim(),
         messageType: 'text'
       }
       
       // 如果是回复消息，添加回复信息
       if (replyState.value.isReplying && replyState.value.targetMessage) {
-        messageData.replyToMessageId = replyState.value.targetMessage.id
+        httpData.replyToMessageId = replyState.value.targetMessage.id
       }
       
-      if (socket.value && socket.value.connected) {
-        // 使用WebSocket发送消息
-        socket.value.emit('send-message', messageData)
-        
-        newMessage.value = ''
-        cancelReply() // 清除回复状态
-      } else {
-        // 如果WebSocket未连接，使用HTTP API作为备选
-        try {
-          const httpData = {
-            content: newMessage.value.trim(),
-            messageType: 'text'
-          }
-          
-          // 如果是回复消息，添加回复信息
-          if (replyState.value.isReplying && replyState.value.targetMessage) {
-            httpData.replyToMessageId = replyState.value.targetMessage.id
-          }
-          
-          const response = await axios.post(`/api/chatrooms/${roomId.value}/messages`, httpData)
-          
-          const msg = response.data.data
-          
-          // 处理用户消息和持久系统消息
-          if (msg.messageType !== 'system' || msg.systemMessageType === 'persistent') {
-            messages.push({
-              id: msg.id,
-              type: msg.messageType === 'system' ? 'system' : 'user',
-              userName: msg.user?.nickname || authStore.user?.nickname || '未知用户',
-              userUid: msg.userUid || msg.sender_uid,
-              userAvatar: msg.user?.avatarUrl || authStore.user?.avatarUrl || '/avatars/default',
-              text: msg.content,
-              timestamp: msg.createdAt,
-              isOwn: true,
-              isAdmin: msg.user?.isAdmin || false,
-              systemMessageType: msg.systemMessageType,
-              visibilityScope: msg.visibilityScope,
-              visibleToUsers: msg.visibleToUsers,
-              replyToMessageId: msg.replyToMessageId,
-              replyToMessage: msg.replyToMessage
-            })
-          }
-          
-          newMessage.value = ''
-          cancelReply() // 清除回复状态
-          await nextTick()
-          scrollToBottom(false) // 发送消息后立即滚动到底部，不使用平滑滚动
-          
-        } catch (error) {
-          console.error('发送消息失败:', error)
-          notificationStore.error('发送消息失败: ' + (error.response?.data?.message || error.message))
-        }
-      }
-    }
-    
-    // 获取头像URL
-    const getAvatarUrl = (avatarPath) => {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+      const response = await axios.post(`/api/chatrooms/${roomId.value}/messages`, httpData)
       
-      if (!avatarPath) {
-        return `${baseUrl}/avatars/default`
-      }
+      const msg = response.data.data
       
-      // 如果是完整URL，直接返回
-      if (avatarPath.startsWith('http') || avatarPath.startsWith('data:')) {
-        return avatarPath
-      }
-      
-      // 使用新的固定头像URL格式
-      return `${baseUrl}${avatarPath}`
-    }
-    
-    // 获取图片URL
-    const getImageUrl = (imagePath) => {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
-      
-      if (!imagePath) {
-        return ''
-      }
-      
-      // 如果是完整URL，直接返回
-      if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
-        return imagePath
-      }
-      
-      // 拼接完整URL
-      return `${baseUrl}${imagePath}`
-    }
-    
-    // 图片预览状态
-    const imagePreview = ref({
-      visible: false,
-      imageUrl: '',
-      title: ''
-    })
-
-    // 扩展消息类型对话框状态
-    const messageTypeDialog = ref({
-      visible: false
-    })
-
-    const bilibiliDialog = ref({
-      visible: false
-    })
-
-    const markdownDialog = ref({
-      visible: false
-    })
-
-    // 房间名称编辑弹窗状态
-    const roomNameDialog = ref({
-      visible: false
-    })
-
-    // 图片压缩确认对话框状态
-    const compressionDialog = ref({
-      visible: false,
-      fileName: '',
-      fileSize: 0,
-      file: null,
-      resolve: null
-    })
-    
-    // 打开图片预览
-    const openImagePreview = (imageUrl, title = '') => {
-      imagePreview.value = {
-        visible: true,
-        imageUrl: getImageUrl(imageUrl),
-        title: title || '图片预览'
-      }
-    }
-    
-    // 关闭图片预览
-    const closeImagePreview = () => {
-      imagePreview.value = {
-        visible: false,
-        imageUrl: '',
-        title: ''
-      }
-    }
-
-    // 显示消息类型选择器
-    const showMessageTypeSelector = () => {
-      messageTypeDialog.value.visible = true
-    }
-
-    // 关闭消息类型选择器
-    const closeMessageTypeSelector = () => {
-      messageTypeDialog.value.visible = false
-    }
-
-    // 处理消息类型选择
-    const handleMessageTypeSelect = (type) => {
-      if (type === 'bilibili') {
-        bilibiliDialog.value.visible = true
-      } else if (type === 'markdown') {
-        markdownDialog.value.visible = true
-      } else if (type === 'file') {
-        selectFile()
-      }
-    }
-
-    // 选择文件
-    const selectFile = () => {
-      if (fileInput.value) {
-        fileInput.value.click()
-      }
-    }
-
-    // 处理文件选择
-    const handleFileSelect = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        console.log('选择文件:', {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
-        })
-        sendFileMessage(file)
-      }
-      // 清空input的值，允许重复选择同一文件
-      event.target.value = ''
-    }
-
-    // 检查文件是否为图片
-    const isImageFile = (file) => {
-      return file.type && file.type.startsWith('image/')
-    }
-
-    // 发送文件消息
-    const sendFileMessage = async (file) => {
-      console.log('开始发送文件消息:', {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        canSendMessage: canSendMessage.value,
-        isImage: isImageFile(file)
-      })
-      
-      if (!canSendMessage.value) {
-        const errorMessage = '当前无法发送文件，请检查权限'
-        console.log('无法发送消息，权限检查失败')
-        notificationStore.error(errorMessage)
-        return
-      }
-      
-      // 如果是图片文件，使用图片发送方式
-      if (isImageFile(file)) {
-        console.log('检测到图片文件，使用图片发送方式')
-        await sendImageMessage(file)
-        return
-      }
-      
-      // 检查文件大小（2MB = 2 * 1024 * 1024 bytes）
-      const maxSize = 2 * 1024 * 1024
-      console.log('检查文件大小:', {
-        fileSize: file.size,
-        maxSize: maxSize,
-        sizeInMB: (file.size / (1024 * 1024)).toFixed(2),
-        maxSizeInMB: (maxSize / (1024 * 1024)).toFixed(2),
-        isOverLimit: file.size > maxSize
-      })
-      
-      if (file.size > maxSize) {
-        const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2)
-        const errorMessage = `文件大小超出限制：${fileSizeInMB}MB，最大允许2MB`
-        console.error('文件大小超出限制:', fileSizeInMB + 'MB > 2MB')
-        
-        // 显示通知
-        notificationStore.error(errorMessage)
-        
-        return
-      }
-      
-      // 如果文件为空或无效
-      if (!file || file.size === 0) {
-        const errorMessage = '选择的文件无效或为空'
-        console.error('文件无效或为空')
-        notificationStore.error(errorMessage)
-        return
-      }
-      
-      try {
-        console.log('开始上传文件...')
-        showUploadProgress(file.name, 'file')
-        
-        // 第一步：上传文件到服务器
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('chatroomId', roomId.value)
-        
-        // 如果是回复消息，添加回复信息
-        if (replyState.value.isReplying && replyState.value.targetMessage) {
-          formData.append('replyToMessageId', replyState.value.targetMessage.id)
-        }
-        
-        uploadProgress.value.progress = 20
-        
-        console.log('发送上传请求到服务器...')
-        // 上传文件
-        const uploadResponse = await axios.post('/api/files/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.lengthComputable) {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-              uploadProgress.value.progress = 20 + (progress * 0.6) // 20-80%
-              console.log('上传进度:', uploadProgress.value.progress + '%')
-            }
-          }
-        })
-        
-        console.log('文件上传响应:', uploadResponse.data)
-        const { fileId, fileName, fileSize, expiryTime } = uploadResponse.data.data
-        
-        uploadProgress.value.progress = 90
-        
-        console.log('发送文件消息到聊天室...')
-        // 第二步：发送文件消息
-        const messageResponse = await axios.post(`/api/chatrooms/${roomId.value}/messages/file`, {
-          fileId,
-          fileName,
-          fileSize,
-          replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
-        })
-        
-        console.log('文件消息发送成功:', messageResponse.data)
-        uploadProgress.value.progress = 100
-        
-        // 文件发送成功，WebSocket会自动广播消息
-        cancelReply() // 清除回复状态
-        
-        setTimeout(() => {
-          hideUploadProgress()
-        }, 500)
-        
-        // 等待WebSocket消息到达后滚动到底部
-        setTimeout(() => {
-          scrollToBottom(false)
-        }, 100)
-        
-      } catch (error) {
-        console.error('发送文件失败:', error)
-        console.error('错误详情:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          fileName: file.name,
-          fileSize: file.size
-        })
-        hideUploadProgress()
-        
-        let errorMessage = '发送文件失败'
-        if (error.response?.status === 413) {
-          errorMessage = `文件过大：${(file.size / (1024 * 1024)).toFixed(2)}MB，请选择小于2MB的文件`
-        } else if (error.response?.status === 403) {
-          errorMessage = '没有权限上传文件'
-        } else if (error.response?.status === 400 && error.response?.data?.message) {
-          errorMessage = error.response.data.message
-        } else if (error.response?.data?.message) {
-          errorMessage = error.response.data.message
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-        
-        console.error('最终错误消息:', errorMessage)
-        notificationStore.error(errorMessage)
-      }
-    }
-
-    // 获取文件图标
-    const getFileIcon = (fileName) => {
-      if (!fileName) return 'fas fa-file'
-      
-      const extension = fileName.split('.').pop()?.toLowerCase()
-      const iconMap = {
-        // 图片
-        'jpg': 'fas fa-file-image',
-        'jpeg': 'fas fa-file-image',
-        'png': 'fas fa-file-image',
-        'gif': 'fas fa-file-image',
-        'bmp': 'fas fa-file-image',
-        'webp': 'fas fa-file-image',
-        'svg': 'fas fa-file-image',
-        
-        // 文档
-        'pdf': 'fas fa-file-pdf',
-        'doc': 'fas fa-file-word',
-        'docx': 'fas fa-file-word',
-        'txt': 'fas fa-file-alt',
-        'rtf': 'fas fa-file-alt',
-        
-        // 表格
-        'xls': 'fas fa-file-excel',
-        'xlsx': 'fas fa-file-excel',
-        'csv': 'fas fa-file-csv',
-        
-        // 演示文稿
-        'ppt': 'fas fa-file-powerpoint',
-        'pptx': 'fas fa-file-powerpoint',
-        
-        // 压缩文件
-        'zip': 'fas fa-file-archive',
-        'rar': 'fas fa-file-archive',
-        '7z': 'fas fa-file-archive',
-        'tar': 'fas fa-file-archive',
-        'gz': 'fas fa-file-archive',
-        
-        // 音频
-        'mp3': 'fas fa-file-audio',
-        'wav': 'fas fa-file-audio',
-        'flac': 'fas fa-file-audio',
-        'aac': 'fas fa-file-audio',
-        
-        // 视频
-        'mp4': 'fas fa-file-video',
-        'avi': 'fas fa-file-video',
-        'mkv': 'fas fa-file-video',
-        'wmv': 'fas fa-file-video',
-        'mov': 'fas fa-file-video',
-        
-        // 代码
-        'js': 'fas fa-file-code',
-        'html': 'fas fa-file-code',
-        'css': 'fas fa-file-code',
-        'php': 'fas fa-file-code',
-        'py': 'fas fa-file-code',
-        'java': 'fas fa-file-code',
-        'cpp': 'fas fa-file-code',
-        'c': 'fas fa-file-code',
-        'vue': 'fas fa-file-code',
-        'json': 'fas fa-file-code'
-      }
-      
-      return iconMap[extension] || 'fas fa-file'
-    }
-
-    // 格式化文件大小
-    const formatFileSize = (bytes) => {
-      if (!bytes) return '0 B'
-      
-      const sizes = ['B', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(1024))
-      return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
-    }
-
-    // 格式化文件过期时间
-    const formatFileExpiry = (expiry) => {
-      if (!expiry) return ''
-      
-      const expiryDate = new Date(expiry)
-      const now = new Date()
-      const diffMs = expiryDate - now
-      
-      if (diffMs <= 0) return '已过期'
-      
-      const diffMinutes = Math.floor(diffMs / (1000 * 60))
-      const diffHours = Math.floor(diffMinutes / 60)
-      
-      if (diffHours > 0) {
-        return `${diffHours}小时${diffMinutes % 60}分钟后过期`
-      } else {
-        return `${diffMinutes}分钟后过期`
-      }
-    }
-
-    // 下载文件
-    const downloadFile = async (fileId, fileName) => {
-      try {
-        // 使用GET请求下载文件
-        const response = await axios.get(`/api/files/download/${fileId}`, {
-          responseType: 'blob'
-        })
-        
-        // 创建下载链接
-        const url = window.URL.createObjectURL(new Blob([response.data]))
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', fileName)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        
-        // 清理URL对象
-        window.URL.revokeObjectURL(url)
-        
-      } catch (error) {
-        console.error('下载文件失败:', error)
-        if (error.response?.status === 404) {
-          notificationStore.error('文件已过期或不存在')
-        } else if (error.response?.status === 410) {
-          notificationStore.error('文件已过期')
-        } else {
-          notificationStore.error('下载失败: ' + (error.response?.data?.message || error.message))
-        }
-      }
-    }
-
-    // B站视频对话框处理
-    const closeBilibiliDialog = () => {
-      bilibiliDialog.value.visible = false
-    }
-
-    const handleBilibiliSubmit = async (data) => {
-      try {
-        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/bilibili`, {
-          bilibiliId: data.bilibiliId,
-          replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
-        })
-
-        cancelReply() // 清除回复状态
-        bilibiliDialog.value.visible = false
-        
-        // 等待WebSocket消息到达后滚动到底部
-        setTimeout(() => {
-          scrollToBottom(false)
-        }, 100)
-
-      } catch (error) {
-        console.error('发送B站视频失败:', error)
-        notificationStore.error('发送B站视频失败: ' + (error.response?.data?.message || error.message))
-      }
-    }
-
-    // Markdown对话框处理
-    const closeMarkdownDialog = () => {
-      markdownDialog.value.visible = false
-    }
-
-    const handleMarkdownSubmit = async (data) => {
-      try {
-        const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/markdown`, {
-          markdownContent: data.markdownContent,
-          title: data.title,
-          replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
-        })
-
-        cancelReply() // 清除回复状态
-        markdownDialog.value.visible = false
-        
-        // 等待WebSocket消息到达后滚动到底部
-        setTimeout(() => {
-          scrollToBottom(false)
-        }, 100)
-
-      } catch (error) {
-        console.error('发送Markdown内容失败:', error)
-        notificationStore.error('发送Markdown内容失败: ' + (error.response?.data?.message || error.message))
-      }
-    }
-
-    // 房间名称编辑相关方法
-    const showRoomNameDialog = () => {
-      if (!isCreator.value) {
-        notificationStore.error('只有房间创建者可以修改房间名称')
-        return
-      }
-      roomNameDialog.value.visible = true
-    }
-
-    const closeRoomNameDialog = () => {
-      roomNameDialog.value.visible = false
-    }
-
-    const handleRoomNameUpdate = async (newName) => {
-      try {
-        await chatroomStore.updateRoomName(roomId.value, newName)
-        
-        // 更新本地房间信息
-        if (roomInfo.value) {
-          roomInfo.value.name = newName
-        }
-        
-        notificationStore.success('房间名称修改成功')
-        closeRoomNameDialog()
-        
-        // 通过WebSocket通知其他用户房间名称已更改
-        if (socket.value && socket.value.connected) {
-          socket.value.emit('room-name-updated', {
-            roomId: roomId.value,
-            newName: newName
-          })
-        }
-        
-      } catch (error) {
-        console.error('修改房间名称失败:', error)
-        notificationStore.error('修改房间名称失败: ' + (error.response?.data?.message || error.message))
-      }
-    }
-    
-    // 处理图片加载错误
-    const handleImageError = (event) => {
-      // 避免无限循环，如果已经是默认图片则不再重试
-      if (event.target.src.includes('avatars/default') || event.target.dataset.errorHandled) {
-        event.target.style.display = 'none'
-        return
-      }
-      
-      event.target.dataset.errorHandled = 'true'
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
-      event.target.src = `${baseUrl}/avatars/default`
-      event.target.alt = '图片加载失败'
-    }
-
-    // 配置marked选项
-    marked.setOptions({
-      breaks: true,
-      gfm: true,
-      sanitize: false
-    })
-
-    // 处理markdown中的图片点击事件
-    const handleMarkdownImageClick = (event) => {
-      const img = event.target
-      if (img.tagName === 'IMG' && img.classList.contains('markdown-image')) {
-        event.preventDefault()
-        // 优先使用原始URL，如果没有则使用src
-        const imageUrl = img.dataset.originalSrc || img.src
-        const imageTitle = img.alt || img.title || '图片预览'
-        
-        console.log('点击markdown图片:', { imageUrl, imageTitle })
-        openImagePreview(imageUrl, imageTitle)
-      }
-    }
-
-    // 使用marked库渲染Markdown内容
-    const renderMarkdown = (content) => {
-      if (!content) return ''
-      
-      try {
-        // 配置marked渲染器
-        const renderer = new marked.Renderer()
-        
-        // 自定义图片渲染
-        renderer.image = function(href, title, text) {
-          // 确保href是字符串
-          const imageUrl = typeof href === 'string' ? href : (href?.href || href?.url || '')
-          
-          if (!imageUrl) {
-            return `<span style="color: #dc3545; font-style: italic;">图片链接无效</span>`
-          }
-          
-          // 安全地处理title和alt属性
-          const safeTitle = title ? title.replace(/"/g, '&quot;') : ''
-          const safeAlt = text ? text.replace(/"/g, '&quot;') : ''
-          const titleAttr = safeTitle ? ` title="${safeTitle}"` : ''
-          const altAttr = safeAlt ? ` alt="${safeAlt}"` : ''
-          
-          return `<img src="${imageUrl}" data-original-src="${imageUrl}"${titleAttr}${altAttr} class="markdown-image" style="max-width: 100%; height: auto; cursor: pointer; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">`
-        }
-        
-        return marked(content, { renderer })
-      } catch (error) {
-        console.error('Markdown解析错误:', error)
-        return '<p style="color: red;">Markdown解析错误</p>'
-      }
-    }
-    
-    // 添加临时通知
-    const addTemporaryNotification = (message, type = 'info') => {
-      const notification = {
-        id: Date.now() + Math.random(),
-        message,
-        type,
-        timestamp: new Date()
-      }
-      
-      temporaryNotifications.value.push(notification)
-      
-      // 3秒后自动移除
-      setTimeout(() => {
-        const index = temporaryNotifications.value.findIndex(n => n.id === notification.id)
-        if (index > -1) {
-          temporaryNotifications.value.splice(index, 1)
-        }
-      }, 3000)
-      
-      // 最多保留5条通知
-      if (temporaryNotifications.value.length > 5) {
-        temporaryNotifications.value.shift()
-      }
-    }
-    
-    // 获取通知图标
-    const getNotificationIcon = (type) => {
-      const icons = {
-        join: 'fas fa-user-plus',
-        leave: 'fas fa-user-minus',
-        info: 'fas fa-info-circle',
-        warning: 'fas fa-exclamation-triangle',
-        error: 'fas fa-times-circle'
-      }
-      return icons[type] || icons.info
-    }
-    
-    // 格式化时间
-    const formatTime = (timestamp) => {
-      // 确保timestamp是数字类型
-      const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp
-      const date = new Date(time)
-      
-      // 检查是否是有效日期
-      if (isNaN(date.getTime())) {
-        return '时间错误'
-      }
-      
-      const now = new Date()
-      const diff = now - date
-      
-      // 如果是今天的消息，显示时间
-      if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
-        return date.toLocaleTimeString('zh-CN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
+      // 处理用户消息和持久系统消息
+      if (msg.messageType !== 'system' || msg.systemMessageType === 'persistent') {
+        messages.push({
+          id: msg.id,
+          type: msg.messageType === 'system' ? 'system' : 'user',
+          userName: msg.user?.nickname || authStore.user?.nickname || '未知用户',
+          userUid: msg.userUid || msg.sender_uid,
+          userAvatar: msg.user?.avatarUrl || authStore.user?.avatarUrl || '/avatars/default',
+          text: msg.content,
+          timestamp: msg.createdAt,
+          isOwn: true,
+          isAdmin: msg.user?.isAdmin || false,
+          systemMessageType: msg.systemMessageType,
+          visibilityScope: msg.visibilityScope,
+          visibleToUsers: msg.visibleToUsers,
+          replyToMessageId: msg.replyToMessageId,
+          replyToMessage: msg.replyToMessage
         })
       }
       
-      // 如果是昨天或更早，显示日期和时间
-      return date.toLocaleString('zh-CN', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      newMessage.value = ''
+      cancelReply() // 清除回复状态
+      await nextTick()
+      scrollToBottom(false) // 发送消息后立即滚动到底部，不使用平滑滚动
+      
+    } catch (error) {
+      console.error('发送消息失败:', error)
+      notificationStore.error('发送消息失败: ' + (error.response?.data?.message || error.message))
     }
-    
-    // 连接WebSocket
-    const connectWebSocket = () => {
-      if (!authStore.token) {
-        console.error('无法连接WebSocket：缺少认证令牌')
-        return
-      }
-      
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
-      const corsConfig = getWebSocketCorsConfig()
-      
-      socket.value = io(socketUrl, {
-        auth: {
-          token: authStore.token
-        },
-        transports: ['websocket', 'polling'],
-        // 应用CORS配置
-        withCredentials: corsConfig.credentials,
-        extraHeaders: {
-          'Origin': window.location.origin
-        }
-      })
-      
-      // 连接成功
-      socket.value.on('connect', () => {
-        console.log('WebSocket连接成功')
-        addTemporaryNotification('已连接到实时聊天', 'info')
-        // 加入聊天室
-        socket.value.emit('join-room', { roomId: roomId.value })
-      })
-      
-      // 连接错误
-      socket.value.on('connect_error', (error) => {
-        console.error('WebSocket连接失败:', error)
-        addTemporaryNotification('实时连接失败，消息可能延迟', 'error')
-      })
-      
-      // 断开连接
-      socket.value.on('disconnect', (reason) => {
-        console.log('WebSocket连接断开:', reason)
-        if (reason !== 'io client disconnect') {
-          addTemporaryNotification('连接已断开，正在重连...', 'warning')
-        }
-      })
-      
-      // 重连成功
-      socket.value.on('reconnect', () => {
-        console.log('WebSocket重连成功')
-        addTemporaryNotification('重连成功', 'info')
-      })
-      
-      // 加入房间成功
-      socket.value.on('room-joined', (data) => {
-        console.log('成功加入房间:', data)
-        onlineUsers.value = data.onlineUsers || []
-        addTemporaryNotification(`已加入聊天室，当前在线 ${data.onlineUsers?.length || 0} 人`, 'info')
-        
-        // 重新加载成员列表
-        loadRoomMembers()
-      })
+  }
+}
 
-      // 房间名称更新
-      socket.value.on('room-name-updated', (data) => {
-        console.log('房间名称已更新:', data)
-        
-        // 更新本地房间信息
-        if (roomInfo.value) {
-          roomInfo.value.name = data.newName
-        }
-        
-        // 显示通知
-        if (data.updatedBy !== authStore.user?.uid) {
-          addTemporaryNotification(`房间名称已更改为: ${data.newName}`, 'info')
-        }
-      })
-      
-      // 新消息
-      socket.value.on('new-message', (messageData) => {
-        console.log('收到新消息:', messageData)
-        
-        // 如果是临时系统消息，通过临时通知显示
-        if (messageData.messageType === 'system' && messageData.systemMessageType === 'temporary') {
-          addTemporaryNotification(messageData.content, 'info')
-          return
-        }
-        
-        // 处理用户消息和持久系统消息
-        const newMessage = {
-          id: messageData.id,
-          type: messageData.messageType === 'system' ? 'system' : 
-                messageData.messageType === 'image' ? 'image' :
-                messageData.messageType === 'bilibili' ? 'bilibili' :
-                messageData.messageType === 'markdown' ? 'markdown' :
-                messageData.messageType === 'file' ? 'file' : 'user',
-          userName: messageData.user?.nickname || messageData.userName || '未知用户',
-          userUid: messageData.userUid || messageData.sender_uid,
-          userAvatar: messageData.user?.avatarUrl || messageData.userAvatar || '/avatars/default',
-          text: messageData.content,
-          imageUrl: messageData.imageUrl,
-          bilibiliId: messageData.bilibiliId,
-          markdownContent: messageData.markdownContent,
-          fileId: messageData.fileId,
-          fileName: messageData.fileName,
-          fileSize: messageData.fileSize,
-          fileExpiry: messageData.fileExpiry,
-          fileExpired: messageData.fileExpired,
-          timestamp: messageData.createdAt,
-          isOwn: messageData.userUid === authStore.user?.uid,
-          isAdmin: messageData.user?.isAdmin || false,
-          systemMessageType: messageData.systemMessageType,
-          visibilityScope: messageData.visibilityScope,
-          visibleToUsers: messageData.visibleToUsers,
-          replyToMessageId: messageData.replyToMessageId,
-          replyToMessage: messageData.replyToMessage
-        }
-        
-        // 记录用户是否在底部附近
-        const wasNearBottom = isNearBottom()
-        
-        messages.push(newMessage)
-        
-        nextTick(() => {
-          // 只有在用户在底部附近或者是自己发送的消息时才自动滚动到底部
-          if (wasNearBottom || newMessage.isOwn) {
-            scrollToBottom()
-          }
-        })
-      })
-      
-      // 用户加入/离开
-      socket.value.on('user-joined', (data) => {
-        console.log('用户加入:', data)
-        onlineUsers.value = data.onlineUsers || []
-        
-        // 显示临时通知而不是聊天消息
-        if (data.user && data.user.uid !== authStore.user?.uid) {
-          addTemporaryNotification(`${data.user.nickname} 加入了聊天室`, 'join')
-        }
-        
-        // 重新加载成员列表
-        loadRoomMembers()
-      })
-      
-      socket.value.on('user-left', (data) => {
-        console.log('用户离开:', data)
-        onlineUsers.value = data.onlineUsers || []
-        
-        // 显示临时通知而不是聊天消息
-        if (data.user && data.user.uid !== authStore.user?.uid) {
-          addTemporaryNotification(`${data.user.nickname} 离开了聊天室`, 'leave')
-        }
-        
-        // 重新加载成员列表
-        loadRoomMembers()
-      })
-      
-      // 在线用户列表更新
-      socket.value.on('online-users', (data) => {
-        onlineUsers.value = data.users || []
-      })
-      
-      // 聊天室被解散
-      socket.value.on('room-dissolved', (data) => {
-        console.log('聊天室被解散:', data)
-        addTemporaryNotification(data.message, 'warning')
-        
-        // 3秒后自动跳转到首页
-        setTimeout(() => {
-          notificationStore.error('聊天室已被解散，正在返回首页...')
-          router.push({ name: 'Home' })
-        }, 3000)
-      })
+// 获取头像URL
+const getAvatarUrl = (avatarPath) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
   
-  // 用户被踢出
-  socket.value.on('user-kicked', (data) => {
-    console.log('用户被踢出事件:', data)
+  if (!avatarPath) {
+    return `${baseUrl}/avatars/default`
+  }
+  
+  // 如果是完整URL，直接返回
+  if (avatarPath.startsWith('http') || avatarPath.startsWith('data:')) {
+    return avatarPath
+  }
+  
+  // 使用新的固定头像URL格式
+  return `${baseUrl}${avatarPath}`
+}
+
+// 获取图片URL
+const getImageUrl = (imagePath) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+  
+  if (!imagePath) {
+    return ''
+  }
+  
+  // 如果是完整URL，直接返回
+  if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+    return imagePath
+  }
+  
+  // 拼接完整URL
+  return `${baseUrl}${imagePath}`
+}
+
+// 图片预览状态
+const imagePreview = ref({
+  visible: false,
+  imageUrl: '',
+  title: ''
+})
+
+// 扩展消息类型对话框状态
+const messageTypeDialog = ref({
+  visible: false
+})
+
+const bilibiliDialog = ref({
+  visible: false
+})
+
+const markdownDialog = ref({
+  visible: false
+})
+
+// 房间名称编辑弹窗状态
+const roomNameDialog = ref({
+  visible: false
+})
+
+// 图片压缩确认对话框状态
+const compressionDialog = ref({
+  visible: false,
+  fileName: '',
+  fileSize: 0,
+  file: null,
+  resolve: null
+})
+
+// 打开图片预览
+const openImagePreview = (imageUrl, title = '') => {
+  imagePreview.value = {
+    visible: true,
+    imageUrl: getImageUrl(imageUrl),
+    title: title || '图片预览'
+  }
+}
+
+// 关闭图片预览
+const closeImagePreview = () => {
+  imagePreview.value = {
+    visible: false,
+    imageUrl: '',
+    title: ''
+  }
+}
+
+// 显示消息类型选择器
+const showMessageTypeSelector = () => {
+  messageTypeDialog.value.visible = true
+}
+
+// 关闭消息类型选择器
+const closeMessageTypeSelector = () => {
+  messageTypeDialog.value.visible = false
+}
+
+// 处理消息类型选择
+const handleMessageTypeSelect = (type) => {
+  if (type === 'bilibili') {
+    bilibiliDialog.value.visible = true
+  } else if (type === 'markdown') {
+    markdownDialog.value.visible = true
+  } else if (type === 'file') {
+    selectFile()
+  }
+}
+
+// 选择文件
+const selectFile = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+// 处理文件选择
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    console.log('选择文件:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
+    })
+    sendFileMessage(file)
+  }
+  // 清空input的值，允许重复选择同一文件
+  event.target.value = ''
+}
+
+// 检查文件是否为图片
+const isImageFile = (file) => {
+  return file.type && file.type.startsWith('image/')
+}
+
+// 发送文件消息
+const sendFileMessage = async (file) => {
+  console.log('开始发送文件消息:', {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+    canSendMessage: canSendMessage.value,
+    isImage: isImageFile(file)
+  })
+  
+  if (!canSendMessage.value) {
+    const errorMessage = '当前无法发送文件，请检查权限'
+    console.log('无法发送消息，权限检查失败')
+    notificationStore.error(errorMessage)
+    return
+  }
+  
+  // 如果是图片文件，使用图片发送方式
+  if (isImageFile(file)) {
+    console.log('检测到图片文件，使用图片发送方式')
+    await sendImageMessage(file)
+    return
+  }
+  
+  // 检查文件大小（2MB = 2 * 1024 * 1024 bytes）
+  const maxSize = 2 * 1024 * 1024
+  console.log('检查文件大小:', {
+    fileSize: file.size,
+    maxSize: maxSize,
+    sizeInMB: (file.size / (1024 * 1024)).toFixed(2),
+    maxSizeInMB: (maxSize / (1024 * 1024)).toFixed(2),
+    isOverLimit: file.size > maxSize
+  })
+  
+  if (file.size > maxSize) {
+    const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2)
+    const errorMessage = `文件大小超出限制：${fileSizeInMB}MB，最大允许2MB`
+    console.error('文件大小超出限制:', fileSizeInMB + 'MB > 2MB')
     
-    if (data.kickedUid === authStore.user?.uid) {
-      // 当前用户被踢出
-      addTemporaryNotification('您已被移出聊天室', 'warning')
-      setTimeout(() => {
-        notificationStore.error('您已被移出聊天室')
-        router.push({ name: 'RoomSelect' })
-      }, 2000)
+    // 显示通知
+    notificationStore.error(errorMessage)
+    
+    return
+  }
+  
+  // 如果文件为空或无效
+  if (!file || file.size === 0) {
+    const errorMessage = '选择的文件无效或为空'
+    console.error('文件无效或为空')
+    notificationStore.error(errorMessage)
+    return
+  }
+  
+  try {
+    console.log('开始上传文件...')
+    showUploadProgress(file.name, 'file')
+    
+    // 第一步：上传文件到服务器
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('chatroomId', roomId.value)
+    
+    // 如果是回复消息，添加回复信息
+    if (replyState.value.isReplying && replyState.value.targetMessage) {
+      formData.append('replyToMessageId', replyState.value.targetMessage.id)
+    }
+    
+    uploadProgress.value.progress = 20
+    
+    console.log('发送上传请求到服务器...')
+    // 上传文件
+    const uploadResponse = await axios.post('/api/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.lengthComputable) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          uploadProgress.value.progress = 20 + (progress * 0.6) // 20-80%
+          console.log('上传进度:', uploadProgress.value.progress + '%')
+        }
+      }
+    })
+    
+    console.log('文件上传响应:', uploadResponse.data)
+    const { fileId, fileName, fileSize, expiryTime } = uploadResponse.data.data
+    
+    uploadProgress.value.progress = 90
+    
+    console.log('发送文件消息到聊天室...')
+    // 第二步：发送文件消息
+    const messageResponse = await axios.post(`/api/chatrooms/${roomId.value}/messages/file`, {
+      fileId,
+      fileName,
+      fileSize,
+      replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+    })
+    
+    console.log('文件消息发送成功:', messageResponse.data)
+    uploadProgress.value.progress = 100
+    
+    // 文件发送成功，WebSocket会自动广播消息
+    cancelReply() // 清除回复状态
+    
+    setTimeout(() => {
+      hideUploadProgress()
+    }, 500)
+    
+    // 等待WebSocket消息到达后滚动到底部
+    setTimeout(() => {
+      scrollToBottom(false)
+    }, 100)
+    
+  } catch (error) {
+    console.error('发送文件失败:', error)
+    console.error('错误详情:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      fileName: file.name,
+      fileSize: file.size
+    })
+    hideUploadProgress()
+    
+    let errorMessage = '发送文件失败'
+    if (error.response?.status === 413) {
+      errorMessage = `文件过大：${(file.size / (1024 * 1024)).toFixed(2)}MB，请选择小于2MB的文件`
+    } else if (error.response?.status === 403) {
+      errorMessage = '没有权限上传文件'
+    } else if (error.response?.status === 400 && error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    console.error('最终错误消息:', errorMessage)
+    notificationStore.error(errorMessage)
+  }
+}
+
+// 获取文件图标
+const getFileIcon = (fileName) => {
+  if (!fileName) return 'fas fa-file'
+  
+  const extension = fileName.split('.').pop()?.toLowerCase()
+  const iconMap = {
+    // 图片
+    'jpg': 'fas fa-file-image',
+    'jpeg': 'fas fa-file-image',
+    'png': 'fas fa-file-image',
+    'gif': 'fas fa-file-image',
+    'bmp': 'fas fa-file-image',
+    'webp': 'fas fa-file-image',
+    'svg': 'fas fa-file-image',
+    
+    // 文档
+    'pdf': 'fas fa-file-pdf',
+    'doc': 'fas fa-file-word',
+    'docx': 'fas fa-file-word',
+    'txt': 'fas fa-file-alt',
+    'rtf': 'fas fa-file-alt',
+    
+    // 表格
+    'xls': 'fas fa-file-excel',
+    'xlsx': 'fas fa-file-excel',
+    'csv': 'fas fa-file-csv',
+    
+    // 演示文稿
+    'ppt': 'fas fa-file-powerpoint',
+    'pptx': 'fas fa-file-powerpoint',
+    
+    // 压缩文件
+    'zip': 'fas fa-file-archive',
+    'rar': 'fas fa-file-archive',
+    '7z': 'fas fa-file-archive',
+    'tar': 'fas fa-file-archive',
+    'gz': 'fas fa-file-archive',
+    
+    // 音频
+    'mp3': 'fas fa-file-audio',
+    'wav': 'fas fa-file-audio',
+    'flac': 'fas fa-file-audio',
+    'aac': 'fas fa-file-audio',
+    
+    // 视频
+    'mp4': 'fas fa-file-video',
+    'avi': 'fas fa-file-video',
+    'mkv': 'fas fa-file-video',
+    'wmv': 'fas fa-file-video',
+    'mov': 'fas fa-file-video',
+    
+    // 代码
+    'js': 'fas fa-file-code',
+    'html': 'fas fa-file-code',
+    'css': 'fas fa-file-code',
+    'php': 'fas fa-file-code',
+    'py': 'fas fa-file-code',
+    'java': 'fas fa-file-code',
+    'cpp': 'fas fa-file-code',
+    'c': 'fas fa-file-code',
+    'vue': 'fas fa-file-code',
+    'json': 'fas fa-file-code'
+  }
+  
+  return iconMap[extension] || 'fas fa-file'
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+// 格式化文件过期时间
+const formatFileExpiry = (expiry) => {
+  if (!expiry) return ''
+  
+  const expiryDate = new Date(expiry)
+  const now = new Date()
+  const diffMs = expiryDate - now
+  
+  if (diffMs <= 0) return '已过期'
+  
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMinutes / 60)
+  
+  if (diffHours > 0) {
+    return `${diffHours}小时${diffMinutes % 60}分钟后过期`
+  } else {
+    return `${diffMinutes}分钟后过期`
+  }
+}
+
+// 下载文件
+const downloadFile = async (fileId, fileName) => {
+  try {
+    // 使用GET请求下载文件
+    const response = await axios.get(`/api/files/download/${fileId}`, {
+      responseType: 'blob'
+    })
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', fileName)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    
+    // 清理URL对象
+    window.URL.revokeObjectURL(url)
+    
+  } catch (error) {
+    console.error('下载文件失败:', error)
+    if (error.response?.status === 404) {
+      notificationStore.error('文件已过期或不存在')
+    } else if (error.response?.status === 410) {
+      notificationStore.error('文件已过期')
     } else {
-      // 其他用户被踢出，直接显示离开消息，避免重复
-      const kickedUser = data.kickedUser || { nickname: '用户' }
-      addTemporaryNotification(`${kickedUser.nickname} 离开了聊天室`, 'leave')
+      notificationStore.error('下载失败: ' + (error.response?.data?.message || error.message))
+    }
+  }
+}
+
+// B站视频对话框处理
+const closeBilibiliDialog = () => {
+  bilibiliDialog.value.visible = false
+}
+
+const handleBilibiliSubmit = async (data) => {
+  try {
+    const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/bilibili`, {
+      bilibiliId: data.bilibiliId,
+      replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+    })
+
+    cancelReply() // 清除回复状态
+    bilibiliDialog.value.visible = false
+    
+    // 等待WebSocket消息到达后滚动到底部
+    setTimeout(() => {
+      scrollToBottom(false)
+    }, 100)
+
+  } catch (error) {
+    console.error('发送B站视频失败:', error)
+    notificationStore.error('发送B站视频失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// Markdown对话框处理
+const closeMarkdownDialog = () => {
+  markdownDialog.value.visible = false
+}
+
+const handleMarkdownSubmit = async (data) => {
+  try {
+    const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/markdown`, {
+      markdownContent: data.markdownContent,
+      title: data.title,
+      replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+    })
+
+    cancelReply() // 清除回复状态
+    markdownDialog.value.visible = false
+    
+    // 等待WebSocket消息到达后滚动到底部
+    setTimeout(() => {
+      scrollToBottom(false)
+    }, 100)
+
+  } catch (error) {
+    console.error('发送Markdown内容失败:', error)
+    notificationStore.error('发送Markdown内容失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 房间名称编辑相关方法
+const showRoomNameDialog = () => {
+  if (!isCreator.value) {
+    notificationStore.error('只有房间创建者可以修改房间名称')
+    return
+  }
+  roomNameDialog.value.visible = true
+}
+
+const closeRoomNameDialog = () => {
+  roomNameDialog.value.visible = false
+}
+
+const handleRoomNameUpdate = async (newName) => {
+  try {
+    await chatroomStore.updateRoomName(roomId.value, newName)
+    
+    // 更新本地房间信息
+    if (roomInfo.value) {
+      roomInfo.value.name = newName
+    }
+    
+    notificationStore.success('房间名称修改成功')
+    closeRoomNameDialog()
+    
+    // 通过WebSocket通知其他用户房间名称已更改
+    if (socket.value && socket.value.connected) {
+      socket.value.emit('room-name-updated', {
+        roomId: roomId.value,
+        newName: newName
+      })
+    }
+    
+  } catch (error) {
+    console.error('修改房间名称失败:', error)
+    notificationStore.error('修改房间名称失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 处理图片加载错误
+const handleImageError = (event) => {
+  // 避免无限循环，如果已经是默认图片则不再重试
+  if (event.target.src.includes('avatars/default') || event.target.dataset.errorHandled) {
+    event.target.style.display = 'none'
+    return
+  }
+  
+  event.target.dataset.errorHandled = 'true'
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+  event.target.src = `${baseUrl}/avatars/default`
+  event.target.alt = '图片加载失败'
+}
+
+// 配置marked选项
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+  sanitize: false
+})
+
+// 处理markdown中的图片点击事件
+const handleMarkdownImageClick = (event) => {
+  const img = event.target
+  if (img.tagName === 'IMG' && img.classList.contains('markdown-image')) {
+    event.preventDefault()
+    // 优先使用原始URL，如果没有则使用src
+    const imageUrl = img.dataset.originalSrc || img.src
+    const imageTitle = img.alt || img.title || '图片预览'
+    
+    console.log('点击markdown图片:', { imageUrl, imageTitle })
+    openImagePreview(imageUrl, imageTitle)
+  }
+}
+
+// 使用marked库渲染Markdown内容
+const renderMarkdown = (content) => {
+  if (!content) return ''
+  
+  try {
+    // 配置marked渲染器
+    const renderer = new marked.Renderer()
+    
+    // 自定义图片渲染
+    renderer.image = function(href, title, text) {
+      // 确保href是字符串
+      const imageUrl = typeof href === 'string' ? href : (href?.href || href?.url || '')
       
-      // 更新在线用户列表
-      onlineUsers.value = onlineUsers.value.filter(user => user.uid !== data.kickedUid)
+      if (!imageUrl) {
+        return `<span style="color: #dc3545; font-style: italic;">图片链接无效</span>`
+      }
       
-      // 重新加载成员列表
-      loadRoomMembers()
+      // 安全地处理title和alt属性
+      const safeTitle = title ? title.replace(/"/g, '&quot;') : ''
+      const safeAlt = text ? text.replace(/"/g, '&quot;') : ''
+      const titleAttr = safeTitle ? ` title="${safeTitle}"` : ''
+      const altAttr = safeAlt ? ` alt="${safeAlt}"` : ''
+      
+      return `<img src="${imageUrl}" data-original-src="${imageUrl}"${titleAttr}${altAttr} class="markdown-image" style="max-width: 100%; height: auto; cursor: pointer; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">`
+    }
+    
+    return marked(content, { renderer })
+  } catch (error) {
+    console.error('Markdown解析错误:', error)
+    return '<p style="color: red;">Markdown解析错误</p>'
+  }
+}
+
+// 添加临时通知
+const addTemporaryNotification = (message, type = 'info') => {
+  const notification = {
+    id: Date.now() + Math.random(),
+    message,
+    type,
+    timestamp: new Date()
+  }
+  
+  temporaryNotifications.value.push(notification)
+  
+  // 3秒后自动移除
+  setTimeout(() => {
+    const index = temporaryNotifications.value.findIndex(n => n.id === notification.id)
+    if (index > -1) {
+      temporaryNotifications.value.splice(index, 1)
+    }
+  }, 3000)
+  
+  // 最多保留5条通知
+  if (temporaryNotifications.value.length > 5) {
+    temporaryNotifications.value.shift()
+  }
+}
+
+// 获取通知图标
+const getNotificationIcon = (type) => {
+  const icons = {
+    join: 'fas fa-user-plus',
+    leave: 'fas fa-user-minus',
+    info: 'fas fa-info-circle',
+    warning: 'fas fa-exclamation-triangle',
+    error: 'fas fa-times-circle'
+  }
+  return icons[type] || icons.info
+}
+
+// 格式化时间
+const formatTime = (timestamp) => {
+  // 确保timestamp是数字类型
+  const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp
+  const date = new Date(time)
+  
+  // 检查是否是有效日期
+  if (isNaN(date.getTime())) {
+    return '时间错误'
+  }
+  
+  const now = new Date()
+  const diff = now - date
+  
+  // 如果是今天的消息，显示时间
+  if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
+    return date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  }
+  
+  // 如果是昨天或更早，显示日期和时间
+  return date.toLocaleString('zh-CN', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// 连接WebSocket
+const connectWebSocket = () => {
+  if (!authStore.token) {
+    console.error('无法连接WebSocket：缺少认证令牌')
+    return
+  }
+  
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+  const corsConfig = getWebSocketCorsConfig()
+  
+  socket.value = io(socketUrl, {
+    auth: {
+      token: authStore.token
+    },
+    transports: ['websocket', 'polling'],
+    // 应用CORS配置
+    withCredentials: corsConfig.credentials,
+    extraHeaders: {
+      'Origin': window.location.origin
     }
   })
   
-        // 用户被禁言/解除禁言
-      socket.value.on('user-muted', (data) => {
-        console.log('用户禁言状态变化:', data)
-        
-        if (data.targetUid === authStore.user?.uid) {
-          // 当前用户被禁言或解除禁言
-          if (data.isMuted) {
-            authStore.user.muteUntil = data.muteUntil
-            addTemporaryNotification(`您已被禁言，${data.duration}分钟后可以发言`, 'warning')
-          } else {
-            authStore.user.muteUntil = null
-            addTemporaryNotification('您的禁言已被解除', 'info')
-          }
-        }
-        
-        // 更新成员列表中的禁言状态
-        const member = roomMembers.value.find(m => m.uid === data.targetUid)
-        if (member) {
-          member.isMuted = data.isMuted
-          member.muteUntil = data.isMuted ? data.muteUntil : null
-        }
-      })
+  // 连接成功
+  socket.value.on('connect', () => {
+    console.log('WebSocket连接成功')
+    addTemporaryNotification('已连接到实时聊天', 'info')
+    // 加入聊天室
+    socket.value.emit('join-room', { roomId: roomId.value })
+  })
+  
+  // 连接错误
+  socket.value.on('connect_error', (error) => {
+    console.error('WebSocket连接失败:', error)
+    addTemporaryNotification('实时连接失败，消息可能延迟', 'error')
+  })
+  
+  // 断开连接
+  socket.value.on('disconnect', (reason) => {
+    console.log('WebSocket连接断开:', reason)
+    if (reason !== 'io client disconnect') {
+      addTemporaryNotification('连接已断开，正在重连...', 'warning')
+    }
+  })
+  
+  // 重连成功
+  socket.value.on('reconnect', () => {
+    console.log('WebSocket重连成功')
+    addTemporaryNotification('重连成功', 'info')
+  })
+  
+  // 加入房间成功
+  socket.value.on('room-joined', (data) => {
+    console.log('成功加入房间:', data)
+    onlineUsers.value = data.onlineUsers || []
+    addTemporaryNotification(`已加入聊天室，当前在线 ${data.onlineUsers?.length || 0} 人`, 'info')
+    
+    // 重新加载成员列表
+    loadRoomMembers()
+  })
 
-      // 消息被删除
-      socket.value.on('message-deleted', (data) => {
-        console.log('消息被删除:', data)
-        
-        // 找到要删除的消息
-        const messageIndex = messages.findIndex(msg => msg.id === data.messageId)
-        if (messageIndex > -1) {
-          const message = messages[messageIndex]
-          
-          // 先添加删除动画状态
-          message.isDeleting = true
-          
-          // 延迟删除，让动画播放完成
-          setTimeout(() => {
-            const currentIndex = messages.findIndex(msg => msg.id === data.messageId)
-            if (currentIndex > -1) {
-              messages.splice(currentIndex, 1)
-            }
-          }, 300) // 动画持续时间
-          
-          // 如果删除的不是当前用户的消息，显示通知
-          if (data.deletedBy !== authStore.user?.uid) {
-            addTemporaryNotification('有消息被删除', 'info')
-          }
+  // 房间名称更新
+  socket.value.on('room-name-updated', (data) => {
+    console.log('房间名称已更新:', data)
+    
+    // 更新本地房间信息
+    if (roomInfo.value) {
+      roomInfo.value.name = data.newName
+    }
+    
+    // 显示通知
+    if (data.updatedBy !== authStore.user?.uid) {
+      addTemporaryNotification(`房间名称已更改为: ${data.newName}`, 'info')
+    }
+  })
+  
+  // 新消息
+  socket.value.on('new-message', (messageData) => {
+    console.log('收到新消息:', messageData)
+    
+    // 如果是临时系统消息，通过临时通知显示
+    if (messageData.messageType === 'system' && messageData.systemMessageType === 'temporary') {
+      addTemporaryNotification(messageData.content, 'info')
+      return
+    }
+    
+    // 处理用户消息和持久系统消息
+    const newMessage = {
+      id: messageData.id,
+      type: messageData.messageType === 'system' ? 'system' : 
+            messageData.messageType === 'image' ? 'image' :
+            messageData.messageType === 'bilibili' ? 'bilibili' :
+            messageData.messageType === 'markdown' ? 'markdown' :
+            messageData.messageType === 'file' ? 'file' : 'user',
+      userName: messageData.user?.nickname || messageData.userName || '未知用户',
+      userUid: messageData.userUid || messageData.sender_uid,
+      userAvatar: messageData.user?.avatarUrl || messageData.userAvatar || '/avatars/default',
+      text: messageData.content,
+      imageUrl: messageData.imageUrl,
+      bilibiliId: messageData.bilibiliId,
+      markdownContent: messageData.markdownContent,
+      fileId: messageData.fileId,
+      fileName: messageData.fileName,
+      fileSize: messageData.fileSize,
+      fileExpiry: messageData.fileExpiry,
+      fileExpired: messageData.fileExpired,
+      timestamp: messageData.createdAt,
+      isOwn: messageData.userUid === authStore.user?.uid,
+      isAdmin: messageData.user?.isAdmin || false,
+      systemMessageType: messageData.systemMessageType,
+      visibilityScope: messageData.visibilityScope,
+      visibleToUsers: messageData.visibleToUsers,
+      replyToMessageId: messageData.replyToMessageId,
+      replyToMessage: messageData.replyToMessage
+    }
+    
+    // 记录用户是否在底部附近
+    const wasNearBottom = isNearBottom()
+    
+    messages.push(newMessage)
+    
+    nextTick(() => {
+      // 只有在用户在底部附近或者是自己发送的消息时才自动滚动到底部
+      if (wasNearBottom || newMessage.isOwn) {
+        scrollToBottom()
+      }
+    })
+  })
+  
+  // 用户加入/离开
+  socket.value.on('user-joined', (data) => {
+    console.log('用户加入:', data)
+    onlineUsers.value = data.onlineUsers || []
+    
+    // 显示临时通知而不是聊天消息
+    if (data.user && data.user.uid !== authStore.user?.uid) {
+      addTemporaryNotification(`${data.user.nickname} 加入了聊天室`, 'join')
+    }
+    
+    // 重新加载成员列表
+    loadRoomMembers()
+  })
+  
+  socket.value.on('user-left', (data) => {
+    console.log('用户离开:', data)
+    onlineUsers.value = data.onlineUsers || []
+    
+    // 显示临时通知而不是聊天消息
+    if (data.user && data.user.uid !== authStore.user?.uid) {
+      addTemporaryNotification(`${data.user.nickname} 离开了聊天室`, 'leave')
+    }
+    
+    // 重新加载成员列表
+    loadRoomMembers()
+  })
+  
+  // 在线用户列表更新
+  socket.value.on('online-users', (data) => {
+    onlineUsers.value = data.users || []
+  })
+  
+  // 聊天室被解散
+  socket.value.on('room-dissolved', (data) => {
+    console.log('聊天室被解散:', data)
+    addTemporaryNotification(data.message, 'warning')
+    
+    // 3秒后自动跳转到首页
+    setTimeout(() => {
+      notificationStore.error('聊天室已被解散，正在返回首页...')
+      router.push({ name: 'Home' })
+    }, 3000)
+  })
+
+// 用户被踢出
+socket.value.on('user-kicked', (data) => {
+console.log('用户被踢出事件:', data)
+
+if (data.kickedUid === authStore.user?.uid) {
+  // 当前用户被踢出
+  addTemporaryNotification('您已被移出聊天室', 'warning')
+  setTimeout(() => {
+    notificationStore.error('您已被移出聊天室')
+    router.push({ name: 'RoomSelect' })
+  }, 2000)
+} else {
+  // 其他用户被踢出，直接显示离开消息，避免重复
+  const kickedUser = data.kickedUser || { nickname: '用户' }
+  addTemporaryNotification(`${kickedUser.nickname} 离开了聊天室`, 'leave')
+  
+  // 更新在线用户列表
+  onlineUsers.value = onlineUsers.value.filter(user => user.uid !== data.kickedUid)
+  
+  // 重新加载成员列表
+  loadRoomMembers()
+}
+})
+
+    // 用户被禁言/解除禁言
+  socket.value.on('user-muted', (data) => {
+    console.log('用户禁言状态变化:', data)
+    
+    if (data.targetUid === authStore.user?.uid) {
+      // 当前用户被禁言或解除禁言
+      if (data.isMuted) {
+        authStore.user.muteUntil = data.muteUntil
+        addTemporaryNotification(`您已被禁言，${data.duration}分钟后可以发言`, 'warning')
+      } else {
+        authStore.user.muteUntil = null
+        addTemporaryNotification('您的禁言已被解除', 'info')
+      }
+    }
+    
+    // 更新成员列表中的禁言状态
+    const member = roomMembers.value.find(m => m.uid === data.targetUid)
+    if (member) {
+      member.isMuted = data.isMuted
+      member.muteUntil = data.isMuted ? data.muteUntil : null
+    }
+  })
+
+  // 消息被删除
+  socket.value.on('message-deleted', (data) => {
+    console.log('消息被删除:', data)
+    
+    // 找到要删除的消息
+    const messageIndex = messages.findIndex(msg => msg.id === data.messageId)
+    if (messageIndex > -1) {
+      const message = messages[messageIndex]
+      
+      // 先添加删除动画状态
+      message.isDeleting = true
+      
+      // 延迟删除，让动画播放完成
+      setTimeout(() => {
+        const currentIndex = messages.findIndex(msg => msg.id === data.messageId)
+        if (currentIndex > -1) {
+          messages.splice(currentIndex, 1)
         }
-      })
+      }, 300) // 动画持续时间
+      
+      // 如果删除的不是当前用户的消息，显示通知
+      if (data.deletedBy !== authStore.user?.uid) {
+        addTemporaryNotification('有消息被删除', 'info')
+      }
+    }
+  })
+}
+
+// 断开WebSocket连接
+const disconnectWebSocket = () => {
+  if (socket.value) {
+    socket.value.disconnect()
+    socket.value = null
+  }
+}
+
+// 离开房间
+const leaveRoom = () => {
+  disconnectWebSocket()
+  router.push({ name: 'Home' })
+}
+
+// 初始化聊天室
+const initializeChatroom = async () => {
+  isLoading.value = true
+  
+  try {
+    // 等待认证状态初始化完成
+    if (!authStore.isInitialized) {
+      await authStore.initialize()
+    }
+    
+    // 检查用户是否已登录
+    if (!authStore.isAuthenticated) {
+      notificationStore.error('请先登录')
+      router.push({ name: 'Home' })
+      return
+    }
+    
+    // 验证聊天室是否存在
+    const isValid = await validateChatroom()
+    if (!isValid) {
+      router.push({ name: 'RoomSelect' })
+      return
+    }
+    
+    // 加载历史消息
+    await loadMessages()
+    
+    // 连接WebSocket
+    connectWebSocket()
+    
+  } catch (error) {
+    console.error('初始化聊天室失败:', error)
+    notificationStore.error('初始化聊天室失败')
+    router.push({ name: 'RoomSelect' })
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 禁言倒计时定时器
+const muteTimer = ref(null)
+
+// 启动禁言倒计时
+const startMuteTimer = () => {
+  if (muteTimer.value) {
+    clearInterval(muteTimer.value)
+  }
+  
+if (muteTimeRemaining.value > 0) {
+    muteTimer.value = setInterval(() => {
+      // 更新当前时间，触发计算属性重新计算
+      currentTime.value = Date.now()
+      
+      // 如果禁言时间结束则清除定时器
+      if (muteTimeRemaining.value <= 0) {
+        clearInterval(muteTimer.value)
+        muteTimer.value = null
+        addTemporaryNotification('禁言时间已结束，现在可以发言了！', 'info')
+      }
+    }, 1000)
+  }
+}
+
+// 监听认证状态变化，重新启动倒计时
+watch(
+() => authStore.user?.muteUntil,
+  () => {
+    startMuteTimer()
+  },
+  { immediate: false }
+)
+
+// 监听在线用户变化，更新成员列表状态
+watch(
+  () => onlineUsers.value,
+  (newOnlineUsers) => {
+    if (roomMembers.value.length > 0) {
+      roomMembers.value = roomMembers.value.map(member => ({
+        ...member,
+        status: member.uid === authStore.user?.uid ? 'online' : 
+                newOnlineUsers.some(u => u.uid === member.uid) ? 'online' : 
+                member.status === 'left' ? 'left' : 'offline'
+      }))
+    }
+  },
+  { deep: true }
+)
+
+// 生命周期 (已合并到后面的onMounted中)
+
+onUnmounted(() => {
+  disconnectWebSocket()
+  if (muteTimer.value) {
+    clearInterval(muteTimer.value)
+  }
+})
+
+// 新增方法
+// 检测移动端
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+  if (isMobile.value) {
+    showRoomList.value = false
+    showMemberList.value = false
+  } else {
+    showRoomList.value = true
+    showMemberList.value = true
+  }
+}
+
+// 切换房间列表显示
+const toggleRoomList = () => {
+  showRoomList.value = !showRoomList.value
+}
+
+// 切换成员列表显示
+const toggleMemberList = () => {
+  showMemberList.value = !showMemberList.value
+}
+
+// 关闭移动端侧边栏
+const closeMobileSidebars = () => {
+  if (isMobile.value) {
+    showRoomList.value = false
+    showMemberList.value = false
+  }
+}
+
+// 返回首页
+const goHome = () => {
+  router.push({ name: 'Home' })
+}
+
+// 跳转到加入聊天页面
+const goToRoomSelect = () => {
+  router.push({ name: 'RoomSelect' })
+}
+
+// 切换房间
+const switchRoom = (newRoomId) => {
+  if (newRoomId !== roomId.value) {
+    router.push({ name: 'ChatRoom', params: { roomId: newRoomId } })
+  }
+}
+
+// 处理房间设置
+const handleRoomSettings = (room) => {
+  // 触发房间名称编辑对话框
+  showRoomNameDialog()
+}
+
+// 处理用户设置
+const handleUserProfile = () => {
+  // 跳转到个人设置页面
+  router.push({ name: 'Profile' })
+}
+
+// 处理当前房间设置
+const handleCurrentRoomSettings = () => {
+  // 触发房间名称编辑对话框
+  showRoomNameDialog()
+}
+
+// 处理离开特定房间
+const handleLeaveSpecificRoom = (room) => {
+  if (room.roomId === roomId.value) {
+    // 如果是当前房间，使用现有的确认对话框
+    confirmLeaveRoom()
+  } else {
+    // 如果是其他房间，直接离开
+    leaveSpecificRoom(room.roomId)
+  }
+}
+
+// 离开特定房间
+const leaveSpecificRoom = async (targetRoomId) => {
+  try {
+    await axios.post(`/api/chatrooms/${targetRoomId}/leave`)
+    notificationStore.success('已退出房间')
+    
+    // 刷新房间列表
+    await loadJoinedRooms()
+  } catch (error) {
+    console.error('退出房间失败:', error)
+    notificationStore.error('退出失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 确认退出房间
+const confirmLeaveRoom = () => {
+  showLeaveConfirm.value = true
+}
+
+// 取消退出
+const cancelLeave = () => {
+  showLeaveConfirm.value = false
+}
+
+// 确认退出/解散
+const confirmLeave = async () => {
+  showLeaveConfirm.value = false
+  
+  try {
+    if (isCreator.value) {
+      // 房主解散房间
+      await axios.delete(`/api/chatrooms/${roomId.value}`)
+      notificationStore.success('房间已解散')
+    } else {
+      // 普通用户退出房间
+      await axios.post(`/api/chatrooms/${roomId.value}/leave`)
+      notificationStore.success('已退出房间')
     }
     
     // 断开WebSocket连接
-    const disconnectWebSocket = () => {
-      if (socket.value) {
-        socket.value.disconnect()
-        socket.value = null
-      }
-    }
+    disconnectWebSocket()
     
-    // 离开房间
-    const leaveRoom = () => {
-      disconnectWebSocket()
-      router.push({ name: 'Home' })
-    }
+    // 跳转到首页
+    router.push({ name: 'Home' })
     
-    // 初始化聊天室
-    const initializeChatroom = async () => {
-      isLoading.value = true
+  } catch (error) {
+    console.error('退出房间失败:', error)
+    notificationStore.error('操作失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 加载已加入的房间列表
+const loadJoinedRooms = async () => {
+  try {
+    if (authStore.isUser) {
+      // 注册用户：获取创建的房间列表
+      const response = await axios.get('/api/chatrooms/my/rooms')
+      const userRooms = response.data.data || []
       
-      try {
-        // 等待认证状态初始化完成
-        if (!authStore.isInitialized) {
-          await authStore.initialize()
+      joinedRooms.value = userRooms.map(room => ({
+        roomId: room.roomId,
+        name: room.name,
+        connected: true,
+        unreadCount: 0
+      }))
+    } else {
+      // 匿名用户：只显示当前房间
+      joinedRooms.value = [
+        {
+          roomId: roomId.value,
+          name: roomName.value,
+          connected: true,
+          unreadCount: 0
         }
-        
-        // 检查用户是否已登录
-        if (!authStore.isAuthenticated) {
-          notificationStore.error('请先登录')
-          router.push({ name: 'Home' })
-          return
-        }
-        
-        // 验证聊天室是否存在
-        const isValid = await validateChatroom()
-        if (!isValid) {
-          router.push({ name: 'RoomSelect' })
-          return
-        }
-        
-        // 加载历史消息
-        await loadMessages()
-        
-        // 连接WebSocket
-        connectWebSocket()
-        
-      } catch (error) {
-        console.error('初始化聊天室失败:', error)
-        notificationStore.error('初始化聊天室失败')
-        router.push({ name: 'RoomSelect' })
-      } finally {
-        isLoading.value = false
-      }
+      ]
     }
     
-    // 禁言倒计时定时器
-    const muteTimer = ref(null)
-    
-    // 启动禁言倒计时
-    const startMuteTimer = () => {
-      if (muteTimer.value) {
-        clearInterval(muteTimer.value)
+    // 确保当前房间在列表中
+    const currentRoomExists = joinedRooms.value.some(room => room.roomId === roomId.value)
+    if (!currentRoomExists) {
+      joinedRooms.value.unshift({
+        roomId: roomId.value,
+        name: roomName.value,
+        connected: true,
+        unreadCount: 0
+      })
+    }
+  } catch (error) {
+    console.error('加载房间列表失败:', error)
+    // 备选方案：至少显示当前房间
+    joinedRooms.value = [
+      {
+        roomId: roomId.value,
+        name: roomName.value,
+        connected: true,
+        unreadCount: 0
       }
+    ]
+  }
+}
+
+// 加载房间成员列表
+const loadRoomMembers = async () => {
+  try {
+    console.log('正在加载房间成员列表，房间ID:', roomId.value)
+    const response = await axios.get(`/api/chatrooms/${roomId.value}/members`)
+    const members = response.data.data || []
+    console.log('获取到的成员列表:', members)
+    
+    // 更新成员状态，当前用户设为在线
+    roomMembers.value = members.map(member => {
+      let status = member.status || 'offline'
       
-  if (muteTimeRemaining.value > 0) {
-        muteTimer.value = setInterval(() => {
-          // 更新当前时间，触发计算属性重新计算
-          currentTime.value = Date.now()
-          
-          // 如果禁言时间结束则清除定时器
-          if (muteTimeRemaining.value <= 0) {
-            clearInterval(muteTimer.value)
-            muteTimer.value = null
-            addTemporaryNotification('禁言时间已结束，现在可以发言了！', 'info')
-          }
-        }, 1000)
+      // 当前用户设为在线
+      if (member.uid === authStore.user?.uid) {
+        status = 'online'
       }
-    }
-    
-    // 监听认证状态变化，重新启动倒计时
-    watch(
-  () => authStore.user?.muteUntil,
-      () => {
-        startMuteTimer()
-      },
-      { immediate: false }
-    )
-    
-    // 监听在线用户变化，更新成员列表状态
-    watch(
-      () => onlineUsers.value,
-      (newOnlineUsers) => {
-        if (roomMembers.value.length > 0) {
-          roomMembers.value = roomMembers.value.map(member => ({
-            ...member,
-            status: member.uid === authStore.user?.uid ? 'online' : 
-                   newOnlineUsers.some(u => u.uid === member.uid) ? 'online' : 
-                   member.status === 'left' ? 'left' : 'offline'
-          }))
-        }
-      },
-      { deep: true }
-    )
-    
-    // 生命周期 (已合并到后面的onMounted中)
-    
-    onUnmounted(() => {
-      disconnectWebSocket()
-      if (muteTimer.value) {
-        clearInterval(muteTimer.value)
+      // 检查是否在WebSocket在线用户列表中
+      else if (onlineUsers.value.some(u => u.uid === member.uid)) {
+        status = 'online'
+      }
+  
+  // 检查禁言状态
+  let isMuted = false
+  let muteUntil = null
+  if (member.muteUntil) {
+    const muteEndTime = new Date(member.muteUntil)
+    const now = new Date()
+    isMuted = now < muteEndTime
+    muteUntil = isMuted ? member.muteUntil : null
+  }
+      
+      return {
+        ...member,
+    status,
+    isMuted,
+    muteUntil
       }
     })
     
-    // 新增方法
-    // 检测移动端
-    const checkMobile = () => {
-      isMobile.value = window.innerWidth <= 768
-      if (isMobile.value) {
-        showRoomList.value = false
-        showMemberList.value = false
-      } else {
-        showRoomList.value = true
-        showMemberList.value = true
-      }
+    // 如果当前用户不在成员列表中，添加当前用户
+    const currentUserExists = roomMembers.value.some(member => member.uid === authStore.user?.uid)
+    console.log('当前用户是否在成员列表中:', currentUserExists, '当前用户:', authStore.user?.uid)
+    
+    if (!currentUserExists && authStore.user) {
+      console.log('添加当前用户到成员列表')
+  
+  // 检查当前用户的禁言状态
+  let isMuted = false
+  let muteUntil = null
+  if (authStore.user.muteUntil) {
+    const muteEndTime = new Date(authStore.user.muteUntil)
+    const now = new Date()
+    isMuted = now < muteEndTime
+    muteUntil = isMuted ? authStore.user.muteUntil : null
+  }
+  
+      roomMembers.value.unshift({
+        uid: authStore.user.uid,
+        nickname: authStore.user.nickname,
+        avatarUrl: authStore.user.avatarUrl,
+        type: authStore.user.type,
+        status: 'online',
+        isCreator: isCreator.value,
+        isAdmin: false, // 需要从后端获取
+    isMuted,
+    muteUntil,
+        joinTime: new Date().toISOString(),
+        lastActiveTime: new Date().toISOString()
+      })
     }
     
-    // 切换房间列表显示
-    const toggleRoomList = () => {
-      showRoomList.value = !showRoomList.value
-    }
+    console.log('最终成员列表:', roomMembers.value)
     
-    // 切换成员列表显示
-    const toggleMemberList = () => {
-      showMemberList.value = !showMemberList.value
+  } catch (error) {
+    console.error('加载成员列表失败:', error)
+    // 使用当前用户作为备选
+    if (authStore.user) {
+  // 检查当前用户的禁言状态
+  let isMuted = false
+  let muteUntil = null
+  if (authStore.user.muteUntil) {
+    const muteEndTime = new Date(authStore.user.muteUntil)
+    const now = new Date()
+    isMuted = now < muteEndTime
+    muteUntil = isMuted ? authStore.user.muteUntil : null
+  }
+  
+      roomMembers.value = [{
+        uid: authStore.user.uid,
+        nickname: authStore.user.nickname,
+        avatarUrl: authStore.user.avatarUrl,
+        type: authStore.user.type,
+        status: 'online',
+        isCreator: isCreator.value,
+        isAdmin: false,
+    isMuted,
+    muteUntil,
+        joinTime: new Date().toISOString(),
+        lastActiveTime: new Date().toISOString()
+      }]
     }
-    
-    // 关闭移动端侧边栏
-    const closeMobileSidebars = () => {
-      if (isMobile.value) {
-        showRoomList.value = false
-        showMemberList.value = false
-      }
-    }
-    
-    // 返回首页
-    const goHome = () => {
-      router.push({ name: 'Home' })
-    }
-    
-    // 跳转到加入聊天页面
-    const goToRoomSelect = () => {
-      router.push({ name: 'RoomSelect' })
-    }
-    
-    // 切换房间
-    const switchRoom = (newRoomId) => {
-      if (newRoomId !== roomId.value) {
-        router.push({ name: 'ChatRoom', params: { roomId: newRoomId } })
-      }
-    }
+  }
+}
 
-    // 处理房间设置
-    const handleRoomSettings = (room) => {
-      // 触发房间名称编辑对话框
-      showRoomNameDialog()
-    }
-
-    // 处理用户设置
-    const handleUserProfile = () => {
-      // 跳转到个人设置页面
-      router.push({ name: 'Profile' })
-    }
-
-    // 处理当前房间设置
-    const handleCurrentRoomSettings = () => {
-      // 触发房间名称编辑对话框
-      showRoomNameDialog()
-    }
-
-    // 处理离开特定房间
-    const handleLeaveSpecificRoom = (room) => {
-      if (room.roomId === roomId.value) {
-        // 如果是当前房间，使用现有的确认对话框
-        confirmLeaveRoom()
-      } else {
-        // 如果是其他房间，直接离开
-        leaveSpecificRoom(room.roomId)
-      }
-    }
-
-    // 离开特定房间
-    const leaveSpecificRoom = async (targetRoomId) => {
-      try {
-        await axios.post(`/api/chatrooms/${targetRoomId}/leave`)
-        notificationStore.success('已退出房间')
-        
-        // 刷新房间列表
-        await loadJoinedRooms()
-      } catch (error) {
-        console.error('退出房间失败:', error)
-        notificationStore.error('退出失败: ' + (error.response?.data?.message || error.message))
-      }
-    }
-    
-    // 确认退出房间
-    const confirmLeaveRoom = () => {
-      showLeaveConfirm.value = true
-    }
-    
-    // 取消退出
-    const cancelLeave = () => {
-      showLeaveConfirm.value = false
-    }
-    
-    // 确认退出/解散
-    const confirmLeave = async () => {
-      showLeaveConfirm.value = false
-      
-      try {
-        if (isCreator.value) {
-          // 房主解散房间
-          await axios.delete(`/api/chatrooms/${roomId.value}`)
-          notificationStore.success('房间已解散')
-        } else {
-          // 普通用户退出房间
-          await axios.post(`/api/chatrooms/${roomId.value}/leave`)
-          notificationStore.success('已退出房间')
-        }
-        
-        // 断开WebSocket连接
-        disconnectWebSocket()
-        
-        // 跳转到首页
-        router.push({ name: 'Home' })
-        
-      } catch (error) {
-        console.error('退出房间失败:', error)
-        notificationStore.error('操作失败: ' + (error.response?.data?.message || error.message))
-      }
-    }
-    
-    // 加载已加入的房间列表
-    const loadJoinedRooms = async () => {
-      try {
-        if (authStore.isUser) {
-          // 注册用户：获取创建的房间列表
-          const response = await axios.get('/api/chatrooms/my/rooms')
-          const userRooms = response.data.data || []
-          
-          joinedRooms.value = userRooms.map(room => ({
-            roomId: room.roomId,
-            name: room.name,
-            connected: true,
-            unreadCount: 0
-          }))
-        } else {
-          // 匿名用户：只显示当前房间
-          joinedRooms.value = [
-            {
-              roomId: roomId.value,
-              name: roomName.value,
-              connected: true,
-              unreadCount: 0
-            }
-          ]
-        }
-        
-        // 确保当前房间在列表中
-        const currentRoomExists = joinedRooms.value.some(room => room.roomId === roomId.value)
-        if (!currentRoomExists) {
-          joinedRooms.value.unshift({
-            roomId: roomId.value,
-            name: roomName.value,
-            connected: true,
-            unreadCount: 0
-          })
-        }
-      } catch (error) {
-        console.error('加载房间列表失败:', error)
-        // 备选方案：至少显示当前房间
-        joinedRooms.value = [
-          {
-            roomId: roomId.value,
-            name: roomName.value,
-            connected: true,
-            unreadCount: 0
-          }
-        ]
-      }
-    }
-    
-    // 加载房间成员列表
-    const loadRoomMembers = async () => {
-      try {
-        console.log('正在加载房间成员列表，房间ID:', roomId.value)
-        const response = await axios.get(`/api/chatrooms/${roomId.value}/members`)
-        const members = response.data.data || []
-        console.log('获取到的成员列表:', members)
-        
-        // 更新成员状态，当前用户设为在线
-        roomMembers.value = members.map(member => {
-          let status = member.status || 'offline'
-          
-          // 当前用户设为在线
-          if (member.uid === authStore.user?.uid) {
-            status = 'online'
-          }
-          // 检查是否在WebSocket在线用户列表中
-          else if (onlineUsers.value.some(u => u.uid === member.uid)) {
-            status = 'online'
-          }
-      
-      // 检查禁言状态
-      let isMuted = false
-      let muteUntil = null
-      if (member.muteUntil) {
-        const muteEndTime = new Date(member.muteUntil)
-        const now = new Date()
-        isMuted = now < muteEndTime
-        muteUntil = isMuted ? member.muteUntil : null
-      }
-          
-          return {
-            ...member,
-        status,
-        isMuted,
-        muteUntil
-          }
-        })
-        
-        // 如果当前用户不在成员列表中，添加当前用户
-        const currentUserExists = roomMembers.value.some(member => member.uid === authStore.user?.uid)
-        console.log('当前用户是否在成员列表中:', currentUserExists, '当前用户:', authStore.user?.uid)
-        
-        if (!currentUserExists && authStore.user) {
-          console.log('添加当前用户到成员列表')
-      
-      // 检查当前用户的禁言状态
-      let isMuted = false
-      let muteUntil = null
-      if (authStore.user.muteUntil) {
-        const muteEndTime = new Date(authStore.user.muteUntil)
-        const now = new Date()
-        isMuted = now < muteEndTime
-        muteUntil = isMuted ? authStore.user.muteUntil : null
-      }
-      
-          roomMembers.value.unshift({
-            uid: authStore.user.uid,
-            nickname: authStore.user.nickname,
-            avatarUrl: authStore.user.avatarUrl,
-            type: authStore.user.type,
-            status: 'online',
-            isCreator: isCreator.value,
-            isAdmin: false, // 需要从后端获取
-        isMuted,
-        muteUntil,
-            joinTime: new Date().toISOString(),
-            lastActiveTime: new Date().toISOString()
-          })
-        }
-        
-        console.log('最终成员列表:', roomMembers.value)
-        
-      } catch (error) {
-        console.error('加载成员列表失败:', error)
-        // 使用当前用户作为备选
-        if (authStore.user) {
-      // 检查当前用户的禁言状态
-      let isMuted = false
-      let muteUntil = null
-      if (authStore.user.muteUntil) {
-        const muteEndTime = new Date(authStore.user.muteUntil)
-        const now = new Date()
-        isMuted = now < muteEndTime
-        muteUntil = isMuted ? authStore.user.muteUntil : null
-      }
-      
-          roomMembers.value = [{
-            uid: authStore.user.uid,
-            nickname: authStore.user.nickname,
-            avatarUrl: authStore.user.avatarUrl,
-            type: authStore.user.type,
-            status: 'online',
-            isCreator: isCreator.value,
-            isAdmin: false,
-        isMuted,
-        muteUntil,
-            joinTime: new Date().toISOString(),
-            lastActiveTime: new Date().toISOString()
-          }]
-        }
-      }
-    }
-    
-    // 监听窗口大小变化
-    const handleResize = () => {
-      checkMobile()
-    }
+// 监听窗口大小变化
+const handleResize = () => {
+  checkMobile()
+}
     
 // 用户管理函数需要适配新的事件格式
 const handleShowUserContextMenu = (event, user, sourceType = 'member') => {

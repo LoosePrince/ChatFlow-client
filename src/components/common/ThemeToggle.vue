@@ -5,8 +5,8 @@
     <button 
       class="theme-btn"
       @click="handleToggle"
-      @mouseenter="handleMouseEnter"
-      @mouseleave="startHideTimer"
+      @mouseenter="isMobile ? null : handleMouseEnter"
+      @mouseleave="isMobile ? null : startHideTimer"
       :title="currentConfig.description"
     >
       <i :class="currentConfig.icon"></i>
@@ -20,8 +20,8 @@
         ref="optionsRef"
         class="theme-options"
         :style="optionsStyle"
-        @mouseenter="clearHideTimer"
-        @mouseleave="startHideTimer"
+        @mouseenter="isMobile ? null : clearHideTimer"
+        @mouseleave="isMobile ? null : startHideTimer"
       >
         <div class="options-header">
           <i class="fas fa-palette"></i>
@@ -88,6 +88,25 @@ let hideTimer = null
 let hoverShowTime = null // 记录悬停显示的时间
 const HOVER_PROTECTION_TIME = 1000 // 悬停保护时间1秒
 
+// 响应式屏幕宽度
+const screenWidth = ref(window.innerWidth)
+
+// 检测是否为移动设备
+const isMobile = computed(() => {
+  // 检测屏幕宽度
+  if (screenWidth.value <= 768) return true
+  
+  // 检测触摸设备
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+  
+  // 检测用户代理
+  const userAgent = navigator.userAgent.toLowerCase()
+  const mobileKeywords = ['mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone']
+  const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword))
+  
+  return isTouchDevice && (screenWidth.value <= 1024 || isMobileUA)
+})
+
 // 主题选项
 const themeOptions = ['light', 'dark', 'auto']
 
@@ -147,13 +166,18 @@ const calculatePosition = async () => {
 // 方法
 const handleToggle = async () => {
   if (showOptions.value) {
-    // 检查是否在悬停保护时间内
-    const now = Date.now()
-    if (hoverShowTime && (now - hoverShowTime) < HOVER_PROTECTION_TIME) {
-      // 在保护时间内，不关闭面板
-      return
+    // 手机端直接关闭，桌面端检查悬停保护时间
+    if (isMobile.value) {
+      hideOptions()
+    } else {
+      // 检查是否在悬停保护时间内
+      const now = Date.now()
+      if (hoverShowTime && (now - hoverShowTime) < HOVER_PROTECTION_TIME) {
+        // 在保护时间内，不关闭面板
+        return
+      }
+      hideOptions()
     }
-    hideOptions()
   } else {
     showOptions.value = true
     hoverShowTime = null // 点击显示时清除悬停时间
@@ -162,6 +186,9 @@ const handleToggle = async () => {
 }
 
 const handleMouseEnter = async () => {
+  // 移动设备不响应悬停事件
+  if (isMobile.value) return
+  
   if (!showOptions.value) {
     // 只有在面板未显示时才记录悬停时间
     hoverShowTime = Date.now()
@@ -176,6 +203,9 @@ const selectTheme = (theme) => {
 }
 
 const startHideTimer = () => {
+  // 移动设备不使用悬停隐藏
+  if (isMobile.value) return
+  
   clearHideTimer()
   hideTimer = setTimeout(() => {
     showOptions.value = false
@@ -183,6 +213,9 @@ const startHideTimer = () => {
 }
 
 const clearHideTimer = () => {
+  // 移动设备不使用悬停定时器
+  if (isMobile.value) return
+  
   if (hideTimer) {
     clearTimeout(hideTimer)
     hideTimer = null
@@ -204,8 +237,16 @@ const handleClickOutside = (event) => {
 
 // 监听窗口大小变化
 const handleResize = () => {
+  // 更新屏幕宽度
+  screenWidth.value = window.innerWidth
+  
   if (showOptions.value) {
     calculatePosition()
+  }
+  
+  // 如果切换到移动设备模式，关闭悬停相关的定时器和面板
+  if (isMobile.value && showOptions.value && hoverShowTime) {
+    hideOptions()
   }
 }
 
@@ -332,5 +373,25 @@ onUnmounted(() => {
 .theme-options-enter-to,
 .theme-options-leave-from {
   @apply opacity-100 scale-100;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .theme-options {
+    @apply w-64; /* 移动端稍微缩小宽度 */
+  }
+  
+  .option-item {
+    @apply py-4; /* 增大点击区域 */
+  }
+  
+  /* 禁用移动端悬停效果 */
+  .theme-btn:hover {
+    @apply transform-none scale-100 shadow-none;
+  }
+  
+  .option-item:hover {
+    @apply bg-transparent dark:bg-transparent;
+  }
 }
 </style> 

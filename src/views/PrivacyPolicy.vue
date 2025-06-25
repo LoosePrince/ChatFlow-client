@@ -6,13 +6,13 @@
           <i class="fas fa-arrow-left"></i> 返回
         </button>
         <h1 class="text-center mb-4">ChatFlow 隐私政策</h1>
-        <p class="text-muted text-center">最后更新：2025年6月21日</p>
+        <p class="text-muted text-center">最后更新：2025年6月25日</p>
       </div>
 
       <div class="privacy-content">
         <div class="section">
           <h2>1. 引言</h2>
-          <p>ChatFlow 开发团队（以下简称"我们"）重视您的隐私保护。本隐私政策说明我们如何收集、使用、存储和保护您在使用 ChatFlow 服务时的个人信息。</p>
+          <p>ChatFlow 开发者（以下简称"我们"）重视您的隐私保护。本隐私政策说明我们如何收集、使用、存储和保护您在使用 ChatFlow 服务时的个人信息。</p>
           <p>使用我们的服务即表示您同意本隐私政策的条款。如果您不同意本政策，请不要使用我们的服务。</p>
         </div>
 
@@ -67,7 +67,7 @@
             <li><strong>注册用户数据：</strong>在您主动删除账户前一直保存</li>
             <li><strong>匿名用户数据：</strong>24小时后自动删除</li>
             <li><strong>聊天消息：</strong>默认保存30天，过期自动清理</li>
-            <li><strong>已删除消息：</strong>立即从用户界面移除，30天后从数据库彻底删除</li>
+            <li><strong>已删除消息：</strong>立即从用户界面移除，并从数据库彻底删除</li>
           </ul>
 
           <h3>4.2 存储安全</h3>
@@ -89,6 +89,7 @@
             <li>遵守法律法规或政府要求</li>
             <li>保护我们的权利、财产或安全</li>
             <li>防止或调查可能的违法行为</li>
+            <li>其它特殊原因</li>
           </ul>
         </div>
 
@@ -165,8 +166,8 @@
           <h2>13. 联系我们</h2>
           <p>如果您对本隐私政策有任何疑问或建议，请通过以下方式联系我们：</p>
           <ul>
-            <li>邮箱：privacy@chatflow.com</li>
-            <li>项目地址：https://github.com/your-username/chatflow</li>
+            <li>邮箱：1377820366@qq.com</li>
+            <li>项目地址：https://github.com/LoosePrince/</li>
             <li>问题反馈：在项目 GitHub 页面提交 Issue</li>
           </ul>
           <p>我们会在收到您的询问后30天内回复。</p>
@@ -249,14 +250,14 @@ const goBack = () => {
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  border-bottom: 2px solid #e74c3c;
+  border-bottom: 2px solid #3498db;
   padding-bottom: 0.5rem;
 }
 
 /* 暗色模式下的章节标题 */
 .dark .section h2 {
   color: #f1f5f9;
-  border-bottom: 2px solid #ef4444;
+  border-bottom: 2px solid #3b82f6;
 }
 
 .section h3 {
