@@ -110,10 +110,6 @@
                     <i class="fas fa-comments"></i>
                     <span>可以查看聊天室</span>
                   </div>
-                  <div class="feature-item">
-                    <i class="fas fa-eye"></i>
-                    <span>浏览历史消息</span>
-                  </div>
                 </div>
 
                 <div class="anonymous-notice">
@@ -125,6 +121,7 @@
                     <li>需要等待10分钟才能发送消息</li>
                     <li>无法创建或管理聊天室</li>
                     <li>无法上传文件或图片</li>
+                    <li>无法浏览历史消息</li>
                   </ul>
                 </div>
 
@@ -162,34 +159,6 @@
       <!-- 主题切换按钮 -->
       <div class="theme-toggle-wrapper">
         <ThemeToggle :show-text="false" />
-      </div>
-
-      <!-- 模式切换按钮 -->
-      <div class="mode-selector">
-        <button 
-          class="mode-btn"
-          :class="{ active: currentMode === 'login' }"
-          @click="setMode('login')"
-        >
-          <i class="fas fa-sign-in-alt"></i>
-          登录
-        </button>
-        <button 
-          class="mode-btn"
-          :class="{ active: currentMode === 'register' }"
-          @click="setMode('register')"
-        >
-          <i class="fas fa-user-plus"></i>
-          注册
-        </button>
-        <button 
-          class="mode-btn"
-          :class="{ active: currentMode === 'anonymous' }"
-          @click="setMode('anonymous')"
-        >
-          <i class="fas fa-user-secret"></i>
-          匿名
-        </button>
       </div>
 
       <!-- 内容区域 -->
@@ -232,6 +201,19 @@
                 <i class="fas fa-comments"></i>
                 <span>可以查看聊天室</span>
               </div>
+            </div>
+
+            <div class="anonymous-notice">
+              <div class="notice-header">
+                <i class="fas fa-info-circle"></i>
+                <span>功能限制说明</span>
+              </div>
+              <ul class="limitation-list">
+                <li>需要等待10分钟才能发送消息</li>
+                <li>无法创建或管理聊天室</li>
+                <li>无法上传文件或图片</li>
+                <li>无法浏览历史消息</li>
+              </ul>
             </div>
 
             <button 
@@ -730,89 +712,93 @@ onMounted(() => {
 .mobile-layout {
   display: none;
   min-height: 100vh;
-  background: #f8f9fa;
-  padding: 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 2rem 1.5rem;
   flex-direction: column;
+  position: relative;
 }
 
 .dark .mobile-layout {
-  background: #1f2937;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
 .mobile-welcome {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 3rem;
   color: #2c3e50;
 }
 
 .dark .mobile-welcome {
-  color: #f3f4f6;
+  color: white;
 }
 
 .mobile-welcome .logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 15px;
+  margin-bottom: 16px;
 }
 
 .mobile-welcome .logo-icon {
-  font-size: 32px;
+  font-size: 42px;
   color: #667eea;
+  text-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.dark .mobile-welcome .logo-icon {
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .mobile-welcome .logo-text {
-  font-size: 28px;
+  font-size: 36px;
   font-weight: 700;
   margin: 0;
   color: #2c3e50;
+  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.1);
 }
 
 .dark .mobile-welcome .logo-text {
-  color: #f3f4f6;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .mobile-welcome .welcome-text {
-  font-size: 14px;
-  color: #7f8c8d;
+  font-size: 16px;
+  color: #64748b;
   margin: 0;
+  font-weight: 500;
 }
 
 .dark .mobile-welcome .welcome-text {
-  color: #d1d5db;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mobile-layout .theme-toggle-wrapper {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 10;
 }
 
 .mobile-content {
   flex: 1;
-  margin-bottom: 1rem;
-}
-
-.anonymous-card.mobile {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
-}
-
-.dark .anonymous-card.mobile {
-  background: #374151;
-  border-color: #4b5563;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 2rem;
 }
 
 .mobile-footer {
   text-align: center;
   padding: 1rem 0;
-  border-top: 1px solid #e5e7eb;
-  color: #7f8c8d;
+  color: #64748b;
   font-size: 12px;
 }
 
 .dark .mobile-footer {
-  border-top-color: #4b5563;
-  color: #d1d5db;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .mobile-footer .footer-links {
@@ -823,17 +809,31 @@ onMounted(() => {
 }
 
 .mobile-footer .footer-link {
-  color: #7f8c8d;
+  color: #64748b;
   text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 .dark .mobile-footer .footer-link {
-  color: #d1d5db;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .mobile-footer .footer-link:hover {
   color: #667eea;
   text-decoration: underline;
+}
+
+.dark .mobile-footer .footer-link:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+.mobile-footer .footer-separator {
+  color: #94a3b8;
+}
+
+.dark .mobile-footer .footer-separator {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* 响应式设计 */
@@ -875,67 +875,84 @@ onMounted(() => {
   .mobile-layout {
     display: flex;
   }
-  
-  .mobile-layout .theme-toggle-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 1.5rem;
-  }
-  
-  .mobile-layout .mode-selector {
-    background: white;
-    border-radius: 8px;
-    padding: 4px;
-    gap: 4px;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
-    display: flex;
-    flex-direction: row;
-  }
-  
-  .dark .mobile-layout .mode-selector {
-    background: #374151;
-    border-color: #4b5563;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-  
-  .mobile-layout .mode-btn {
-    flex: 1;
-    color: #6b7280;
-    font-size: 12px;
-    padding: 10px 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-  }
-  
-  .dark .mobile-layout .mode-btn {
-    color: #d1d5db;
-  }
-  
-  .mobile-layout .mode-btn.active {
-    background: #667eea;
-    color: white;
-  }
 }
 
 @media (max-width: 480px) {
   .mobile-layout {
-    padding: 0.75rem;
-  }
-  
-  .anonymous-card.mobile {
-    padding: 16px;
+    padding: 1.5rem 1rem;
   }
   
   .mobile-welcome .logo-text {
-    font-size: 24px;
+    font-size: 32px;
   }
   
   .mobile-welcome .logo-icon {
-    font-size: 28px;
+    font-size: 38px;
   }
+  
+  .mobile-welcome {
+    margin-bottom: 2.5rem;
+  }
+}
+
+.mobile-footer .footer-separator {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.anonymous-card.mobile {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.anonymous-card.mobile .anonymous-title {
+  color: #2c3e50;
+}
+
+.dark .anonymous-card.mobile .anonymous-title {
+  color: white;
+}
+
+.anonymous-card.mobile .anonymous-subtitle {
+  color: #64748b;
+}
+
+.dark .anonymous-card.mobile .anonymous-subtitle {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.anonymous-card.mobile .anonymous-features {
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+}
+
+.dark .anonymous-card.mobile .anonymous-features {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.anonymous-card.mobile .feature-item {
+  color: #374151;
+}
+
+.dark .anonymous-card.mobile .feature-item {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.anonymous-card.mobile .footer-links .footer-link {
+  color: #64748b;
+}
+
+.dark .anonymous-card.mobile .footer-links .footer-link {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.anonymous-card.mobile .footer-links .separator {
+  color: #94a3b8;
+}
+
+.dark .anonymous-card.mobile .footer-links .separator {
+  color: rgba(255, 255, 255, 0.6);
 }
 </style> 

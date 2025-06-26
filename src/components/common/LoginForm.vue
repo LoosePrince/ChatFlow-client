@@ -93,6 +93,22 @@
             立即登录
           </span>
         </button>
+
+        <!-- 切换到注册 -->
+        <div class="switch-mode">
+          <span class="switch-text">还没有账户？</span>
+          <button type="button" @click="$emit('switchMode', 'register')" class="switch-link">
+            立即注册
+          </button>
+        </div>
+
+        <!-- 匿名体验 -->
+        <div class="anonymous-option">
+          <button type="button" @click="$emit('switchMode', 'anonymous')" class="anonymous-link">
+            <i class="fas fa-user-secret"></i>
+            匿名体验
+          </button>
+        </div>
       </form>
     </div>
   </div>
@@ -492,20 +508,86 @@ const handleLogin = async () => {
   font-size: 10px;
 }
 
+.switch-mode {
+  text-align: center;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.switch-text {
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+.dark .switch-text {
+  color: #d1d5db;
+}
+
+.switch-link {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.switch-link:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.anonymous-option {
+  text-align: center;
+  margin-top: 12px;
+}
+
+.anonymous-link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  margin: 0 auto;
+}
+
+.anonymous-link:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .switch-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .login-card {
-    padding: 20px 16px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
   }
   
   .dark .login-card {
-    background: #374151;
-    border-color: #4b5563;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    background: transparent;
+    border: none;
+    box-shadow: none;
   }
   
   .login-icon {
@@ -516,6 +598,120 @@ const handleLogin = async () => {
   
   .login-title {
     font-size: 18px;
+    color: #2c3e50;
+  }
+  
+  .dark .login-title {
+    color: white;
+  }
+  
+  .login-subtitle {
+    color: #64748b;
+  }
+  
+  .dark .login-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .form-label {
+    color: #374151;
+  }
+  
+  .dark .form-label {
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .form-input {
+    background: white;
+    border: 1px solid #d1d5db;
+    color: #2c3e50;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dark .form-input {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    color: #2c3e50;
+  }
+  
+  .form-input:focus {
+    background: white;
+    border: 1px solid #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  }
+  
+  .dark .form-input:focus {
+    background: white;
+    border: none;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+  }
+  
+  .checkbox-label {
+    color: #374151;
+  }
+  
+  .dark .checkbox-label {
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .checkbox-custom {
+    background: white;
+    border: 1px solid #d1d5db;
+  }
+  
+  .dark .checkbox-custom {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+  }
+  
+  .switch-text {
+    color: #64748b;
+  }
+  
+  .dark .switch-text {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .switch-link {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+  
+  .dark .switch-link {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+  
+  .switch-link:hover {
+    background: rgba(102, 126, 234, 0.2);
+    color: #667eea;
+  }
+  
+  .dark .switch-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+  
+  .anonymous-link {
+    color: #64748b;
+  }
+  
+  .dark .anonymous-link {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .anonymous-link:hover {
+    color: #374151;
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  .dark .anonymous-link:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
   }
 }
 </style> 

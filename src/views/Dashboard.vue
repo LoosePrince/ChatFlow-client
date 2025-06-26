@@ -652,7 +652,7 @@ onUnmounted(() => {
   right: -8px;
   width: 20px;
   height: 20px;
-  background: rgba(102, 126, 234);
+  background: #667eea;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -668,8 +668,8 @@ onUnmounted(() => {
 }
 
 .dark .mobile-menu-indicator {
-  background: rgba(255, 255, 255);
-  color: #1a1a2e;
+  background: #60a5fa;
+  color: #1f2937;
   border: 2px solid #374151;
 }
 
@@ -1366,46 +1366,57 @@ onUnmounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  /* 移动端移除背景图片，使用主题色 */
+  /* 移动端背景简化 */
   .dashboard-container {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #f8fafc;
     background-attachment: scroll;
   }
 
   .dark .dashboard-container {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: #1f2937;
     background-attachment: scroll;
   }
 
-  /* 移动端导航栏 */
+  /* 移动端导航栏优化 */
   .top-navbar {
-    background: rgba(255, 255, 255, 0.95);
+    background: white;
     backdrop-filter: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .dark .top-navbar {
-    background: rgba(31, 41, 55, 0.95);
-    border-bottom: 1px solid rgba(75, 85, 99, 0.2);
-  }
-
-  .menu-dropdown {
-    position: fixed;
-    top: 65px;
-    right: 65px;
+    background: #374151;
+    border-bottom: 1px solid #4b5563;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   .navbar-content {
-    padding: 0 15px;
+    padding: 0 16px;
+    height: 60px;
+  }
+  
+  .navbar-logo {
+    font-size: 20px;
+    color: #667eea;
+  }
+  
+  .navbar-logo i {
+    font-size: 22px;
   }
   
   .user-info {
     flex-direction: row-reverse;
-    gap: 10px;
+    gap: 12px;
   }
   
   .user-details {
     display: none;
+  }
+  
+  .user-avatar {
+    width: 36px;
+    height: 36px;
   }
   
   .theme-toggle-wrapper {
@@ -1419,124 +1430,379 @@ onUnmounted(() => {
   .user-menu {
     order: 3;
   }
-  
-  .welcome-message h1 {
-    font-size: 28px;
-    color: white;
+
+  .menu-dropdown {
+    position: fixed;
+    top: 55px;
+    right: 16px;
+    min-width: 180px;
   }
 
-  /* 移动端通知区域 */
+  /* 主要内容区域优化 */
+  .dashboard-content {
+    padding: 80px 16px 16px;
+  }
+
+  .welcome-section {
+    margin-bottom: 2rem;
+    max-width: none;
+  }
+  
+  .welcome-message h1 {
+    font-size: 24px;
+    color: #1f2937;
+    text-shadow: none;
+    margin-bottom: 12px;
+  }
+
+  .dark .welcome-message h1 {
+    color: #f9fafb;
+  }
+
+  /* 通知区域优化 */
   .anonymous-notice,
   .user-notice {
-    background: rgba(255, 255, 255, 0.9);
+    background: white;
     backdrop-filter: none;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #2c3e50;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .dark .anonymous-notice,
   .dark .user-notice {
-    background: rgba(31, 41, 55, 0.9);
-    border: 1px solid rgba(75, 85, 99, 0.3);
-    color: #f3f4f6;
+    background: #374151;
+    border: 1px solid #4b5563;
+    color: #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
-  /* 移动端聊天室区域 */
-  .my-chatrooms-section {
-    margin-top: 2rem;
-    padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: none;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+  /* 快速操作按钮优化 */
+  .quick-actions {
+    gap: 12px;
+    margin-bottom: 24px;
   }
 
-  .dark .my-chatrooms-section {
-    background: rgba(31, 41, 55, 0.9);
-    border: 1px solid rgba(75, 85, 99, 0.3);
+  .action-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    border-radius: 8px;
   }
 
+  .action-btn.primary {
+    background: #667eea;
+    color: white;
+  }
+
+  .action-btn.primary:hover {
+    background: #5a67d8;
+    transform: none;
+  }
+
+  .action-btn.secondary {
+    background: white;
+    color: #667eea;
+    border: 1px solid #667eea;
+  }
+
+  .dark .action-btn.secondary {
+    background: #374151;
+    color: #60a5fa;
+    border: 1px solid #60a5fa;
+  }
+
+  .action-btn.secondary:hover {
+    background: #f7fafc;
+    transform: none;
+  }
+
+  .dark .action-btn.secondary:hover {
+    background: #4b5563;
+  }
+
+  /* 聊天室区域优化 */
+  .my-chatrooms-section,
   .joined-chatrooms-section {
-    background: rgba(255, 255, 255, 0.9);
+    margin-top: 0;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: white;
     backdrop-filter: none;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
+  .dark .my-chatrooms-section,
   .dark .joined-chatrooms-section {
-    background: rgba(31, 41, 55, 0.9);
-    border: 1px solid rgba(75, 85, 99, 0.3);
-  }
-
-  .chatrooms-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  /* 移动端聊天室卡片 */
-  .chatroom-card {
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: none;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-  }
-
-  .dark .chatroom-card {
-    background: rgba(31, 41, 55, 0.95);
-    border: 1px solid rgba(75, 85, 99, 0.4);
-  }
-
-  .chatroom-card:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: translateY(-2px);
-  }
-
-  .dark .chatroom-card:hover {
-    background: rgba(31, 41, 55, 1);
-  }
-
-  /* 移动端消息区域 */
-  .last-message {
-    background: rgba(102, 126, 234, 0.15);
-    backdrop-filter: none;
-    border: 1px solid rgba(102, 126, 234, 0.3);
-  }
-
-  .dark .last-message {
-    background: rgba(31, 41, 55, 0.8);
-    border: 1px solid rgba(75, 85, 99, 0.3);
-  }
-
-  /* 移动端页脚 */
-  .dashboard-footer {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.3);
-    color: #2c3e50;
-  }
-
-  .dark .dashboard-footer {
-    background: rgba(31, 41, 55, 0.9);
-    border-top: 1px solid rgba(75, 85, 99, 0.3);
-    color: #f3f4f6;
+    background: #374151;
+    border: 1px solid #4b5563;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   .section-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    justify-content: space-between;
   }
 
   .section-header h2 {
-    font-size: 1.3rem;
-    color: #2c3e50 !important;
+    font-size: 18px;
+    color: #1f2937;
+    margin: 0;
   }
 
   .dark .section-header h2 {
-    color: #f3f4f6 !important;
+    color: #f9fafb;
   }
 
-  /* 移动端页脚链接 */
+  .refresh-btn {
+    background: #667eea;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .dark .refresh-btn {
+    background: #60a5fa;
+  }
+
+  /* 聊天室网格优化 */
+  .chatrooms-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* 聊天室卡片优化 */
+  .chatroom-card {
+    padding: 16px;
+    background: #f8fafc;
+    backdrop-filter: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: none;
+  }
+
+  .dark .chatroom-card {
+    background: #4b5563;
+    border: 1px solid #6b7280;
+  }
+
+  .chatroom-card:hover {
+    background: #f1f5f9;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .chatroom-card:hover {
+    background: #556072;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .chatroom-header {
+    margin-bottom: 12px;
+  }
+
+  .chatroom-name {
+    font-size: 16px;
+    color: #1f2937;
+    margin-bottom: 6px;
+  }
+
+  .dark .chatroom-name {
+    color: #f9fafb;
+  }
+
+  .chatroom-meta {
+    gap: 8px;
+    flex-direction: row;
+  }
+
+  .room-id, .user-count {
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  .dark .room-id, .dark .user-count {
+    color: #d1d5db;
+  }
+
+  .owner-badge, .member-badge {
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 12px;
+  }
+
+  /* 消息区域优化 */
+  .chatroom-content {
+    margin-bottom: 12px;
+    min-height: auto;
+  }
+
+  .last-message {
+    background: #e0e7ff;
+    backdrop-filter: none;
+    border: 1px solid #c7d2fe;
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .dark .last-message {
+    background: #3730a3;
+    border: 1px solid #4338ca;
+  }
+
+  .message-text {
+    font-size: 13px;
+    color: #374151;
+  }
+
+  .dark .message-text {
+    color: #e5e7eb;
+  }
+
+  .message-time {
+    font-size: 11px;
+    color: #6b7280;
+  }
+
+  .dark .message-time {
+    color: #d1d5db;
+  }
+
+  .no-message {
+    height: 40px;
+    font-size: 13px;
+    color: #9ca3af;
+  }
+
+  .dark .no-message {
+    color: #6b7280;
+  }
+
+  /* 底部区域优化 */
+  .chatroom-footer {
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .dark .chatroom-footer {
+    border-top: 1px solid #4b5563;
+  }
+
+  .created-time, .joined-time {
+    font-size: 11px;
+    color: #6b7280;
+  }
+
+  .dark .created-time, .dark .joined-time {
+    color: #d1d5db;
+  }
+
+  .join-indicator {
+    font-size: 11px;
+    color: #667eea;
+    opacity: 1;
+  }
+
+  .dark .join-indicator {
+    color: #60a5fa;
+  }
+
+  .chatroom-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .action-btn.small {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  /* 空状态优化 */
+  .loading-state, .empty-state {
+    padding: 32px 16px;
+    color: #6b7280;
+  }
+
+  .dark .loading-state, .dark .empty-state {
+    color: #9ca3af;
+  }
+
+  .loading-spinner {
+    font-size: 24px;
+    margin-bottom: 12px;
+    color: #667eea;
+  }
+
+  .dark .loading-spinner {
+    color: #60a5fa;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    color: #667eea;
+  }
+
+  .dark .empty-icon {
+    color: #60a5fa;
+  }
+
+  .empty-state h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: #374151;
+  }
+
+  .dark .empty-state h3 {
+    color: #e5e7eb;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    margin-bottom: 16px;
+    color: #6b7280;
+  }
+
+  .dark .empty-state p {
+    color: #9ca3af;
+  }
+
+  /* 页脚优化 */
+  .dashboard-footer {
+    background: white;
+    backdrop-filter: none;
+    border-top: 1px solid #e5e7eb;
+    color: #6b7280;
+    padding: 16px;
+    font-size: 12px;
+  }
+
+  .dark .dashboard-footer {
+    background: #374151;
+    border-top: 1px solid #4b5563;
+    color: #9ca3af;
+  }
+
+  .footer-links {
+    margin-top: 8px;
+    gap: 8px;
+  }
+
   .footer-link {
     color: #667eea;
+    font-size: 12px;
   }
 
   .dark .footer-link {
@@ -1544,11 +1810,22 @@ onUnmounted(() => {
   }
 
   .footer-separator {
-    color: #7f8c8d;
+    color: #d1d5db;
   }
 
   .dark .footer-separator {
-    color: #94a3b8;
+    color: #6b7280;
   }
+
+  /* 移除装饰元素 */
+  .background-decoration {
+    display: none;
+  }
+}
+
+.theme-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style> 
