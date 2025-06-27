@@ -230,16 +230,15 @@ const goBack = () => {
 <style scoped>
 .room-select-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  background: #f8fafc;
+  padding: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* 暗色模式支持 */
 .dark .room-select-container {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #1e293b;
 }
 
 .room-select-content {
@@ -250,141 +249,153 @@ const goBack = () => {
 .header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 40px;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .back-button {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 25px;
+  background: white;
+  color: #1976d2;
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
-/* 暗色模式下的返回按钮 */
 .dark .back-button {
-  background: rgba(255, 255, 255, 0.15);
-  color: #f1f5f9;
+  background: #0f172a;
+  color: #60a5fa;
+  border-color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .dark .back-button:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: #1e293b;
+  border-color: #475569;
 }
 
 .title {
-  color: white;
-  font-size: 32px;
+  color: #1f2937;
+  font-size: 2rem;
   font-weight: 700;
   margin: 0;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* 暗色模式下的标题 */
 .dark .title {
   color: #f1f5f9;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 .options-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 30px;
-  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .option-card {
   background: white;
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
-/* 暗色模式下的选项卡片 */
+.option-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #cbd5e1;
+}
+
 .dark .option-card {
-  background: #1e293b;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  background: #0f172a;
+  border: 1px solid #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .option-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border-color: #475569;
 }
 
 .card-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 1.5rem;
 }
 
 .card-header i {
-  font-size: 48px;
-  color: #667eea;
-  margin-bottom: 15px;
+  font-size: 2.5rem;
+  color: #1976d2;
+  margin-bottom: 0.75rem;
   display: block;
 }
 
-/* 暗色模式下的卡片图标 */
 .dark .card-header i {
   color: #60a5fa;
 }
 
 .card-header h2 {
-  color: #2c3e50;
+  color: #1f2937;
   margin: 0;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 600;
 }
 
-/* 暗色模式下的卡片标题 */
 .dark .card-header h2 {
   color: #f1f5f9;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   display: block;
-  color: #2c3e50;
-  font-weight: 600;
-  margin-bottom: 8px;
+  color: #374151;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
 }
 
-/* 暗色模式下的标签 */
 .dark .form-group label {
   color: #f1f5f9;
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e1e8ed;
-  border-radius: 10px;
-  font-size: 16px;
-  transition: all 0.3s ease;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  color: #1f2937;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
-/* 暗色模式下的输入框 */
 .dark .form-group input {
-  background: #334155;
-  border: 2px solid #475569;
+  background: #1e293b;
+  border: 1px solid #475569;
   color: #f1f5f9;
 }
 
 .dark .form-group input::placeholder {
-  color: #94a3b8;
+  color: #6b7280;
 }
 
 .dark .form-group input:focus {
@@ -394,70 +405,131 @@ const goBack = () => {
 
 .action-button {
   width: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #1976d2;
   color: white;
   border: none;
-  padding: 16px;
-  border-radius: 10px;
-  font-size: 16px;
-  font-weight: 600;
+  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: all 0.3s ease;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
 }
 
-.action-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+.action-button:hover:not(:disabled) {
+  background: #1565c0;
 }
 
-/* 暗色模式下的操作按钮 */
-.dark .action-button {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-}
-
-.dark .action-button:hover {
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-}
-
-.dark .action-button:disabled {
-  background: linear-gradient(135deg, #475569, #334155);
+.action-button:disabled {
+  background: #9ca3af;
   cursor: not-allowed;
 }
 
+.dark .action-button {
+  background: #3b82f6;
+}
+
+.dark .action-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.dark .action-button:disabled {
+  background: #4b5563;
+}
+
 .anonymous-notice {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  padding: 20px;
-  color: white;
+  background: white;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #92400e;
   text-align: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .anonymous-notice i {
-  font-size: 24px;
-  margin-bottom: 10px;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
   display: block;
+  color: #f59e0b;
 }
 
-/* 暗色模式下的匿名提示 */
 .dark .anonymous-notice {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cbd5e1;
+  background: #0f172a;
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+.dark .anonymous-notice i {
+  color: #fbbf24;
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
+  .room-select-container {
+    padding: 1rem;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+  
   .options-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
   
   .title {
-    font-size: 24px;
+    font-size: 1.5rem;
+  }
+  
+  .header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .option-card {
+    padding: 1rem;
+  }
+  
+  .card-header {
+    margin-bottom: 1rem;
+  }
+  
+  .card-header i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .card-header h2 {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .back-button {
+    align-self: flex-start;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .title {
+    font-size: 1.25rem;
+    align-self: center;
+  }
+  
+  .room-select-container {
+    padding: 0.75rem;
+    padding-top: 1.5rem;
   }
 }
 </style> 

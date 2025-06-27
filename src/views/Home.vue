@@ -891,7 +891,7 @@ onMounted(() => {
   }
   
   .mobile-welcome {
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
   }
 }
 

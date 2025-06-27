@@ -509,12 +509,7 @@ const handleLogin = async () => {
 }
 
 .switch-mode {
-  text-align: center;
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: none;
 }
 
 .switch-text {
@@ -545,8 +540,7 @@ const handleLogin = async () => {
 }
 
 .anonymous-option {
-  text-align: center;
-  margin-top: 12px;
+  display: none;
 }
 
 .anonymous-link {
@@ -664,6 +658,14 @@ const handleLogin = async () => {
     border: none;
   }
   
+  .switch-mode {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  
   .switch-text {
     color: #64748b;
   }
@@ -694,6 +696,11 @@ const handleLogin = async () => {
   .dark .switch-link:hover {
     background: rgba(255, 255, 255, 0.2);
     color: white;
+  }
+
+  .anonymous-option {
+    display: block;
+    text-align: center;
   }
   
   .anonymous-link {
