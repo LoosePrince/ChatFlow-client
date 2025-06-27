@@ -466,6 +466,22 @@
               </div>
             </div>
 
+            <!-- 统计信息 -->
+            <div v-if="authStore.isUser" class="mobile-stats">
+              <div class="stat-item">
+                <div class="stat-value">{{ createdChatrooms.length }}</div>
+                <div class="stat-label">创建房间</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ joinedChatrooms.length }}</div>
+                <div class="stat-label">加入房间</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ createdChatrooms.length + joinedChatrooms.length }}</div>
+                <div class="stat-label">总房间数</div>
+              </div>
+            </div>
+
             <!-- 快速操作 -->
             <div class="mobile-quick-actions">
               <button v-if="authStore.isUser" class="mobile-action-btn" @click="goToProfile">
@@ -487,19 +503,43 @@
               </button>
             </div>
 
-            <!-- 统计信息 -->
-            <div v-if="authStore.isUser" class="mobile-stats">
-              <div class="stat-item">
-                <div class="stat-value">{{ createdChatrooms.length }}</div>
-                <div class="stat-label">创建房间</div>
+            <hr class="mobile-divider">
+
+            <!-- 协议链接 -->
+            <div class="mobile-legal-links">
+              <router-link to="/user-agreement" class="mobile-legal-link">
+                <i class="fas fa-file-contract"></i>
+                <span>用户协议</span>
+                <i class="fas fa-chevron-right"></i>
+              </router-link>
+              
+              <router-link to="/privacy-policy" class="mobile-legal-link">
+                <i class="fas fa-shield-alt"></i>
+                <span>隐私政策</span>
+                <i class="fas fa-chevron-right"></i>
+              </router-link>
+            </div>
+
+            <!-- 版权和技术信息 -->
+            <div class="mobile-footer-info">
+              <div class="copyright-info">
+                <i class="fas fa-copyright"></i>
+                <span>2025 ChatFlow</span>
               </div>
-              <div class="stat-item">
-                <div class="stat-value">{{ joinedChatrooms.length }}</div>
-                <div class="stat-label">加入房间</div>
+              <div class="tech-info">
+                <div class="tech-item">
+                  <i class="fab fa-vuejs"></i>
+                  <span>Vue3</span>
+                </div>
+                <div class="tech-separator">+</div>
+                <div class="tech-item">
+                  <i class="fab fa-node-js"></i>
+                  <span>Node.js</span>
+                </div>
               </div>
-              <div class="stat-item">
-                <div class="stat-value">{{ createdChatrooms.length + joinedChatrooms.length }}</div>
-                <div class="stat-label">总房间数</div>
+              <div class="version-info">
+                <i class="fas fa-code-branch"></i>
+                <span>Version 1.0.0</span>
               </div>
             </div>
           </div>
@@ -2123,7 +2163,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-top: 16px;
+}
+
+.mobile-divider {
+  margin: 16px 0;
+  border: none;
+  border-top: 1px solid #a5a5a5;
 }
 
 .mobile-action-btn {
@@ -2211,6 +2257,167 @@ onUnmounted(() => {
 
 .dark .stat-label {
   color: #9ca3af;
+}
+
+/* 协议链接样式 */
+.mobile-legal-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.mobile-legal-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  color: #1f2937;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.mobile-legal-link:active {
+  background: #f8fafc;
+  transform: scale(0.98);
+}
+
+.dark .mobile-legal-link {
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: #f9fafb;
+}
+
+.dark .mobile-legal-link:active {
+  background: #4b5563;
+}
+
+.mobile-legal-link i:first-child {
+  color: #667eea;
+  margin-right: 12px;
+  font-size: 16px;
+}
+
+.mobile-legal-link i:last-child {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.dark .mobile-legal-link i:first-child {
+  color: #60a5fa;
+}
+
+.dark .mobile-legal-link i:last-child {
+  color: #6b7280;
+}
+
+/* 版权和技术信息样式 */
+.mobile-footer-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.dark .mobile-footer-info {
+  background: #374151;
+  border: 1px solid #4b5563;
+}
+
+.copyright-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.dark .copyright-info {
+  color: #9ca3af;
+}
+
+.copyright-info i {
+  color: #667eea;
+  font-size: 16px;
+}
+
+.dark .copyright-info i {
+  color: #60a5fa;
+}
+
+.tech-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tech-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.dark .tech-item {
+  color: #d1d5db;
+}
+
+.tech-item i {
+  font-size: 16px;
+}
+
+.tech-item i.fab.fa-vuejs {
+  color: #4fc08d;
+}
+
+.tech-item i.fab.fa-node-js {
+  color: #68a063;
+}
+
+.tech-separator {
+  color: #9ca3af;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.dark .tech-separator {
+  color: #6b7280;
+}
+
+.version-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.dark .version-info {
+  color: #6b7280;
+}
+
+.version-info i {
+  color: #667eea;
+  font-size: 14px;
+}
+
+.dark .version-info i {
+  color: #60a5fa;
 }
 
 /* 响应式设计 */
