@@ -41,6 +41,7 @@
           @error="handleImageError"
           @wheel="handleWheel"
           @mousedown="handleMouseDown"
+          @touchstart="handleTouchStart"
           @dragstart="preventDefault"
         >
         
@@ -117,6 +118,16 @@ const dragStartY = ref(0)
 const dragStartTranslateX = ref(0)
 const dragStartTranslateY = ref(0)
 
+// 触摸状态
+const isTouching = ref(false)
+const initialDistance = ref(0)
+const initialScale = ref(1)
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const touchStartTranslateX = ref(0)
+const touchStartTranslateY = ref(0)
+const lastTouchTime = ref(0)
+
 // DOM引用
 const imageElement = ref(null)
 const imageContainer = ref(null)
@@ -125,7 +136,7 @@ const imageContainer = ref(null)
 const imageStyle = computed(() => ({
   transform: `translate(${translateX.value}px, ${translateY.value}px) scale(${scale.value}) rotate(${rotation.value}deg)`,
   transformOrigin: 'center center',
-  transition: isDragging.value ? 'none' : 'transform 0.3s ease'
+  transition: (isDragging.value || isTouching.value) ? 'none' : 'transform 0.3s ease'
 }))
 
 const imageSize = computed(() => {
@@ -142,11 +153,15 @@ watch(() => props.visible, (newVisible) => {
     document.addEventListener('keydown', handleKeydown)
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd)
     document.body.style.overflow = 'hidden'
   } else {
     document.removeEventListener('keydown', handleKeydown)
     document.removeEventListener('mousemove', handleMouseMove)
     document.removeEventListener('mouseup', handleMouseUp)
+    document.removeEventListener('touchmove', handleTouchMove)
+    document.removeEventListener('touchend', handleTouchEnd)
     document.body.style.overflow = ''
   }
 })
@@ -268,6 +283,83 @@ const handleMouseMove = (e) => {
 
 const handleMouseUp = () => {
   isDragging.value = false
+}
+
+// 触摸事件处理
+const handleTouchStart = (e) => {
+  e.preventDefault()
+  const touches = e.touches
+  
+  if (touches.length === 1) {
+    // 单指拖动
+    isTouching.value = true
+    const touch = touches[0]
+    touchStartX.value = touch.clientX
+    touchStartY.value = touch.clientY
+    touchStartTranslateX.value = translateX.value
+    touchStartTranslateY.value = translateY.value
+    
+    // 检测双击
+    const currentTime = Date.now()
+    if (currentTime - lastTouchTime.value < 300) {
+      // 双击缩放
+      if (scale.value > 1) {
+        resetTransform()
+      } else {
+        scale.value = 2
+      }
+    }
+    lastTouchTime.value = currentTime
+    
+  } else if (touches.length === 2) {
+    // 双指缩放
+    isTouching.value = true
+    initialDistance.value = getDistance(touches[0], touches[1])
+    initialScale.value = scale.value
+    
+    // 设置缩放中心点
+    const centerX = (touches[0].clientX + touches[1].clientX) / 2
+    const centerY = (touches[0].clientY + touches[1].clientY) / 2
+    touchStartX.value = centerX
+    touchStartY.value = centerY
+  }
+}
+
+const handleTouchMove = (e) => {
+  if (!isTouching.value) return
+  e.preventDefault()
+  
+  const touches = e.touches
+  
+  if (touches.length === 1) {
+    // 单指拖动
+    const touch = touches[0]
+    const deltaX = touch.clientX - touchStartX.value
+    const deltaY = touch.clientY - touchStartY.value
+    
+    translateX.value = touchStartTranslateX.value + deltaX
+    translateY.value = touchStartTranslateY.value + deltaY
+    
+  } else if (touches.length === 2) {
+    // 双指缩放
+    const currentDistance = getDistance(touches[0], touches[1])
+    const scaleRatio = currentDistance / initialDistance.value
+    const newScale = Math.min(Math.max(initialScale.value * scaleRatio, 0.1), 5)
+    scale.value = newScale
+  }
+}
+
+const handleTouchEnd = (e) => {
+  if (e.touches.length === 0) {
+    isTouching.value = false
+  }
+}
+
+// 计算两点间距离
+const getDistance = (touch1, touch2) => {
+  const dx = touch1.clientX - touch2.clientX
+  const dy = touch1.clientY - touch2.clientY
+  return Math.sqrt(dx * dx + dy * dy)
 }
 
 // 键盘操作
@@ -487,10 +579,16 @@ const preventDefault = (e) => {
   
   .image-preview-content {
     cursor: default;
+    -webkit-overflow-scrolling: touch;
+    touch-action: none;
   }
   
   .preview-image {
     cursor: default;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
   
   .image-preview-info {
@@ -509,6 +607,17 @@ const preventDefault = (e) => {
   .toolbar-btn {
     width: 40px;
     height: 40px;
+  }
+  
+  .image-preview-content {
+    touch-action: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .preview-image {
+    touch-action: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
   }
 }
 
