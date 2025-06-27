@@ -1,8 +1,8 @@
 <!-- 用户仪表板页面 -->
 <template>
   <div class="dashboard-container">
-    <!-- 顶部导航栏 -->
-    <header class="top-navbar" v-if="authStore.isAuthenticated">
+    <!-- 桌面端顶部导航栏 -->
+    <header class="top-navbar desktop-only" v-if="authStore.isAuthenticated">
       <div class="navbar-content">
         <!-- Logo -->
         <div class="navbar-logo">
@@ -26,10 +26,6 @@
             <div v-if="authStore.isAnonymous" class="anonymous-badge">
               <i class="fas fa-user-secret"></i>
             </div>
-            <!-- 手机端菜单指示器 -->
-            <div class="mobile-menu-indicator">
-              <i class="fas fa-chevron-down" :class="{ 'rotate': showUserMenu }"></i>
-            </div>
           </div>
           
           <div class="user-details">
@@ -49,7 +45,7 @@
           <!-- 用户菜单 -->
           <div class="user-menu">
             <button 
-              class="menu-toggle desktop-only"
+              class="menu-toggle"
               @click="toggleUserMenu"
               :class="{ active: showUserMenu }"
             >
@@ -83,79 +79,171 @@
       <div class="decoration-circle decoration-circle-3"></div>
     </div>
 
-    <!-- 主要内容 -->
-    <div class="dashboard-content">
-      <!-- 欢迎界面 -->
-      <div class="welcome-section">
-        <div class="welcome-message">
-          <h1>欢迎回来，{{ authStore.user.nickname }}！</h1>
-          <p v-if="authStore.isAnonymous" class="anonymous-notice">
-            <i class="fas fa-info-circle"></i>
-            您正在使用匿名模式，功能有限。建议注册账户获得完整体验。
-          </p>
-          <p v-else class="user-notice">
-            <i class="fas fa-star"></i>
-            您可以创建或加入聊天室，开始精彩的聊天体验。
-          </p>
+    <!-- 手机端顶部头部（简化版） -->
+    <header class="mobile-header mobile-only">
+      <div class="mobile-header-content">
+        <div class="app-logo">
+          <i class="fas fa-comments"></i>
+          <span>ChatFlow</span>
         </div>
-
-        <div class="quick-actions">
-          <button class="action-btn primary" @click="goToRooms">
-            <i class="fas fa-comments"></i>
-            <span>进入聊天室</span>
-          </button>
-          
-          <button v-if="authStore.isUser" class="action-btn secondary" @click="goToProfile">
-            <i class="fas fa-user-edit"></i>
-            <span>个人设置</span>
-          </button>
-          
-          <button v-if="authStore.isAnonymous" class="action-btn secondary" @click="handleUserRegister">
-            <i class="fas fa-user-plus"></i>
-            <span>注册账户</span>
-          </button>
+        <div class="theme-toggle-wrapper">
+          <ThemeToggle />
         </div>
       </div>
+    </header>
 
-      <!-- 我的聊天室列表 (仅注册用户) -->
-      <div v-if="authStore.isUser" class="my-chatrooms-section">
-        <div class="section-header">
-          <h2>
-            <i class="fas fa-home"></i>
-            我的聊天室
-          </h2>
-          <button class="refresh-btn" @click="refreshChatrooms" :disabled="chatroomStore.isLoading">
-            <i class="fas fa-sync-alt" :class="{ 'fa-spin': chatroomStore.isLoading }"></i>
-          </button>
-        </div>
-
-        <div v-if="chatroomStore.isLoading && (!chatroomStore.userChatrooms || chatroomStore.userChatrooms.length === 0)" class="loading-state">
-          <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin"></i>
+    <!-- 主要内容 -->
+    <div class="dashboard-content">
+      <!-- 桌面端内容 -->
+      <div class="desktop-content desktop-only">
+        <!-- 欢迎界面 -->
+        <div class="welcome-section">
+          <div class="welcome-message">
+            <h1>欢迎回来，{{ authStore.user.nickname }}！</h1>
+            <p v-if="authStore.isAnonymous" class="anonymous-notice">
+              <i class="fas fa-info-circle"></i>
+              您正在使用匿名模式，功能有限。建议注册账户获得完整体验。
+            </p>
+            <p v-else class="user-notice">
+              <i class="fas fa-star"></i>
+              您可以创建或加入聊天室，开始精彩的聊天体验。
+            </p>
           </div>
-          <p>正在加载聊天室...</p>
-        </div>
 
-        <div v-else-if="!chatroomStore.userChatrooms || chatroomStore.userChatrooms.length === 0" class="empty-state">
-          <div class="empty-icon">
-            <i class="fas fa-comments"></i>
+          <div class="quick-actions">
+            <button class="action-btn primary" @click="goToRooms">
+              <i class="fas fa-comments"></i>
+              <span>进入聊天室</span>
+            </button>
+            
+            <button v-if="authStore.isUser" class="action-btn secondary" @click="goToProfile">
+              <i class="fas fa-user-edit"></i>
+              <span>个人设置</span>
+            </button>
+            
+            <button v-if="authStore.isAnonymous" class="action-btn secondary" @click="handleUserRegister">
+              <i class="fas fa-user-plus"></i>
+              <span>注册账户</span>
+            </button>
           </div>
-          <h3>还没有聊天室</h3>
-          <p>创建您的第一个聊天室，开始与朋友们聊天吧！</p>
-          <button class="action-btn primary" @click="goToRooms">
-            <i class="fas fa-plus"></i>
-            <span>创建聊天室</span>
-          </button>
         </div>
 
-        <div v-else>
-          <!-- 我创建的聊天室 -->
-          <div v-if="createdChatrooms.length > 0" class="chatrooms-grid">
+        <!-- 我的聊天室列表 (仅注册用户) -->
+        <div v-if="authStore.isUser" class="my-chatrooms-section">
+          <div class="section-header">
+            <h2>
+              <i class="fas fa-home"></i>
+              我的聊天室
+            </h2>
+            <button class="refresh-btn" @click="refreshChatrooms" :disabled="chatroomStore.isLoading">
+              <i class="fas fa-sync-alt" :class="{ 'fa-spin': chatroomStore.isLoading }"></i>
+            </button>
+          </div>
+
+          <div v-if="chatroomStore.isLoading && (!chatroomStore.userChatrooms || chatroomStore.userChatrooms.length === 0)" class="loading-state">
+            <div class="loading-spinner">
+              <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <p>正在加载聊天室...</p>
+          </div>
+
+          <div v-else-if="!chatroomStore.userChatrooms || chatroomStore.userChatrooms.length === 0" class="empty-state">
+            <div class="empty-icon">
+              <i class="fas fa-comments"></i>
+            </div>
+            <h3>还没有聊天室</h3>
+            <p>创建您的第一个聊天室，开始与朋友们聊天吧！</p>
+            <button class="action-btn primary" @click="goToRooms">
+              <i class="fas fa-plus"></i>
+              <span>创建聊天室</span>
+            </button>
+          </div>
+
+          <div v-else>
+            <!-- 我创建的聊天室 -->
+            <div v-if="createdChatrooms.length > 0" class="chatrooms-grid">
+              <div 
+                v-for="chatroom in createdChatrooms" 
+                :key="chatroom.roomId"
+                class="chatroom-card"
+                @click="joinMyChatroom(chatroom)"
+              >
+                <div class="chatroom-header">
+                  <div class="chatroom-info">
+                    <h3 class="chatroom-name">{{ chatroom.name }}</h3>
+                    <div class="chatroom-meta">
+                      <span class="room-id">
+                        <i class="fas fa-hashtag"></i>
+                        {{ chatroom.roomId }}
+                      </span>
+                      <span class="user-count">
+                        <i class="fas fa-users"></i>
+                        {{ chatroom.userCount }} 成员
+                      </span>
+                    </div>
+                  </div>
+                  <div class="owner-badge">
+                    <i class="fas fa-crown"></i>
+                    <span>房主</span>
+                  </div>
+                </div>
+
+                <div class="chatroom-content">
+                  <div v-if="chatroom.lastMessage" class="last-message">
+                    <div class="message-content">
+                      <span class="message-text">{{ formatMessageContent(chatroom.lastMessage) }}</span>
+                    </div>
+                    <div class="message-time">
+                      {{ formatTime(chatroom.lastMessage.createdAt) }}
+                    </div>
+                  </div>
+                  <div v-else class="no-message">
+                    <i class="fas fa-comment-slash"></i>
+                    <span>暂无消息</span>
+                  </div>
+                </div>
+
+                <div class="chatroom-footer">
+                  <div class="created-time">
+                    <i class="fas fa-calendar-alt"></i>
+                    创建于 {{ formatDate(chatroom.createdAt) }}
+                  </div>
+                  <div class="join-indicator">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>点击加入</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-comments"></i>
+              </div>
+              <h3>还没有创建聊天室</h3>
+              <p>创建您的第一个聊天室，开始与朋友们聊天吧！</p>
+              <button class="action-btn primary" @click="goToRooms">
+                <i class="fas fa-plus"></i>
+                <span>创建聊天室</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 已加入的聊天室列表 (仅注册用户) -->
+        <div v-if="authStore.isUser && joinedChatrooms.length > 0" class="joined-chatrooms-section">
+          <div class="section-header">
+            <h2>
+              <i class="fas fa-users"></i>
+              已加入的聊天室
+            </h2>
+          </div>
+
+          <div class="chatrooms-grid">
             <div 
-              v-for="chatroom in createdChatrooms" 
+              v-for="chatroom in joinedChatrooms" 
               :key="chatroom.roomId"
-              class="chatroom-card"
-              @click="joinMyChatroom(chatroom)"
+              class="chatroom-card joined-card"
             >
               <div class="chatroom-header">
                 <div class="chatroom-info">
@@ -171,9 +259,9 @@
                     </span>
                   </div>
                 </div>
-                <div class="owner-badge">
-                  <i class="fas fa-crown"></i>
-                  <span>房主</span>
+                <div class="member-badge">
+                  <i class="fas fa-user"></i>
+                  <span>成员</span>
                 </div>
               </div>
 
@@ -193,102 +281,225 @@
               </div>
 
               <div class="chatroom-footer">
-                <div class="created-time">
-                  <i class="fas fa-calendar-alt"></i>
-                  创建于 {{ formatDate(chatroom.createdAt) }}
+                <div class="joined-time">
+                  <i class="fas fa-calendar-plus"></i>
+                  加入于 {{ formatDate(chatroom.createdAt) }}
                 </div>
-                <div class="join-indicator">
-                  <i class="fas fa-sign-in-alt"></i>
-                  <span>点击加入</span>
+                <div class="chatroom-actions">
+                  <button 
+                    class="action-btn small primary" 
+                    @click="joinMyChatroom(chatroom)"
+                  >
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>进入</span>
+                  </button>
+                  <button 
+                    class="action-btn small danger" 
+                    @click="leaveChatroom(chatroom)"
+                  >
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>退出</span>
+                  </button>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div v-else class="empty-state">
-            <div class="empty-icon">
-              <i class="fas fa-comments"></i>
-            </div>
-            <h3>还没有创建聊天室</h3>
-            <p>创建您的第一个聊天室，开始与朋友们聊天吧！</p>
-            <button class="action-btn primary" @click="goToRooms">
-              <i class="fas fa-plus"></i>
-              <span>创建聊天室</span>
-            </button>
           </div>
         </div>
       </div>
 
-      <!-- 已加入的聊天室列表 (仅注册用户) -->
-      <div v-if="authStore.isUser && joinedChatrooms.length > 0" class="joined-chatrooms-section">
-        <div class="section-header">
-          <h2>
-            <i class="fas fa-users"></i>
-            已加入的聊天室
-          </h2>
-        </div>
+      <!-- 手机端内容 -->
+      <div class="mobile-content mobile-only">
+        <!-- 房间标签页 -->
+        <div v-if="activeTab === 'rooms'" class="rooms-tab">
+          <!-- 房间类型切换 -->
+          <div class="room-type-tabs">
+            <button 
+              class="room-type-btn"
+              :class="{ active: activeRoomType === 'created' }"
+              @click="activeRoomType = 'created'"
+            >
+              <i class="fas fa-crown"></i>
+              <span>我的房间</span>
+            </button>
+            <button 
+              class="room-type-btn"
+              :class="{ active: activeRoomType === 'joined' }"
+              @click="activeRoomType = 'joined'"
+            >
+              <i class="fas fa-users"></i>
+              <span>已加入</span>
+            </button>
+          </div>
 
-        <div class="chatrooms-grid">
-          <div 
-            v-for="chatroom in joinedChatrooms" 
-            :key="chatroom.roomId"
-            class="chatroom-card joined-card"
-          >
-            <div class="chatroom-header">
-              <div class="chatroom-info">
-                <h3 class="chatroom-name">{{ chatroom.name }}</h3>
-                <div class="chatroom-meta">
-                  <span class="room-id">
-                    <i class="fas fa-hashtag"></i>
-                    {{ chatroom.roomId }}
-                  </span>
-                  <span class="user-count">
-                    <i class="fas fa-users"></i>
-                    {{ chatroom.userCount }} 成员
-                  </span>
-                </div>
+          <!-- 房间列表 -->
+          <div class="mobile-rooms-content">
+            <div v-if="authStore.isUser && chatroomStore.isLoading && (!chatroomStore.userChatrooms || chatroomStore.userChatrooms.length === 0)" class="loading-state">
+              <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
               </div>
-              <div class="member-badge">
-                <i class="fas fa-user"></i>
-                <span>成员</span>
-              </div>
+              <p>正在加载聊天室...</p>
             </div>
 
-            <div class="chatroom-content">
-              <div v-if="chatroom.lastMessage" class="last-message">
-                <div class="message-content">
-                  <span class="message-text">{{ formatMessageContent(chatroom.lastMessage) }}</span>
+            <div v-else-if="activeRoomType === 'created'">
+              <div v-if="authStore.isAnonymous" class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-user-secret"></i>
                 </div>
-                <div class="message-time">
-                  {{ formatTime(chatroom.lastMessage.createdAt) }}
+                <h3>匿名用户暂无房间</h3>
+                <p>注册账户后即可创建和管理聊天室</p>
+              </div>
+              <div v-else-if="createdChatrooms.length === 0" class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-crown"></i>
                 </div>
+                <h3>还没有创建房间</h3>
+                <p>点击下方加号创建您的第一个聊天室</p>
               </div>
-              <div v-else class="no-message">
-                <i class="fas fa-comment-slash"></i>
-                <span>暂无消息</span>
-              </div>
-            </div>
-
-            <div class="chatroom-footer">
-              <div class="joined-time">
-                <i class="fas fa-calendar-plus"></i>
-                加入于 {{ formatDate(chatroom.createdAt) }}
-              </div>
-              <div class="chatroom-actions">
-                <button 
-                  class="action-btn small primary" 
+              <div v-else class="mobile-rooms-list">
+                <div 
+                  v-for="chatroom in createdChatrooms" 
+                  :key="chatroom.roomId"
+                  class="mobile-room-card"
                   @click="joinMyChatroom(chatroom)"
                 >
-                  <i class="fas fa-sign-in-alt"></i>
-                  <span>进入</span>
-                </button>
-                <button 
-                  class="action-btn small danger" 
-                  @click="leaveChatroom(chatroom)"
+                  <div class="room-card-header">
+                    <div class="room-info">
+                      <h3 class="room-name">{{ chatroom.name }}</h3>
+                      <div class="room-meta">
+                        <span class="room-id">#{{ chatroom.roomId }}</span>
+                        <span class="user-count">{{ chatroom.userCount }}人</span>
+                      </div>
+                    </div>
+                    <div class="owner-badge">
+                      <i class="fas fa-crown"></i>
+                    </div>
+                  </div>
+                  <div v-if="chatroom.lastMessage" class="room-last-message">
+                    <span class="message-text">{{ formatMessageContent(chatroom.lastMessage) }}</span>
+                    <span class="message-time">{{ formatTime(chatroom.lastMessage.createdAt) }}</span>
+                  </div>
+                  <div v-else class="room-no-message">
+                    <span>暂无消息</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="activeRoomType === 'joined'">
+              <div v-if="authStore.isAnonymous" class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-user-secret"></i>
+                </div>
+                <h3>匿名用户暂无房间</h3>
+                <p>注册账户后即可加入聊天室</p>
+              </div>
+              <div v-else-if="joinedChatrooms.length === 0" class="empty-state">
+                <div class="empty-icon">
+                  <i class="fas fa-users"></i>
+                </div>
+                <h3>还没有加入房间</h3>
+                <p>点击下方加号加入聊天室</p>
+              </div>
+              <div v-else class="mobile-rooms-list">
+                <div 
+                  v-for="chatroom in joinedChatrooms" 
+                  :key="chatroom.roomId"
+                  class="mobile-room-card"
+                  @click="joinMyChatroom(chatroom)"
                 >
-                  <i class="fas fa-sign-out-alt"></i>
-                  <span>退出</span>
-                </button>
+                  <div class="room-card-header">
+                    <div class="room-info">
+                      <h3 class="room-name">{{ chatroom.name }}</h3>
+                      <div class="room-meta">
+                        <span class="room-id">#{{ chatroom.roomId }}</span>
+                        <span class="user-count">{{ chatroom.userCount }}人</span>
+                      </div>
+                    </div>
+                    <button 
+                      class="leave-room-btn"
+                      @click.stop="leaveChatroom(chatroom)"
+                    >
+                      <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                  </div>
+                  <div v-if="chatroom.lastMessage" class="room-last-message">
+                    <span class="message-text">{{ formatMessageContent(chatroom.lastMessage) }}</span>
+                    <span class="message-time">{{ formatTime(chatroom.lastMessage.createdAt) }}</span>
+                  </div>
+                  <div v-else class="room-no-message">
+                    <span>暂无消息</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 我的标签页 -->
+        <div v-if="activeTab === 'profile'" class="profile-tab">
+          <div class="mobile-profile-container">
+            <!-- 用户信息头部 -->
+            <div class="mobile-user-header">
+              <div class="user-avatar-section">
+                <img 
+                  :src="userAvatarUrl" 
+                  :alt="authStore.user.nickname"
+                  class="user-avatar-large"
+                  @error="handleAvatarError"
+                >
+                <div v-if="authStore.isAnonymous" class="anonymous-badge">
+                  <i class="fas fa-user-secret"></i>
+                </div>
+              </div>
+              <div class="user-info-section">
+                <h2 class="user-nickname">{{ authStore.user.nickname }}</h2>
+                <div class="user-type-badge">
+                  <span v-if="authStore.isAnonymous" class="type-badge anonymous">
+                    <i class="fas fa-user-secret"></i>
+                    匿名用户
+                  </span>
+                  <span v-else class="type-badge registered">
+                    <i class="fas fa-user"></i>
+                    注册用户
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 快速操作 -->
+            <div class="mobile-quick-actions">
+              <button v-if="authStore.isUser" class="mobile-action-btn" @click="goToProfile">
+                <i class="fas fa-user-edit"></i>
+                <span>编辑资料</span>
+                <i class="fas fa-chevron-right"></i>
+              </button>
+              
+              <button v-if="authStore.isAnonymous" class="mobile-action-btn" @click="handleUserRegister">
+                <i class="fas fa-user-plus"></i>
+                <span>注册账户</span>
+                <i class="fas fa-chevron-right"></i>
+              </button>
+
+              <button class="mobile-action-btn" @click="handleLogout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>退出登录</span>
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+
+            <!-- 统计信息 -->
+            <div v-if="authStore.isUser" class="mobile-stats">
+              <div class="stat-item">
+                <div class="stat-value">{{ createdChatrooms.length }}</div>
+                <div class="stat-label">创建房间</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ joinedChatrooms.length }}</div>
+                <div class="stat-label">加入房间</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-value">{{ createdChatrooms.length + joinedChatrooms.length }}</div>
+                <div class="stat-label">总房间数</div>
               </div>
             </div>
           </div>
@@ -296,8 +507,37 @@
       </div>
     </div>
 
-    <!-- 底部信息 -->
-    <footer class="dashboard-footer">
+    <!-- 手机端底部导航栏 -->
+    <nav class="bottom-navbar mobile-only">
+      <button 
+        class="nav-item"
+        :class="{ active: activeTab === 'rooms' }"
+        @click="activeTab = 'rooms'"
+      >
+        <i class="fas fa-home"></i>
+        <span>房间</span>
+      </button>
+      
+      <button 
+        class="nav-item add-btn"
+        @click="goToRooms"
+      >
+        <i class="fas fa-plus"></i>
+        <span>加号</span>
+      </button>
+      
+      <button 
+        class="nav-item"
+        :class="{ active: activeTab === 'profile' }"
+        @click="activeTab = 'profile'"
+      >
+        <i class="fas fa-user"></i>
+        <span>我的</span>
+      </button>
+    </nav>
+
+    <!-- 桌面端底部信息 -->
+    <footer class="dashboard-footer desktop-only">
       <p>&copy; 2025 ChatFlow. 基于 Vue3 + Node.js 构建</p>
       <div class="footer-links">
         <router-link to="/user-agreement" class="footer-link">用户协议</router-link>
@@ -325,6 +565,8 @@ const chatroomStore = useChatroomStore()
 
 // 响应式数据
 const showUserMenu = ref(false)
+const activeTab = ref(sessionStorage.getItem('dashboard-active-tab') || 'rooms') // 手机端当前激活的标签：'rooms', 'profile'
+const activeRoomType = ref(sessionStorage.getItem('dashboard-room-type') || 'created') // 房间类型：'created', 'joined'
 
 // 计算属性
 const userAvatarUrl = computed(() => {
@@ -513,6 +755,15 @@ const loadUserChatrooms = async () => {
     }
   }
 }
+
+// 监听状态变化并保存到sessionStorage
+watch(activeTab, (newValue) => {
+  sessionStorage.setItem('dashboard-active-tab', newValue)
+})
+
+watch(activeRoomType, (newValue) => {
+  sessionStorage.setItem('dashboard-room-type', newValue)
+})
 
 // 生命周期
 onMounted(async () => {
@@ -1364,6 +1615,604 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* 桌面端和手机端显示控制 */
+.desktop-only {
+  display: block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: block;
+  }
+
+  .bottom-navbar.mobile-only {
+    display: flex !important; /* 手机端显示底栏，使用 !important 覆盖 mobile-only 的 block */
+  }
+}
+
+/* 手机端顶部头部样式 */
+.mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  z-index: 100;
+  height: 60px;
+}
+
+.dark .mobile-header {
+  background: #374151;
+  border-bottom: 1px solid #4b5563;
+}
+
+.mobile-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 16px;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.app-logo i {
+  font-size: 22px;
+}
+
+/* 手机端底部导航栏 */
+.bottom-navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  display: none; /* 默认隐藏，只在手机端显示 */
+  justify-content: space-around;
+  align-items: center;
+  height: 70px;
+  z-index: 100;
+  padding: 8px 0;
+}
+
+.dark .bottom-navbar {
+  background: #374151;
+  border-top: 1px solid #4b5563;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  min-width: 60px;
+}
+
+.nav-item.active {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.nav-item.add-btn {
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  min-width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-item.add-btn:hover {
+  background: #5a67d8;
+  transform: scale(1.05);
+}
+
+.nav-item i {
+  font-size: 20px;
+}
+
+.nav-item span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nav-item.add-btn span {
+  display: none;
+}
+
+.dark .nav-item {
+  color: #9ca3af;
+}
+
+.dark .nav-item.active {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.dark .nav-item.add-btn {
+  background: #60a5fa;
+  color: #1f2937;
+}
+
+.dark .nav-item.add-btn:hover {
+  background: #3b82f6;
+}
+
+/* 手机端内容区域 */
+.mobile-content {
+  padding: 60px 0 70px 0;
+  min-height: 100vh;
+  width: 100%;
+  background: #f8fafc;
+}
+
+.dark .mobile-content {
+  background: #1f2937;
+}
+
+/* 房间标签页样式 */
+.rooms-tab {
+  height: 100%;
+}
+
+.room-type-tabs {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 60px;
+  z-index: 10;
+}
+
+.dark .room-type-tabs {
+  background: #374151;
+  border-bottom: 1px solid #4b5563;
+}
+
+.room-type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.room-type-btn.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.dark .room-type-btn {
+  color: #9ca3af;
+}
+
+.dark .room-type-btn.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
+.mobile-rooms-content {
+  padding: 16px;
+}
+
+/* 手机端空状态样式 */
+.mobile-content .loading-state,
+.mobile-content .empty-state {
+  padding: 48px 16px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.dark .mobile-content .loading-state,
+.dark .mobile-content .empty-state {
+  color: #9ca3af;
+}
+
+.mobile-content .loading-spinner {
+  font-size: 32px;
+  margin-bottom: 16px;
+  color: #667eea;
+}
+
+.dark .mobile-content .loading-spinner {
+  color: #60a5fa;
+}
+
+.mobile-content .empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  color: #667eea;
+  opacity: 0.6;
+}
+
+.dark .mobile-content .empty-icon {
+  color: #60a5fa;
+}
+
+.mobile-content .empty-state h3 {
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.dark .mobile-content .empty-state h3 {
+  color: #f9fafb;
+}
+
+.mobile-content .empty-state p {
+  font-size: 14px;
+  margin-bottom: 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.dark .mobile-content .empty-state p {
+  color: #9ca3af;
+}
+
+.mobile-rooms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-room-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mobile-room-card:active {
+  transform: scale(0.98);
+  background: #f8fafc;
+}
+
+.dark .mobile-room-card {
+  background: #374151;
+  border: 1px solid #4b5563;
+}
+
+.dark .mobile-room-card:active {
+  background: #4b5563;
+}
+
+.room-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.room-info {
+  flex: 1;
+}
+
+.room-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.dark .room-name {
+  color: #f9fafb;
+}
+
+.room-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.dark .room-meta {
+  color: #9ca3af;
+}
+
+.room-id, .user-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.owner-badge {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  color: #1a202c;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.leave-room-btn {
+  width: 32px;
+  height: 32px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.leave-room-btn:active {
+  background: #fecaca;
+  transform: scale(0.95);
+}
+
+.dark .leave-room-btn {
+  background: #451a1a;
+  color: #f87171;
+}
+
+.dark .leave-room-btn:active {
+  background: #7f1d1d;
+}
+
+.room-last-message {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-text {
+  flex: 1;
+  font-size: 14px;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dark .message-text {
+  color: #d1d5db;
+}
+
+.message-time {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.dark .message-time {
+  color: #6b7280;
+}
+
+.room-no-message {
+  font-size: 14px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.dark .room-no-message {
+  color: #6b7280;
+}
+
+/* 个人资料标签页样式 */
+.profile-tab {
+  height: 100%;
+}
+
+.mobile-profile-container {
+  padding: 16px;
+}
+
+.mobile-user-header {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .mobile-user-header {
+  background: #374151;
+  border: 1px solid #4b5563;
+}
+
+.user-avatar-section {
+  position: relative;
+}
+
+.user-avatar-large {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #667eea;
+}
+
+.user-info-section {
+  flex: 1;
+}
+
+.user-nickname {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.dark .user-nickname {
+  color: #f9fafb;
+}
+
+.user-type-badge .type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.type-badge.anonymous {
+  background: #fef3f2;
+  color: #b91c1c;
+}
+
+.type-badge.registered {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.dark .type-badge.anonymous {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.dark .type-badge.registered {
+  background: #14532d;
+  color: #86efac;
+}
+
+.mobile-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.mobile-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.mobile-action-btn:active {
+  background: #f8fafc;
+  transform: scale(0.98);
+}
+
+.dark .mobile-action-btn {
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: #f9fafb;
+}
+
+.dark .mobile-action-btn:active {
+  background: #4b5563;
+}
+
+.mobile-action-btn i:first-child {
+  color: #667eea;
+  margin-right: 12px;
+}
+
+.mobile-action-btn i:last-child {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.dark .mobile-action-btn i:first-child {
+  color: #60a5fa;
+}
+
+.dark .mobile-action-btn i:last-child {
+  color: #6b7280;
+}
+
+.mobile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+}
+
+.dark .mobile-stats {
+  background: #374151;
+  border: 1px solid #4b5563;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 4px;
+}
+
+.dark .stat-value {
+  color: #60a5fa;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.dark .stat-label {
+  color: #9ca3af;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   /* 移动端背景简化 */
@@ -1377,444 +2226,9 @@ onUnmounted(() => {
     background-attachment: scroll;
   }
 
-  /* 移动端导航栏优化 */
-  .top-navbar {
-    background: white;
-    backdrop-filter: none;
-    border-bottom: 1px solid #e5e7eb;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .top-navbar {
-    background: #374151;
-    border-bottom: 1px solid #4b5563;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-
-  .navbar-content {
-    padding: 0 16px;
-    height: 60px;
-  }
-  
-  .navbar-logo {
-    font-size: 20px;
-    color: #667eea;
-  }
-  
-  .navbar-logo i {
-    font-size: 22px;
-  }
-  
-  .user-info {
-    flex-direction: row-reverse;
-    gap: 12px;
-  }
-  
-  .user-details {
-    display: none;
-  }
-  
-  .user-avatar {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .theme-toggle-wrapper {
-    order: 1;
-  }
-  
-  .user-avatar {
-    order: 2;
-  }
-  
-  .user-menu {
-    order: 3;
-  }
-
-  .menu-dropdown {
-    position: fixed;
-    top: 55px;
-    right: 16px;
-    min-width: 180px;
-  }
-
   /* 主要内容区域优化 */
   .dashboard-content {
-    padding: 80px 16px 16px;
-  }
-
-  .welcome-section {
-    margin-bottom: 2rem;
-    max-width: none;
-  }
-  
-  .welcome-message h1 {
-    font-size: 24px;
-    color: #1f2937;
-    text-shadow: none;
-    margin-bottom: 12px;
-  }
-
-  .dark .welcome-message h1 {
-    color: #f9fafb;
-  }
-
-  /* 通知区域优化 */
-  .anonymous-notice,
-  .user-notice {
-    background: white;
-    backdrop-filter: none;
-    border: 1px solid #e5e7eb;
-    color: #374151;
-    padding: 12px 16px;
-    margin-bottom: 24px;
-    font-size: 14px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .anonymous-notice,
-  .dark .user-notice {
-    background: #374151;
-    border: 1px solid #4b5563;
-    color: #e5e7eb;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-
-  /* 快速操作按钮优化 */
-  .quick-actions {
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .action-btn {
-    padding: 12px 20px;
-    font-size: 14px;
-    border-radius: 8px;
-  }
-
-  .action-btn.primary {
-    background: #667eea;
-    color: white;
-  }
-
-  .action-btn.primary:hover {
-    background: #5a67d8;
-    transform: none;
-  }
-
-  .action-btn.secondary {
-    background: white;
-    color: #667eea;
-    border: 1px solid #667eea;
-  }
-
-  .dark .action-btn.secondary {
-    background: #374151;
-    color: #60a5fa;
-    border: 1px solid #60a5fa;
-  }
-
-  .action-btn.secondary:hover {
-    background: #f7fafc;
-    transform: none;
-  }
-
-  .dark .action-btn.secondary:hover {
-    background: #4b5563;
-  }
-
-  /* 聊天室区域优化 */
-  .my-chatrooms-section,
-  .joined-chatrooms-section {
-    margin-top: 0;
-    margin-bottom: 24px;
-    padding: 16px;
-    background: white;
-    backdrop-filter: none;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .my-chatrooms-section,
-  .dark .joined-chatrooms-section {
-    background: #374151;
-    border: 1px solid #4b5563;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-
-  .section-header {
-    flex-direction: row;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 16px;
-    justify-content: space-between;
-  }
-
-  .section-header h2 {
-    font-size: 18px;
-    color: #1f2937;
-    margin: 0;
-  }
-
-  .dark .section-header h2 {
-    color: #f9fafb;
-  }
-
-  .refresh-btn {
-    background: #667eea;
-    border-radius: 6px;
-    padding: 8px;
-    font-size: 14px;
-  }
-
-  .dark .refresh-btn {
-    background: #60a5fa;
-  }
-
-  /* 聊天室网格优化 */
-  .chatrooms-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  /* 聊天室卡片优化 */
-  .chatroom-card {
-    padding: 16px;
-    background: #f8fafc;
-    backdrop-filter: none;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    box-shadow: none;
-  }
-
-  .dark .chatroom-card {
-    background: #4b5563;
-    border: 1px solid #6b7280;
-  }
-
-  .chatroom-card:hover {
-    background: #f1f5f9;
-    transform: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  }
-
-  .dark .chatroom-card:hover {
-    background: #556072;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-
-  .chatroom-header {
-    margin-bottom: 12px;
-  }
-
-  .chatroom-name {
-    font-size: 16px;
-    color: #1f2937;
-    margin-bottom: 6px;
-  }
-
-  .dark .chatroom-name {
-    color: #f9fafb;
-  }
-
-  .chatroom-meta {
-    gap: 8px;
-    flex-direction: row;
-  }
-
-  .room-id, .user-count {
-    color: #6b7280;
-    font-size: 12px;
-  }
-
-  .dark .room-id, .dark .user-count {
-    color: #d1d5db;
-  }
-
-  .owner-badge, .member-badge {
-    padding: 4px 8px;
-    font-size: 10px;
-    border-radius: 12px;
-  }
-
-  /* 消息区域优化 */
-  .chatroom-content {
-    margin-bottom: 12px;
-    min-height: auto;
-  }
-
-  .last-message {
-    background: #e0e7ff;
-    backdrop-filter: none;
-    border: 1px solid #c7d2fe;
-    padding: 12px;
-    border-radius: 6px;
-  }
-
-  .dark .last-message {
-    background: #3730a3;
-    border: 1px solid #4338ca;
-  }
-
-  .message-text {
-    font-size: 13px;
-    color: #374151;
-  }
-
-  .dark .message-text {
-    color: #e5e7eb;
-  }
-
-  .message-time {
-    font-size: 11px;
-    color: #6b7280;
-  }
-
-  .dark .message-time {
-    color: #d1d5db;
-  }
-
-  .no-message {
-    height: 40px;
-    font-size: 13px;
-    color: #9ca3af;
-  }
-
-  .dark .no-message {
-    color: #6b7280;
-  }
-
-  /* 底部区域优化 */
-  .chatroom-footer {
-    padding-top: 12px;
-    border-top: 1px solid #e5e7eb;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-  }
-
-  .dark .chatroom-footer {
-    border-top: 1px solid #4b5563;
-  }
-
-  .created-time, .joined-time {
-    font-size: 11px;
-    color: #6b7280;
-  }
-
-  .dark .created-time, .dark .joined-time {
-    color: #d1d5db;
-  }
-
-  .join-indicator {
-    font-size: 11px;
-    color: #667eea;
-    opacity: 1;
-  }
-
-  .dark .join-indicator {
-    color: #60a5fa;
-  }
-
-  .chatroom-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .action-btn.small {
-    padding: 8px 12px;
-    font-size: 12px;
-    border-radius: 6px;
-  }
-
-  /* 空状态优化 */
-  .loading-state, .empty-state {
-    padding: 32px 16px;
-    color: #6b7280;
-  }
-
-  .dark .loading-state, .dark .empty-state {
-    color: #9ca3af;
-  }
-
-  .loading-spinner {
-    font-size: 24px;
-    margin-bottom: 12px;
-    color: #667eea;
-  }
-
-  .dark .loading-spinner {
-    color: #60a5fa;
-  }
-
-  .empty-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-    color: #667eea;
-  }
-
-  .dark .empty-icon {
-    color: #60a5fa;
-  }
-
-  .empty-state h3 {
-    font-size: 18px;
-    margin-bottom: 8px;
-    color: #374151;
-  }
-
-  .dark .empty-state h3 {
-    color: #e5e7eb;
-  }
-
-  .empty-state p {
-    font-size: 14px;
-    margin-bottom: 16px;
-    color: #6b7280;
-  }
-
-  .dark .empty-state p {
-    color: #9ca3af;
-  }
-
-  /* 页脚优化 */
-  .dashboard-footer {
-    background: white;
-    backdrop-filter: none;
-    border-top: 1px solid #e5e7eb;
-    color: #6b7280;
-    padding: 16px;
-    font-size: 12px;
-  }
-
-  .dark .dashboard-footer {
-    background: #374151;
-    border-top: 1px solid #4b5563;
-    color: #9ca3af;
-  }
-
-  .footer-links {
-    margin-top: 8px;
-    gap: 8px;
-  }
-
-  .footer-link {
-    color: #667eea;
-    font-size: 12px;
-  }
-
-  .dark .footer-link {
-    color: #60a5fa;
-  }
-
-  .footer-separator {
-    color: #d1d5db;
-  }
-
-  .dark .footer-separator {
-    color: #6b7280;
+    padding: 0;
   }
 
   /* 移除装饰元素 */
@@ -1827,5 +2241,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 手机端主题切换优化 */
+@media (max-width: 768px) {
+  .mobile-header .theme-toggle-wrapper {
+    margin-right: 0;
+  }
 }
 </style> 
