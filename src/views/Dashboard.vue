@@ -332,7 +332,28 @@
           </div>
 
           <!-- 房间列表 -->
-          <div class="mobile-rooms-content">
+          <div 
+            class="mobile-rooms-content" 
+            ref="mobileRoomsContentRef"
+            @touchstart="handleTouchStart"
+            @touchmove.prevent="handleTouchMove"
+            @touchend="handleTouchEnd"
+          >
+            <!-- 下拉刷新指示器 -->
+            <div 
+              class="pull-to-refresh-indicator"
+              :class="{ 
+                'is-pulling': currentY - startY > 0,
+                'is-refreshing': isRefreshing 
+              }"
+              :style="{ 
+                opacity: Math.min((currentY - startY) / refreshThreshold, 1),
+                transform: isRefreshing ? 'rotate(360deg)' : `rotate(${((currentY - startY) / refreshThreshold) * 180}deg)`
+              }"
+            >
+              <i class="fas fa-sync-alt"></i>
+            </div>
+
             <div v-if="authStore.isUser && chatroomStore.isLoading && (!chatroomStore.userChatrooms || chatroomStore.userChatrooms.length === 0)" class="loading-state">
               <div class="loading-spinner">
                 <i class="fas fa-spinner fa-spin"></i>
@@ -829,6 +850,68 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+// 下拉刷新相关变量
+const isRefreshing = ref(false)
+const startY = ref(0)
+const currentY = ref(0)
+const maxPullDistance = 100 // 最大下拉距离
+const refreshThreshold = 100 // 触发刷新的阈值
+const mobileRoomsContentRef = ref(null)
+
+// 下拉刷新相关方法
+const handleTouchStart = (e) => {
+  if (mobileRoomsContentRef.value.scrollTop > 0) return
+  startY.value = e.touches[0].clientY
+  currentY.value = startY.value
+}
+
+const handleTouchMove = (e) => {
+  if (mobileRoomsContentRef.value.scrollTop > 0) return
+  
+  currentY.value = e.touches[0].clientY
+  const pullDistance = currentY.value - startY.value
+  
+  if (pullDistance > 0 && !isRefreshing.value) {
+    e.preventDefault()
+    const distance = Math.min(pullDistance * 0.5, maxPullDistance)
+    mobileRoomsContentRef.value.style.transform = `translateY(${distance}px)`
+  }
+}
+
+const handleTouchEnd = async () => {
+  if (mobileRoomsContentRef.value.scrollTop > 0) return
+  
+  const pullDistance = currentY.value - startY.value
+  
+  if (pullDistance > refreshThreshold && !isRefreshing.value) {
+    // 触发刷新
+    isRefreshing.value = true
+    mobileRoomsContentRef.value.style.transform = `translateY(${refreshThreshold}px)`
+    
+    try {
+      await refreshChatrooms()
+    } finally {
+      // 重置状态
+      isRefreshing.value = false
+      mobileRoomsContentRef.value.style.transition = 'transform 0.3s ease'
+      mobileRoomsContentRef.value.style.transform = 'translateY(0)'
+      setTimeout(() => {
+        mobileRoomsContentRef.value.style.transition = ''
+      }, 300)
+    }
+  } else {
+    // 未达到刷新阈值，回弹
+    mobileRoomsContentRef.value.style.transition = 'transform 0.3s ease'
+    mobileRoomsContentRef.value.style.transform = 'translateY(0)'
+    setTimeout(() => {
+      mobileRoomsContentRef.value.style.transition = ''
+    }, 300)
+  }
+  
+  startY.value = 0
+  currentY.value = 0
+}
 </script>
 
 <style scoped>
@@ -1812,6 +1895,7 @@ onUnmounted(() => {
   min-height: 100vh;
   width: 100%;
   background: #f8fafc;
+  overflow-x: hidden; /* 防止横向滚动 */
 }
 
 .dark .mobile-content {
@@ -1828,7 +1912,6 @@ onUnmounted(() => {
   background: white;
   border-bottom: 1px solid #e5e7eb;
   position: sticky;
-  top: 60px;
   z-index: 10;
 }
 
@@ -1867,8 +1950,64 @@ onUnmounted(() => {
   border-bottom-color: #60a5fa;
 }
 
+/* 移动端房间列表容器 */
 .mobile-rooms-content {
   padding: 16px;
+  position: relative;
+  min-height: 200px;
+  will-change: transform;
+  touch-action: pan-y;
+}
+
+/* 下拉刷新指示器 */
+.pull-to-refresh-indicator {
+  position: absolute;
+  top: -40px;
+  left: calc(50% - 20px);
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+  will-change: transform, opacity;
+}
+
+.dark .pull-to-refresh-indicator {
+  background: rgba(55, 65, 81, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pull-to-refresh-indicator i {
+  font-size: 20px;
+  color: #667eea;
+  transition: transform 0.2s ease;
+}
+
+.dark .pull-to-refresh-indicator i {
+  color: #60a5fa;
+}
+
+.pull-to-refresh-indicator.is-pulling i {
+  transform: rotate(180deg);
+}
+
+.pull-to-refresh-indicator.is-refreshing i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 手机端空状态样式 */
