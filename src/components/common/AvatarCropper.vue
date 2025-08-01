@@ -1,31 +1,51 @@
 <!-- 头像裁切组件 -->
 <template>
-  <div class="avatar-cropper-modal" v-if="visible" @click="handleBackdropClick">
-    <div class="cropper-container" @click.stop>
-      <div class="cropper-header">
-        <h3>裁切头像</h3>
-        <button class="close-btn" @click="handleClose">
+  <div 
+    class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 sm:p-5" 
+    v-if="visible" 
+    @click="handleBackdropClick"
+  >
+    <div class="bg-white dark:bg-secondary-800 rounded-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl" @click.stop>
+      <div class="flex items-center justify-between p-4 sm:p-5 border-b border-gray-200 dark:border-secondary-600 bg-gray-50 dark:bg-secondary-900">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 m-0">裁切头像</h3>
+        <button 
+          class="bg-transparent border-none text-xl text-gray-500 dark:text-gray-400 cursor-pointer p-1 rounded transition-all duration-200 hover:bg-gray-200 dark:hover:bg-secondary-700 hover:text-gray-700 dark:hover:text-gray-200" 
+          @click="handleClose"
+        >
           <i class="fas fa-times"></i>
         </button>
       </div>
       
-      <div class="cropper-body">
-        <div class="cropper-wrapper">
-          <img ref="imageRef" :src="imageSrc" alt="裁切图片" />
+      <div class="p-4 sm:p-5">
+        <div class="max-h-80 sm:max-h-96 overflow-hidden rounded-lg border-2 border-gray-200 dark:border-secondary-600">
+          <img ref="imageRef" :src="imageSrc" alt="裁切图片" class="max-w-full block" />
         </div>
         
-        <div class="cropper-info">
-          <p><i class="fas fa-info-circle"></i> 拖动调整裁切区域，滚轮缩放图片</p>
-          <p><i class="fas fa-cut"></i> 图片将被裁切为 64x64 像素并压缩至50KB</p>
+        <div class="mt-4 p-4 bg-gray-50 dark:bg-secondary-700 rounded-lg border-l-4 border-blue-500 dark:border-blue-400">
+          <p class="m-0 mb-2 text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <i class="fas fa-info-circle text-blue-500 dark:text-blue-400 w-4"></i>
+            拖动调整裁切区域，滚轮缩放图片
+          </p>
+          <p class="m-0 text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <i class="fas fa-cut text-blue-500 dark:text-blue-400 w-4"></i>
+            图片将被裁切为 64x64 像素并压缩至50KB
+          </p>
         </div>
       </div>
       
-      <div class="cropper-footer">
-        <button class="btn btn-secondary" @click="handleClose">
+      <div class="flex justify-end gap-3 p-4 sm:p-5 border-t border-gray-200 dark:border-secondary-600 bg-gray-50 dark:bg-secondary-900">
+        <button 
+          class="px-5 py-2.5 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center gap-1.5 bg-gray-500 hover:bg-gray-600 text-white disabled:opacity-60 disabled:cursor-not-allowed" 
+          @click="handleClose"
+        >
           <i class="fas fa-times"></i>
           取消
         </button>
-        <button class="btn btn-primary" @click="handleCrop" :disabled="isProcessing">
+        <button 
+          class="px-5 py-2.5 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white disabled:opacity-60 disabled:cursor-not-allowed" 
+          @click="handleCrop" 
+          :disabled="isProcessing"
+        >
           <i class="fas fa-check" v-if="!isProcessing"></i>
           <i class="fas fa-spinner fa-spin" v-else></i>
           {{ isProcessing ? '处理中...' : '确定' }}
@@ -174,237 +194,4 @@ watch(() => props.imageSrc, () => {
 onUnmounted(() => {
   destroyCropper()
 })
-</script>
-
-<style scoped>
-.avatar-cropper-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 20px;
-}
-
-.cropper-container {
-  background: white;
-  border-radius: 12px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.cropper-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-.cropper-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.cropper-body {
-  padding: 20px;
-}
-
-.cropper-wrapper {
-  max-height: 400px;
-  overflow: hidden;
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
-}
-
-.cropper-wrapper img {
-  max-width: 100%;
-  display: block;
-}
-
-.cropper-info {
-  margin-top: 15px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #007bff;
-}
-
-.cropper-info p {
-  margin: 0;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #495057;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cropper-info p:last-child {
-  margin-bottom: 0;
-}
-
-.cropper-info i {
-  color: #007bff;
-  width: 16px;
-}
-
-.cropper-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 20px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #5a6268;
-}
-
-.btn-primary {
-  background: #007bff;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .avatar-cropper-modal {
-    padding: 10px;
-  }
-  
-  .cropper-container {
-    max-height: 95vh;
-  }
-  
-  .cropper-header,
-  .cropper-body,
-  .cropper-footer {
-    padding: 15px;
-  }
-  
-  .cropper-wrapper {
-    max-height: 300px;
-  }
-}
-
-/* 暗色模式样式 */
-.dark .avatar-cropper-modal {
-  background: rgba(0, 0, 0, 0.9);
-}
-
-.dark .cropper-container {
-  background: #1e293b;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-}
-
-.dark .cropper-header {
-  background: #0f172a;
-  border-bottom: 1px solid #475569;
-}
-
-.dark .cropper-header h3 {
-  color: #f1f5f9;
-}
-
-.dark .close-btn {
-  color: #94a3b8;
-}
-
-.dark .close-btn:hover {
-  background: #334155;
-  color: #f1f5f9;
-}
-
-.dark .cropper-wrapper {
-  border: 2px solid #475569;
-}
-
-.dark .cropper-info {
-  background: #334155;
-  border-left: 4px solid #60a5fa;
-}
-
-.dark .cropper-info p {
-  color: #e2e8f0;
-}
-
-.dark .cropper-info i {
-  color: #60a5fa;
-}
-
-.dark .cropper-footer {
-  background: #0f172a;
-  border-top: 1px solid #475569;
-}
-
-.dark .btn-secondary {
-  background: #64748b;
-}
-
-.dark .btn-secondary:hover:not(:disabled) {
-  background: #475569;
-}
-
-.dark .btn-primary {
-  background: #3b82f6;
-}
-
-.dark .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-}
-</style> 
+</script> 

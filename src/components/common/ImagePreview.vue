@@ -1,16 +1,16 @@
 <template>
-  <div v-if="visible" class="image-preview-overlay" @click="handleOverlayClick">
-    <div class="image-preview-container" @click.stop>
+  <div v-if="visible" class="fixed inset-0 bg-black/90 flex flex-col z-50 backdrop-blur-sm cursor-pointer" @click="handleOverlayClick">
+    <div class="flex flex-col h-screen cursor-default" @click.stop>
       <!-- 顶部工具栏 -->
-      <div class="image-preview-toolbar">
-        <div class="toolbar-left">
-          <span class="image-info">{{ imageTitle || '图片预览' }}</span>
+      <div class="flex flex-wrap justify-between items-center p-4 bg-black/70 text-white flex-shrink-0">
+        <div class="flex items-center">
+          <span class="text-base font-medium">{{ imageTitle || '图片预览' }}</span>
         </div>
-        <div class="toolbar-right">
+        <div class="flex flex-wrap items-center gap-2">
           <button @click="zoomOut" class="toolbar-btn" title="缩小">
             <i class="fas fa-search-minus"></i>
           </button>
-          <span class="zoom-info">{{ Math.round(scale * 100) }}%</span>
+          <span class="text-gray-300 text-sm min-w-[50px] text-center">{{ Math.round(scale * 100) }}%</span>
           <button @click="zoomIn" class="toolbar-btn" title="放大">
             <i class="fas fa-search-plus"></i>
           </button>
@@ -30,12 +30,12 @@
       </div>
 
       <!-- 图片容器 -->
-      <div class="image-preview-content" ref="imageContainer">
+      <div class="flex-1 flex items-center justify-center relative overflow-hidden w-screen cursor-move" ref="imageContainer">
         <img 
           ref="imageElement"
           :src="imageUrl" 
           :alt="imageTitle || '图片预览'"
-          class="preview-image"
+          class="preview-image max-w-none max-h-none select-none cursor-move"
           :style="imageStyle"
           @load="handleImageLoad"
           @error="handleImageError"
@@ -46,31 +46,31 @@
         >
         
         <!-- 加载状态 -->
-        <div v-if="loading" class="loading-overlay">
-          <div class="loading-spinner">
+        <div v-if="loading" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white">
+          <div class="text-3xl mb-4">
             <i class="fas fa-spinner fa-spin"></i>
           </div>
-          <div class="loading-text">加载中...</div>
+          <div class="text-base">加载中...</div>
         </div>
 
         <!-- 错误状态 -->
-        <div v-if="error" class="error-overlay">
-          <div class="error-icon">
+        <div v-if="error" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white">
+          <div class="text-5xl text-yellow-500 mb-4">
             <i class="fas fa-exclamation-triangle"></i>
           </div>
-          <div class="error-text">图片加载失败</div>
+          <div class="text-base">图片加载失败</div>
         </div>
       </div>
 
       <!-- 底部信息 -->
-      <div v-if="showInfo" class="image-preview-info">
-        <div class="info-item">
-          <span class="info-label">尺寸:</span>
-          <span class="info-value">{{ imageSize }}</span>
+      <div v-if="showInfo" class="flex justify-center gap-6 p-3 bg-black/70 text-white flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-gray-300 text-sm">尺寸:</span>
+          <span class="text-white text-sm font-medium">{{ imageSize }}</span>
         </div>
-        <div class="info-item">
-          <span class="info-label">缩放:</span>
-          <span class="info-value">{{ Math.round(scale * 100) }}%</span>
+        <div class="flex items-center gap-2">
+          <span class="text-gray-300 text-sm">缩放:</span>
+          <span class="text-white text-sm font-medium">{{ Math.round(scale * 100) }}%</span>
         </div>
       </div>
     </div>
@@ -405,55 +405,7 @@ const preventDefault = (e) => {
 </script>
 
 <style scoped>
-.image-preview-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  flex-direction: column;
-  z-index: 200;
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-}
-
-.image-preview-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  cursor: default;
-}
-
-.image-preview-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  flex-shrink: 0;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-}
-
-.image-info {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.toolbar-right {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
+/* 工具栏按钮样式 */
 .toolbar-btn {
   background: rgba(255, 255, 255, 0.1);
   color: white;
@@ -478,24 +430,7 @@ const preventDefault = (e) => {
   background: rgba(220, 53, 69, 0.8);
 }
 
-.zoom-info {
-  color: #ccc;
-  font-size: 14px;
-  min-width: 50px;
-  text-align: center;
-}
-
-.image-preview-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  width: 100vw;
-  cursor: move;
-}
-
+/* 图片样式 */
 .preview-image {
   max-width: none;
   max-height: none;
@@ -503,84 +438,12 @@ const preventDefault = (e) => {
   cursor: move;
 }
 
-.loading-overlay,
-.error-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: white;
-}
-
-.loading-spinner {
-  font-size: 32px;
-  margin-bottom: 16px;
-}
-
-.loading-text,
-.error-text {
-  font-size: 16px;
-}
-
-.error-icon {
-  font-size: 48px;
-  color: #ffc107;
-  margin-bottom: 16px;
-}
-
-.image-preview-info {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  padding: 12px 20px;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  flex-shrink: 0;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.info-label {
-  color: #ccc;
-  font-size: 14px;
-}
-
-.info-value {
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-}
-
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .image-preview-toolbar {
-    padding: 12px 16px;
-  }
-  
   .toolbar-btn {
     width: 32px;
     height: 32px;
     font-size: 12px;
-  }
-  
-  .image-info {
-    font-size: 14px;
-  }
-  
-  .zoom-info {
-    font-size: 12px;
-    min-width: 40px;
-  }
-  
-  .image-preview-content {
-    cursor: default;
-    -webkit-overflow-scrolling: touch;
-    touch-action: none;
   }
   
   .preview-image {
@@ -589,16 +452,6 @@ const preventDefault = (e) => {
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
-  }
-  
-  .image-preview-info {
-    padding: 8px 16px;
-    gap: 16px;
-  }
-  
-  .info-label,
-  .info-value {
-    font-size: 12px;
   }
 }
 
@@ -609,11 +462,6 @@ const preventDefault = (e) => {
     height: 40px;
   }
   
-  .image-preview-content {
-    touch-action: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  
   .preview-image {
     touch-action: none;
     -webkit-user-drag: none;
@@ -622,18 +470,6 @@ const preventDefault = (e) => {
 }
 
 /* 暗色模式样式 */
-.dark .image-preview-overlay {
-  background: rgba(0, 0, 0, 0.95);
-}
-
-.dark .image-preview-toolbar {
-  background: rgba(15, 23, 42, 0.9);
-}
-
-.dark .image-info {
-  color: #f1f5f9;
-}
-
 .dark .toolbar-btn {
   background: rgba(100, 116, 139, 0.3);
   color: #f1f5f9;
@@ -645,31 +481,5 @@ const preventDefault = (e) => {
 
 .dark .close-btn:hover {
   background: rgba(239, 68, 68, 0.8);
-}
-
-.dark .zoom-info {
-  color: #cbd5e1;
-}
-
-.dark .loading-overlay,
-.dark .error-overlay {
-  color: #f1f5f9;
-}
-
-.dark .error-icon {
-  color: #f59e0b;
-}
-
-.dark .image-preview-info {
-  background: rgba(15, 23, 42, 0.9);
-  color: #f1f5f9;
-}
-
-.dark .info-label {
-  color: #cbd5e1;
-}
-
-.dark .info-value {
-  color: #f1f5f9;
 }
 </style> 

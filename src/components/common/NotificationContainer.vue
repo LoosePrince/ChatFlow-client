@@ -1,37 +1,36 @@
 <!-- 通知容器组件 -->
 <template>
-  <div class="notification-container">
+  <div class="fixed top-5 right-5 z-50 pointer-events-none sm:top-5 sm:right-5 sm:left-5">
     <transition-group 
       name="notification" 
       tag="div" 
-      class="notifications-wrapper"
+      class="flex flex-col gap-2.5 max-w-sm sm:max-w-none"
     >
       <div
         v-for="notification in notifications"
         :key="notification.id"
         :class="[
-          'notification',
-          `notification-${notification.type}`,
-          'notification-dismissible',
-          { 'notification-paused': pausedNotifications.has(notification.id) }
+          'pointer-events-auto bg-white dark:bg-secondary-800 rounded-lg shadow-lg border-l-4 relative overflow-hidden cursor-pointer transition-all duration-300 min-w-[300px] max-w-sm sm:min-w-0 sm:max-w-none hover:-translate-x-1 hover:shadow-xl',
+          pausedNotifications.has(notification.id) ? 'shadow-2xl dark:shadow-2xl' : '',
+          getBorderColor(notification.type)
         ]"
         @click="dismiss(notification.id)"
         @mouseenter="pauseTimer(notification.id)"
         @mouseleave="resumeTimer(notification.id)"
       >
-        <div class="notification-content">
-          <i :class="getIcon(notification.type)" class="notification-icon"></i>
-          <div class="notification-message">
-            <div class="notification-title" v-if="notification.title">
+        <div class="flex items-start p-4 gap-3">
+          <i :class="[getIcon(notification.type), 'text-xl mt-0.5 flex-shrink-0', getIconColor(notification.type)]"></i>
+          <div class="flex-1 min-w-0">
+            <div v-if="notification.title" class="font-semibold mb-1 text-gray-900 dark:text-secondary-100 text-sm">
               {{ notification.title }}
             </div>
-            <div class="notification-text">
+            <div class="text-gray-600 dark:text-secondary-300 text-sm leading-relaxed break-words">
               {{ notification.message }}
             </div>
           </div>
           <button
             @click.stop="dismiss(notification.id)"
-            class="notification-close"
+            class="bg-transparent border-none text-gray-500 dark:text-secondary-400 cursor-pointer p-1 rounded transition-all duration-200 flex-shrink-0 hover:bg-gray-100 dark:hover:bg-secondary-700 hover:text-gray-700 dark:hover:text-secondary-100"
             aria-label="关闭通知"
           >
             <i class="fas fa-times"></i>
@@ -40,8 +39,8 @@
         <div 
           v-if="notification.duration && notification.duration > 0 && !notification.persistent"
           :class="[
-            'notification-progress',
-            { 'notification-progress-paused': pausedNotifications.has(notification.id) }
+            'absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-500 to-blue-700 animate-progress-shrink origin-left transition-opacity duration-200',
+            pausedNotifications.has(notification.id) ? 'animate-pause opacity-60' : ''
           ]"
           :style="{ animationDuration: `${notification.duration}ms` }"
         ></div>
@@ -80,6 +79,28 @@ const getIcon = (type) => {
     info: 'fas fa-info-circle'
   }
   return icons[type] || icons.info
+}
+
+// 获取图标颜色
+const getIconColor = (type) => {
+  const colors = {
+    success: 'text-green-500',
+    error: 'text-red-500',
+    warning: 'text-yellow-500',
+    info: 'text-blue-500'
+  }
+  return colors[type] || colors.info
+}
+
+// 获取边框颜色
+const getBorderColor = (type) => {
+  const colors = {
+    success: 'border-green-500',
+    error: 'border-red-500',
+    warning: 'border-yellow-500',
+    info: 'border-blue-500'
+  }
+  return colors[type] || colors.info
 }
 
 // 添加通知（保留用于向后兼容）
@@ -235,144 +256,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.notification-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 999;
-  pointer-events: none;
-}
-
-.notifications-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 400px;
-}
-
-.notification {
-  pointer-events: auto;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-left: 4px solid;
-  min-width: 300px;
-  max-width: 400px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.notification:hover {
-  transform: translateX(-5px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.notification-success {
-  border-left-color: #28a745;
-}
-
-.notification-error {
-  border-left-color: #dc3545;
-}
-
-.notification-warning {
-  border-left-color: #ffc107;
-}
-
-.notification-info {
-  border-left-color: #17a2b8;
-}
-
-.notification-content {
-  display: flex;
-  align-items: flex-start;
-  padding: 16px;
-  gap: 12px;
-}
-
-.notification-icon {
-  font-size: 20px;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.notification-success .notification-icon {
-  color: #28a745;
-}
-
-.notification-error .notification-icon {
-  color: #dc3545;
-}
-
-.notification-warning .notification-icon {
-  color: #ffc107;
-}
-
-.notification-info .notification-icon {
-  color: #17a2b8;
-}
-
-.notification-message {
-  flex: 1;
-  min-width: 0;
-}
-
-.notification-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #212529;
-  font-size: 14px;
-}
-
-.notification-text {
-  color: #6c757d;
-  font-size: 13px;
-  line-height: 1.4;
-  word-wrap: break-word;
-}
-
-.notification-close {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.notification-close:hover {
-  background: #f8f9fa;
-  color: #495057;
-}
-
-.notification-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #007bff, #0056b3);
-  animation: progress-shrink linear;
-  transform-origin: left;
-  transition: opacity 0.2s ease;
-}
-
-.notification-progress-paused {
-  animation-play-state: paused;
-  opacity: 0.6;
-}
-
-.notification-paused {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-}
-
-.dark .notification-paused {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-}
-
+/* 进度条动画 */
 @keyframes progress-shrink {
   from {
     transform: scaleX(1);
@@ -382,7 +266,15 @@ onUnmounted(() => {
   }
 }
 
-/* 动画效果 */
+.animate-progress-shrink {
+  animation: progress-shrink linear;
+}
+
+.animate-pause {
+  animation-play-state: paused;
+}
+
+/* 通知动画效果 */
 .notification-enter-active {
   transition: all 0.3s ease;
 }
@@ -399,50 +291,5 @@ onUnmounted(() => {
 .notification-leave-to {
   opacity: 0;
   transform: translateX(100%);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .notification-container {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-  }
-  
-  .notifications-wrapper {
-    max-width: none;
-  }
-  
-  .notification {
-    min-width: auto;
-    max-width: none;
-  }
-}
-
-/* 暗色模式样式 */
-.dark .notification {
-  background: #1e293b;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.dark .notification:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-
-.dark .notification-title {
-  color: #f1f5f9;
-}
-
-.dark .notification-text {
-  color: #cbd5e1;
-}
-
-.dark .notification-close {
-  color: #94a3b8;
-}
-
-.dark .notification-close:hover {
-  background: #334155;
-  color: #f1f5f9;
 }
 </style> 

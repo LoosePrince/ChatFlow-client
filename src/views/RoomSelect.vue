@@ -1,41 +1,43 @@
 <template>
-  <div class="room-select-container">
-    <div class="room-select-content">
-      <div class="header">
-        <button @click="goBack" class="back-button">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 flex items-center justify-center">
+    <div class="w-full max-w-4xl">
+      <div class="flex items-center gap-4 mb-8">
+        <button @click="goBack" class="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border border-gray-200 dark:border-gray-700 px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 transition-all duration-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700">
           <i class="fas fa-arrow-left"></i>
           返回
         </button>
-        <h1 class="title">选择聊天室</h1>
+        <h1 class="text-gray-800 dark:text-gray-100 text-4xl font-bold m-0">选择聊天室</h1>
       </div>
 
-      <div class="options-grid">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <!-- 加入聊天室 -->
-        <div class="option-card">
-          <div class="card-header">
-            <i class="fas fa-sign-in-alt"></i>
-            <h2>加入聊天室</h2>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm transition-all duration-200 hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600">
+          <div class="text-center mb-6">
+            <i class="fas fa-sign-in-alt text-5xl text-blue-600 dark:text-blue-400 mb-3 block"></i>
+            <h2 class="text-gray-800 dark:text-gray-100 m-0 text-2xl font-semibold">加入聊天室</h2>
           </div>
-          <form @submit.prevent="joinRoom" class="option-form">
-            <div class="form-group">
-              <label>聊天室ID</label>
+          <form @submit.prevent="joinRoom" class="space-y-4">
+            <div>
+              <label class="block text-gray-700 dark:text-gray-100 font-medium mb-2 text-sm">聊天室ID</label>
               <input
                 v-model="joinForm.roomId"
                 type="text"
                 placeholder="请输入8位16进制ID"
                 maxlength="8"
                 required
+                class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all duration-200 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-3 focus:ring-blue-500/10 dark:focus:ring-blue-400/10 placeholder-gray-400 dark:placeholder-gray-500"
               >
             </div>
-            <div class="form-group">
-              <label>密码（可选）</label>
+            <div>
+              <label class="block text-gray-700 dark:text-gray-100 font-medium mb-2 text-sm">密码（可选）</label>
               <input
                 v-model="joinForm.password"
                 type="password"
                 placeholder="如果房间有密码请输入"
+                class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all duration-200 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-3 focus:ring-blue-500/10 dark:focus:ring-blue-400/10 placeholder-gray-400 dark:placeholder-gray-500"
               >
             </div>
-            <button type="submit" class="action-button" :disabled="isLoading">
+            <button type="submit" class="w-full bg-blue-600 dark:bg-blue-500 text-white border-none py-3 px-4 rounded-lg text-sm font-medium cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed mt-2" :disabled="isLoading">
               <i class="fas fa-sign-in-alt" :class="{ 'fa-spin': isLoading }"></i>
               {{ isLoading ? '加入中...' : '加入房间' }}
             </button>
@@ -43,31 +45,33 @@
         </div>
 
         <!-- 创建聊天室 -->
-        <div class="option-card" v-if="!isAnonymous">
-          <div class="card-header">
-            <i class="fas fa-plus"></i>
-            <h2>创建聊天室</h2>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm transition-all duration-200 hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600" v-if="!isAnonymous">
+          <div class="text-center mb-6">
+            <i class="fas fa-plus text-5xl text-blue-600 dark:text-blue-400 mb-3 block"></i>
+            <h2 class="text-gray-800 dark:text-gray-100 m-0 text-2xl font-semibold">创建聊天室</h2>
           </div>
-          <form @submit.prevent="createRoom" class="option-form">
-            <div class="form-group">
-              <label>房间名称</label>
+          <form @submit.prevent="createRoom" class="space-y-4">
+            <div>
+              <label class="block text-gray-700 dark:text-gray-100 font-medium mb-2 text-sm">房间名称</label>
               <input
                 v-model="createForm.name"
                 type="text"
                 placeholder="请输入房间名称"
                 maxlength="50"
                 required
+                class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all duration-200 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-3 focus:ring-blue-500/10 dark:focus:ring-blue-400/10 placeholder-gray-400 dark:placeholder-gray-500"
               >
             </div>
-            <div class="form-group">
-              <label>设置密码（可选）</label>
+            <div>
+              <label class="block text-gray-700 dark:text-gray-100 font-medium mb-2 text-sm">设置密码（可选）</label>
               <input
                 v-model="createForm.password"
                 type="password"
                 placeholder="留空表示公开房间"
+                class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 transition-all duration-200 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-3 focus:ring-blue-500/10 dark:focus:ring-blue-400/10 placeholder-gray-400 dark:placeholder-gray-500"
               >
             </div>
-            <button type="submit" class="action-button" :disabled="isLoading">
+            <button type="submit" class="w-full bg-blue-600 dark:bg-blue-500 text-white border-none py-3 px-4 rounded-lg text-sm font-medium cursor-pointer flex items-center justify-center gap-2 transition-all duration-200 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed mt-2" :disabled="isLoading">
               <i class="fas fa-plus" :class="{ 'fa-spin': isLoading }"></i>
               {{ isLoading ? '创建中...' : '创建房间' }}
             </button>
@@ -76,9 +80,9 @@
       </div>
 
       <!-- 匿名用户提示 -->
-      <div v-if="isAnonymous" class="anonymous-notice">
-        <i class="fas fa-info-circle"></i>
-        <p>匿名用户只能加入现有聊天室，无法创建新房间</p>
+      <div v-if="isAnonymous" class="bg-white dark:bg-gray-800 border border-yellow-400 dark:border-yellow-500 rounded-lg p-4 text-yellow-800 dark:text-yellow-200 text-center shadow-sm">
+        <i class="fas fa-info-circle text-2xl mb-2 block text-yellow-600 dark:text-yellow-400"></i>
+        <p class="m-0">匿名用户只能加入现有聊天室，无法创建新房间</p>
       </div>
     </div>
   </div>
@@ -228,307 +232,78 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.room-select-container {
-  min-height: 100vh;
-  background: #f8fafc;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dark .room-select-container {
-  background: #1e293b;
-}
-
-.room-select-content {
-  width: 100%;
-  max-width: 800px;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.back-button {
-  background: white;
-  color: #1976d2;
-  border: 1px solid #e2e8f0;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.back-button:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.dark .back-button {
-  background: #0f172a;
-  color: #60a5fa;
-  border-color: #334155;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.dark .back-button:hover {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-.title {
-  color: #1f2937;
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.dark .title {
-  color: #f1f5f9;
-}
-
-.options-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.option-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.option-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #cbd5e1;
-}
-
-.dark .option-card {
-  background: #0f172a;
-  border: 1px solid #334155;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.dark .option-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  border-color: #475569;
-}
-
-.card-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.card-header i {
-  font-size: 2.5rem;
-  color: #1976d2;
-  margin-bottom: 0.75rem;
-  display: block;
-}
-
-.dark .card-header i {
-  color: #60a5fa;
-}
-
-.card-header h2 {
-  color: #1f2937;
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.dark .card-header h2 {
-  color: #f1f5f9;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  color: #374151;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.dark .form-group label {
-  color: #f1f5f9;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  background: white;
-  color: #1f2937;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-.form-group input:focus {
-  outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
-}
-
-.dark .form-group input {
-  background: #1e293b;
-  border: 1px solid #475569;
-  color: #f1f5f9;
-}
-
-.dark .form-group input::placeholder {
-  color: #6b7280;
-}
-
-.dark .form-group input:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
-}
-
-.action-button {
-  width: 100%;
-  background: #1976d2;
-  color: white;
-  border: none;
-  padding: 0.875rem 1rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-  margin-top: 0.5rem;
-}
-
-.action-button:hover:not(:disabled) {
-  background: #1565c0;
-}
-
-.action-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-
-.dark .action-button {
-  background: #3b82f6;
-}
-
-.dark .action-button:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.dark .action-button:disabled {
-  background: #4b5563;
-}
-
-.anonymous-notice {
-  background: white;
-  border: 1px solid #fbbf24;
-  border-radius: 8px;
-  padding: 1rem;
-  color: #92400e;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.anonymous-notice i {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-  display: block;
-  color: #f59e0b;
-}
-
-.dark .anonymous-notice {
-  background: #0f172a;
-  border-color: #f59e0b;
-  color: #fbbf24;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.dark .anonymous-notice i {
-  color: #fbbf24;
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .room-select-container {
+  .min-h-screen {
+    min-height: 100vh;
+  }
+  
+  .p-4 {
     padding: 1rem;
+  }
+  
+  .flex.items-center.justify-center {
     align-items: flex-start;
     padding-top: 2rem;
   }
   
-  .options-grid {
+  .grid.grid-cols-1.lg\\:grid-cols-2 {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
   
-  .title {
+  .text-4xl {
     font-size: 1.5rem;
   }
   
-  .header {
+  .mb-8 {
     margin-bottom: 1.5rem;
   }
   
-  .option-card {
+  .p-6 {
     padding: 1rem;
   }
   
-  .card-header {
+  .text-center.mb-6 {
     margin-bottom: 1rem;
   }
   
-  .card-header i {
+  .text-5xl {
     font-size: 2rem;
+  }
+  
+  .mb-3 {
     margin-bottom: 0.5rem;
   }
   
-  .card-header h2 {
+  .text-2xl {
     font-size: 1.25rem;
   }
 }
 
 @media (max-width: 480px) {
-  .header {
+  .flex.items-center.gap-4 {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
   
-  .back-button {
+  .bg-white.dark\\:bg-gray-800 {
     align-self: flex-start;
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
   }
   
-  .title {
+  .text-4xl.font-bold {
     font-size: 1.25rem;
     align-self: center;
   }
   
-  .room-select-container {
+  .p-4 {
     padding: 0.75rem;
+  }
+  
+  .flex.items-center.justify-center {
     padding-top: 1.5rem;
   }
 }

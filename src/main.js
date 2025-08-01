@@ -6,7 +6,6 @@ import axios from 'axios'
 
 // 引入样式
 import './style.css'
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
 // 引入CORS配置
 import { corsConfig, getCorsHeaders } from './config/cors.js'

@@ -1,44 +1,47 @@
 <template>
   <!-- 禁言时间选择弹窗 -->
-  <div v-if="visible" class="confirm-dialog-overlay" @click="$emit('cancel')">
-    <div class="confirm-dialog mute-dialog" @click.stop>
-      <div class="dialog-header">
-        <h3>禁言用户</h3>
+  <div v-if="visible" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in" @click="$emit('cancel')">
+    <div class="bg-white dark:bg-secondary-800 rounded-xl shadow-2xl max-w-[480px] w-[90%] max-h-[80vh] overflow-hidden animate-slide-in" @click.stop>
+      <div class="px-5 pt-5 text-center">
+        <h3 class="m-0 text-gray-900 dark:text-secondary-100 text-lg">禁言用户</h3>
       </div>
-      <div class="dialog-content">
-        <div class="mute-user-info">
+      <div class="p-5 text-center">
+        <div class="flex items-center gap-3 mb-5 p-3 bg-gray-50 dark:bg-secondary-700 rounded-lg">
           <img 
             :src="targetUser?.avatarUrl" 
             :alt="targetUser?.nickname"
-            class="mute-user-avatar"
+            class="w-12 h-12 rounded-full object-cover"
           >
-          <div class="mute-user-details">
-            <div class="mute-user-name">{{ targetUser?.nickname }}</div>
-            <div class="mute-user-uid">{{ targetUser?.uid }}</div>
+          <div class="flex-1">
+            <div class="font-semibold text-gray-900 dark:text-secondary-100 text-base mb-1">{{ targetUser?.nickname }}</div>
+            <div class="text-sm text-gray-600 dark:text-secondary-400">{{ targetUser?.uid }}</div>
           </div>
         </div>
         <div class="mute-time-selection">
-          <p>选择禁言时长：</p>
-          <div class="mute-time-options">
+          <p class="m-0 mb-3 text-gray-900 dark:text-secondary-100 font-medium">选择禁言时长：</p>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-2">
             <label 
               v-for="option in muteTimeOptions" 
               :key="option.value"
-              class="mute-time-option"
+              class="flex items-center gap-2 p-2 px-3 border border-gray-200 dark:border-secondary-600 rounded-md cursor-pointer transition-all duration-200 bg-white dark:bg-secondary-700 hover:border-primary-600 dark:hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
             >
               <input 
                 type="radio" 
                 :value="option.value" 
                 v-model="selectedTime"
                 name="muteTime"
+                class="m-0"
               >
-              <span>{{ option.label }}</span>
+              <span class="text-sm text-gray-900 dark:text-secondary-100">{{ option.label }}</span>
             </label>
           </div>
         </div>
       </div>
-      <div class="dialog-actions">
-        <button @click="$emit('cancel')" class="cancel-button">取消</button>
-        <button @click="$emit('confirm', selectedTime)" class="confirm-button danger">
+      <div class="px-5 pb-5 flex gap-3 justify-center">
+        <button @click="$emit('cancel')" class="px-5 py-2.5 border-none rounded-md cursor-pointer text-sm font-medium transition-all duration-200 bg-gray-100 dark:bg-secondary-600 text-gray-600 dark:text-secondary-100 hover:bg-gray-200 dark:hover:bg-secondary-500 hover:text-gray-700 dark:hover:text-white">
+          取消
+        </button>
+        <button @click="$emit('confirm', selectedTime)" class="px-5 py-2.5 border-none rounded-md cursor-pointer text-sm font-medium transition-all duration-200 bg-red-500 dark:bg-red-600 text-white hover:bg-red-600 dark:hover:bg-red-700">
           确认禁言
         </button>
       </div>
@@ -85,24 +88,8 @@ defineEmits(['cancel', 'confirm'])
 </script>
 
 <style scoped>
-/* 确认对话框 */
-.confirm-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  animation: overlayFadeIn 0.2s ease-out;
-}
-
-@keyframes overlayFadeIn {
+/* 动画效果 */
+@keyframes fade-in {
   from {
     opacity: 0;
   }
@@ -111,7 +98,7 @@ defineEmits(['cancel', 'confirm'])
   }
 }
 
-@keyframes dialogSlideIn {
+@keyframes slide-in {
   from {
     opacity: 0;
     transform: scale(0.9) translateY(-20px);
@@ -122,159 +109,27 @@ defineEmits(['cancel', 'confirm'])
   }
 }
 
-.confirm-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 400px;
-  width: 90%;
-  max-height: 80vh;
-  overflow: hidden;
-  animation: dialogSlideIn 0.3s ease-out;
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
 
-.mute-dialog {
-  max-width: 480px;
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
 }
 
-.dialog-header {
-  padding: 20px 20px 0;
-  text-align: center;
-}
-
-.dialog-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 18px;
-}
-
-.dialog-content {
-  padding: 20px;
-  text-align: center;
-}
-
-.mute-user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.mute-user-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.mute-user-details {
-  flex: 1;
-}
-
-.mute-user-name {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 16px;
-  margin-bottom: 4px;
-}
-
-.mute-user-uid {
-  font-size: 14px;
-  color: #6c757d;
-}
-
-.mute-time-selection p {
-  margin: 0 0 12px 0;
-  color: #2c3e50;
-  font-weight: 500;
-}
-
-.mute-time-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.mute-time-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.mute-time-option:hover {
-  border-color: #1976d2;
-  background: #f3f8ff;
-}
-
-.mute-time-option input[type="radio"] {
-  margin: 0;
-}
-
-.mute-time-option input[type="radio"]:checked + span {
+/* 单选按钮选中状态样式 */
+.mute-time-selection input[type="radio"]:checked + span {
   color: #1976d2;
   font-weight: 500;
 }
 
-.mute-time-option span {
-  font-size: 14px;
-  color: #2c3e50;
+.dark .mute-time-selection input[type="radio"]:checked + span {
+  color: #60a5fa;
 }
 
-.dialog-actions {
-  padding: 0 20px 20px;
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.cancel-button,
-.confirm-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.cancel-button {
-  background: #f8f9fa;
-  color: #6c757d;
-}
-
-.cancel-button:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.confirm-button {
-  background: #1976d2;
-  color: white;
-}
-
-.confirm-button:hover {
-  background: #1565c0;
-}
-
-.confirm-button.danger {
-  background: #dc3545;
-}
-
-.confirm-button.danger:hover {
-  background: #c82333;
-}
-
+/* 移动端适配 */
 @media (max-width: 480px) {
-  .mute-time-options {
+  .mute-time-selection .grid {
     grid-template-columns: 1fr;
   }
   
@@ -282,78 +137,5 @@ defineEmits(['cancel', 'confirm'])
     margin: 20px;
     width: calc(100% - 40px);
   }
-}
-
-/* 暗色模式样式 */
-.dark .confirm-dialog-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.dark .confirm-dialog {
-  background: #1e293b;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.dark .dialog-header h3 {
-  color: #f1f5f9;
-}
-
-.dark .mute-user-info {
-  background: #334155;
-}
-
-.dark .mute-user-name {
-  color: #f1f5f9;
-}
-
-.dark .mute-user-uid {
-  color: #94a3b8;
-}
-
-.dark .mute-time-selection p {
-  color: #f1f5f9;
-}
-
-.dark .mute-time-option {
-  border: 1px solid #475569;
-  background: #334155;
-}
-
-.dark .mute-time-option:hover {
-  border-color: #60a5fa;
-  background: #1e293b;
-}
-
-.dark .mute-time-option span {
-  color: #f1f5f9;
-}
-
-.dark .mute-time-option input[type="radio"]:checked + span {
-  color: #60a5fa;
-}
-
-.dark .cancel-button {
-  background: #64748b;
-  color: #f1f5f9;
-}
-
-.dark .cancel-button:hover {
-  background: #475569;
-}
-
-.dark .confirm-button {
-  background: #3b82f6;
-}
-
-.dark .confirm-button:hover {
-  background: #2563eb;
-}
-
-.dark .confirm-button.danger {
-  background: #ef4444;
-}
-
-.dark .confirm-button.danger:hover {
-  background: #dc2626;
 }
 </style> 

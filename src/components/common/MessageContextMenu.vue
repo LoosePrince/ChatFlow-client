@@ -2,28 +2,48 @@
   <!-- 消息右键菜单 -->
   <div 
     v-if="visible" 
-    class="message-context-menu" 
+    class="fixed bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-xl z-50 min-w-[150px] overflow-hidden backdrop-blur-md animate-context-menu-fade-in"
     :style="{ left: adjustedPosition.x + 'px', top: adjustedPosition.y + 'px' }"
     @click.stop
   >
-    <div class="message-context-menu-items">
+    <div class="py-2">
       <!-- 回复消息 -->
       <div 
-        class="message-context-menu-item"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
         @click="$emit('reply', targetMessage)"
       >
-        <i class="fas fa-reply"></i>
+        <i class="fas fa-reply w-3.5 text-center text-xs"></i>
         <span>回复</span>
       </div>
       
       <!-- 删除消息 (仅管理员或创建者可见) -->
       <div 
         v-if="canDelete"
-        class="message-context-menu-item danger"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-300"
         @click="$emit('delete', targetMessage)"
       >
-        <i class="fas fa-trash-alt"></i>
+        <i class="fas fa-trash-alt w-3.5 text-center text-xs"></i>
         <span>删除消息</span>
+      </div>
+      
+      <!-- 私聊 (仅对他人消息显示) -->
+      <div 
+        v-if="!isOwnMessage"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+        @click="$emit('privateChat', targetMessage)"
+      >
+        <i class="fas fa-envelope w-3.5 text-center text-xs"></i>
+        <span>私聊</span>
+      </div>
+      
+      <!-- 拉黑/解除拉黑 (仅对他人消息显示) -->
+      <div 
+        v-if="!isOwnMessage"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+        @click="$emit('block', targetMessage)"
+      >
+        <i :class="isBlocked ? 'fas fa-user-check' : 'fas fa-user-slash'" class="w-3.5 text-center text-xs"></i>
+        <span>{{ isBlocked ? '解除拉黑' : '拉黑' }}</span>
       </div>
     </div>
   </div>
@@ -31,7 +51,7 @@
   <!-- 全局点击遮罩，用于关闭右键菜单 -->
   <div 
     v-if="visible" 
-    class="message-context-menu-overlay"
+    class="fixed inset-0 z-40"
     @click="$emit('close')"
   ></div>
 </template>
@@ -68,10 +88,20 @@ const props = defineProps({
   isCreator: {
     type: Boolean,
     default: false
+  },
+  isBlocked: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['close', 'reply', 'delete'])
+defineEmits(['close', 'reply', 'delete', 'privateChat', 'block'])
+
+// 计算是否是自己的消息
+const isOwnMessage = computed(() => {
+  return props.targetMessage && props.currentUser && 
+         props.targetMessage.userUid === props.currentUser.uid
+})
 
 // 计算是否可以删除消息
 const canDelete = computed(() => {
@@ -81,8 +111,7 @@ const canDelete = computed(() => {
   }
   
   // 消息发送者可以删除自己的消息
-  if (props.targetMessage && props.currentUser && 
-      props.targetMessage.userUid === props.currentUser.uid) {
+  if (isOwnMessage.value) {
     return true
   }
   
@@ -95,6 +124,11 @@ const menuItemCount = computed(() => {
   
   if (canDelete.value) {
     count += 1 // 删除消息
+  }
+  
+  // 只有对他人的消息才显示私聊和拉黑选项
+  if (!isOwnMessage.value) {
+    count += 2 // 私聊 + 拉黑/解除拉黑
   }
   
   return count
@@ -116,30 +150,8 @@ const adjustedPosition = computed(() => {
 </script>
 
 <style scoped>
-/* 消息右键菜单样式 */
-.message-context-menu-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-}
-
-.message-context-menu {
-  position: fixed;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 150px;
-  overflow: hidden;
-  backdrop-filter: blur(8px);
-  animation: contextMenuFadeIn 0.15s ease-out;
-}
-
-@keyframes contextMenuFadeIn {
+/* 自定义动画 */
+@keyframes context-menu-fade-in {
   from {
     opacity: 0;
     transform: scale(0.95) translateY(-5px);
@@ -150,61 +162,7 @@ const adjustedPosition = computed(() => {
   }
 }
 
-.message-context-menu-items {
-  padding: 8px 0;
-}
-
-.message-context-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 13px;
-  color: #374151;
-}
-
-.message-context-menu-item:hover {
-  background: #f3f4f6;
-}
-
-.message-context-menu-item.danger {
-  color: #ef4444;
-}
-
-.message-context-menu-item.danger:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.message-context-menu-item i {
-  width: 14px;
-  text-align: center;
-  font-size: 12px;
-}
-
-/* 暗色模式样式 */
-.dark .message-context-menu {
-  background: #1f2937;
-  border-color: #374151;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-.dark .message-context-menu-item {
-  color: #f3f4f6;
-}
-
-.dark .message-context-menu-item:hover {
-  background: #374151;
-}
-
-.dark .message-context-menu-item.danger {
-  color: #f87171;
-}
-
-.dark .message-context-menu-item.danger:hover {
-  background: #3f1f1f;
-  color: #f87171;
+.animate-context-menu-fade-in {
+  animation: context-menu-fade-in 0.15s ease-out;
 }
 </style> 

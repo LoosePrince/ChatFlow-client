@@ -1,19 +1,32 @@
 <template>
-  <div v-if="visible" class="markdown-input-overlay" @click="$emit('cancel')">
-    <div class="markdown-input-dialog" @click.stop>
-      <div class="dialog-header">
-        <h3>
+  <div 
+    v-if="visible" 
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in"
+    @click="$emit('cancel')"
+  >
+    <div 
+      class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl min-w-[700px] max-w-[900px] w-[90%] max-h-[85vh] overflow-hidden animate-slide-up mx-5"
+      @click.stop
+    >
+      <!-- 对话框头部 -->
+      <div class="px-6 py-5 pb-4 border-b border-gray-200 dark:border-slate-700 bg-gradient-to-br from-gray-800 to-gray-600 dark:from-gray-700 dark:to-gray-500 text-white flex justify-between items-center">
+        <h3 class="m-0 text-lg font-semibold flex items-center gap-2.5">
           <i class="fab fa-markdown"></i>
           发送Markdown内容
         </h3>
-        <button @click="$emit('cancel')" class="close-btn">
+        <button 
+          @click="$emit('cancel')" 
+          class="bg-white/20 hover:bg-white/30 text-white border-none rounded-full w-8 h-8 cursor-pointer flex items-center justify-center transition-all duration-200 hover:scale-105"
+        >
           <i class="fas fa-times"></i>
         </button>
       </div>
       
-      <div class="dialog-content">
-        <div class="input-group">
-          <label class="input-label">
+      <!-- 对话框内容 -->
+      <div class="p-6 flex flex-col h-[calc(85vh-200px)]">
+        <!-- 标题输入组 -->
+        <div class="mb-5">
+          <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
             <i class="fas fa-heading"></i>
             标题
           </label>
@@ -22,23 +35,35 @@
             v-model="title"
             type="text"
             placeholder="为Markdown内容添加一个标题（可选）"
-            class="title-input"
+            class="w-full px-4 py-3 border-2 border-gray-200 dark:border-slate-600 rounded-lg text-sm transition-all duration-300 bg-gray-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400 focus:outline-none focus:border-gray-800 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 focus:shadow-lg focus:shadow-gray-800/10 dark:focus:shadow-blue-400/10"
             maxlength="100"
           >
-          <div class="char-count">{{ title.length }}/100</div>
+          <div class="text-right text-xs text-gray-500 dark:text-slate-400 mt-1">{{ title.length }}/100</div>
         </div>
         
-        <div class="editor-container">
-          <div class="editor-tabs">
+        <!-- 编辑器容器 -->
+        <div class="flex-1 flex flex-col border-2 border-gray-200 dark:border-slate-600 rounded-lg overflow-hidden">
+          <!-- 编辑器标签页 -->
+          <div class="flex bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-600">
             <button 
-              :class="['tab-btn', { active: activeTab === 'edit' }]"
+              :class="[
+                'flex-1 px-4 py-3 border-none bg-transparent text-gray-500 dark:text-slate-400 text-sm font-medium cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5',
+                activeTab === 'edit' 
+                  ? 'bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-b-2 border-gray-800 dark:border-blue-400' 
+                  : 'hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-gray-700 dark:hover:text-slate-300'
+              ]"
               @click="activeTab = 'edit'"
             >
               <i class="fas fa-edit"></i>
               编辑
             </button>
             <button 
-              :class="['tab-btn', { active: activeTab === 'preview' }]"
+              :class="[
+                'flex-1 px-4 py-3 border-none bg-transparent text-gray-500 dark:text-slate-400 text-sm font-medium cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5',
+                activeTab === 'preview' 
+                  ? 'bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 border-b-2 border-gray-800 dark:border-blue-400' 
+                  : 'hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-gray-700 dark:hover:text-slate-300'
+              ]"
               @click="activeTab = 'preview'"
             >
               <i class="fas fa-eye"></i>
@@ -46,18 +71,19 @@
             </button>
           </div>
           
-          <div class="editor-content">
+          <!-- 编辑器内容 -->
+          <div class="flex-1 flex flex-col">
             <!-- 编辑模式 -->
-            <div v-show="activeTab === 'edit'" class="edit-panel">
+            <div v-show="activeTab === 'edit'" class="flex-1 flex flex-col">
               <textarea
                 v-model="markdownContent"
                 placeholder="在这里输入Markdown内容..."
-                class="markdown-textarea"
+                class="flex-1 p-4 border-none outline-none font-mono text-sm leading-relaxed resize-none bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder-gray-500 dark:placeholder-slate-400"
                 @input="updatePreview"
               ></textarea>
-              <div class="editor-footer">
-                <div class="char-count">{{ markdownContent.length }}/5000</div>
-                <div class="markdown-tips">
+              <div class="flex justify-between items-center px-4 py-2 bg-gray-50 dark:bg-slate-700 border-t border-gray-200 dark:border-slate-600">
+                <div class="text-xs text-gray-500 dark:text-slate-400">{{ markdownContent.length }}/5000</div>
+                <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
                   <i class="fas fa-info-circle"></i>
                   支持标准Markdown语法
                 </div>
@@ -65,14 +91,14 @@
             </div>
             
             <!-- 预览模式 -->
-            <div v-show="activeTab === 'preview'" class="preview-panel">
-              <div v-if="!markdownContent.trim()" class="empty-preview">
-                <i class="fas fa-file-alt"></i>
+            <div v-show="activeTab === 'preview'" class="flex-1 p-4 bg-white dark:bg-slate-800 overflow-y-auto">
+              <div v-if="!markdownContent.trim()" class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-slate-400 text-center">
+                <i class="fas fa-file-alt text-5xl mb-4 opacity-50"></i>
                 <p>请先在编辑模式下输入Markdown内容</p>
               </div>
               <div 
                 v-else 
-                class="markdown-preview"
+                class="markdown-preview leading-relaxed"
                 v-html="previewHtml"
               ></div>
             </div>
@@ -80,16 +106,24 @@
         </div>
       </div>
       
-      <div class="dialog-actions">
-        <button @click="$emit('cancel')" class="cancel-btn">
+      <!-- 对话框操作按钮 -->
+      <div class="px-6 py-4 pb-5 flex gap-3 justify-end bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700">
+        <button 
+          @click="$emit('cancel')" 
+          class="px-5 py-2.5 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center gap-2 min-w-[100px] justify-center bg-gray-500 hover:bg-gray-600 text-white hover:-translate-y-px"
+        >
           <i class="fas fa-times"></i>
           取消
         </button>
         <button 
           @click="handleSubmit" 
           :disabled="!canSubmit"
-          class="submit-btn"
-          :class="{ 'loading': isSubmitting }"
+          :class="[
+            'px-5 py-2.5 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center gap-2 min-w-[100px] justify-center',
+            canSubmit 
+              ? 'bg-gray-800 hover:bg-gray-900 text-white hover:-translate-y-px' 
+              : 'bg-gray-300 dark:bg-slate-600 text-gray-500 dark:text-slate-400 cursor-not-allowed'
+          ]"
         >
           <i class="fas fa-spinner fa-spin" v-if="isSubmitting"></i>
           <i class="fas fa-paper-plane" v-else></i>
@@ -194,33 +228,17 @@ watch(() => markdownContent.value, () => {
 </script>
 
 <style scoped>
-.markdown-input-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 150;
-  backdrop-filter: blur(3px);
+/* 自定义动画 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.markdown-input-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
-  min-width: 700px;
-  max-width: 900px;
-  width: 90%;
-  max-height: 85vh;
-  overflow: hidden;
-  animation: dialogFadeIn 0.3s ease-out;
-}
-
-@keyframes dialogFadeIn {
+@keyframes slide-up {
   from {
     opacity: 0;
     transform: scale(0.9) translateY(-20px);
@@ -231,196 +249,12 @@ watch(() => markdownContent.value, () => {
   }
 }
 
-.dialog-header {
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #333 0%, #555 100%);
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
 
-.dialog-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.close-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
-}
-
-.dialog-content {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  height: calc(85vh - 200px);
-}
-
-.input-group {
-  margin-bottom: 20px;
-}
-
-.input-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 8px;
-}
-
-.title-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px !important;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  background: #f8f9fa;
-}
-
-.title-input:focus {
-  outline: none;
-  border-color: #333;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.1);
-}
-
-.char-count {
-  text-align: right;
-  font-size: 12px;
-  color: #6c757d;
-  margin-top: 4px;
-}
-
-.editor-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.editor-tabs {
-  display: flex;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
-  color: #6c757d;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.tab-btn.active {
-  background: white;
-  color: #333;
-  border-bottom: 2px solid #333;
-}
-
-.tab-btn:hover {
-  background: rgba(51, 51, 51, 0.05);
-}
-
-.editor-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.edit-panel,
-.preview-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.markdown-textarea {
-  flex: 1;
-  padding: 16px;
-  border: none;
-  outline: none;
-  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  resize: none;
-  background: white;
-}
-
-.editor-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  background: #f8f9fa;
-  border-top: 1px solid #e9ecef;
-}
-
-.markdown-tips {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.preview-panel {
-  padding: 16px;
-  background: white;
-  overflow-y: auto;
-}
-
-.empty-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #6c757d;
-  text-align: center;
-}
-
-.empty-preview i {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.markdown-preview {
-  line-height: 1.6;
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
 }
 
 /* Markdown预览样式 */
@@ -506,197 +340,6 @@ watch(() => markdownContent.value, () => {
   font-weight: 600;
 }
 
-.dialog-actions {
-  padding: 16px 24px 20px;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  background: #f8f9fa;
-  border-top: 1px solid #e9ecef;
-}
-
-.cancel-btn,
-.submit-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 100px;
-  justify-content: center;
-}
-
-.cancel-btn {
-  background: #6c757d;
-  color: white;
-}
-
-.cancel-btn:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-.submit-btn {
-  background: #333;
-  color: white;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background: #222;
-  transform: translateY(-1px);
-}
-
-.submit-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.submit-btn.loading {
-  background: #6c757d;
-}
-
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .markdown-input-dialog {
-    margin: 10px;
-    width: calc(100% - 20px);
-    min-width: auto;
-    max-height: 95vh;
-  }
-  
-  .dialog-header,
-  .dialog-content,
-  .dialog-actions {
-    padding: 16px 20px;
-  }
-  
-  .dialog-content {
-    height: calc(95vh - 180px);
-  }
-  
-  .dialog-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .cancel-btn,
-  .submit-btn {
-    width: 100%;
-  }
-  
-  .markdown-textarea {
-    font-size: 16px; /* 防止iOS缩放 */
-  }
-}
-
-/* 暗色模式样式 */
-.dark .markdown-input-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.dark .markdown-input-dialog {
-  background: #1e293b;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
-}
-
-.dark .dialog-header {
-  background: linear-gradient(135deg, #333 0%, #444 100%);
-  border-bottom: 1px solid #475569;
-}
-
-.dark .close-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.dark .close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.dark .dialog-content {
-  background: #1e293b;
-}
-
-.dark .input-label {
-  color: #f1f5f9;
-}
-
-.dark .title-input,
-.dark .markdown-textarea {
-  background: #334155;
-  border: 2px solid #475569;
-  color: #f1f5f9;
-}
-
-.dark .title-input::placeholder,
-.dark .markdown-textarea::placeholder {
-  color: #94a3b8;
-}
-
-.dark .title-input:focus {
-  background: #1e293b;
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
-}
-
-.dark .markdown-textarea:focus {
-  background: #1e293b;
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
-}
-
-.dark .char-count {
-  color: #94a3b8;
-}
-
-.dark .editor-container {
-  border: 2px solid #475569;
-}
-
-.dark .editor-tabs {
-  background: #334155;
-  border-bottom: 1px solid #475569;
-}
-
-.dark .tab-btn {
-  background: transparent;
-  color: #94a3b8;
-}
-
-.dark .tab-btn.active {
-  background: #1e293b;
-  color: #f1f5f9;
-  border-bottom: 2px solid #60a5fa;
-}
-
-.dark .tab-btn:hover {
-  background: rgba(96, 165, 250, 0.1);
-  color: #f1f5f9;
-}
-
-.dark .editor-footer {
-  background: #334155;
-  border-top: 1px solid #475569;
-}
-
-.dark .markdown-tips {
-  color: #94a3b8;
-}
-
-.dark .preview-panel {
-  background: #1e293b;
-}
-
-.dark .empty-preview {
-  color: #94a3b8;
-}
-
 /* 暗色模式Markdown预览样式 */
 .dark .markdown-preview :deep(h1),
 .dark .markdown-preview :deep(h2),
@@ -744,29 +387,52 @@ watch(() => markdownContent.value, () => {
   background: #334155;
 }
 
-.dark .dialog-actions {
-  background: #0f172a;
-  border-top: 1px solid #475569;
-}
-
-.dark .cancel-btn {
-  background: #64748b;
-}
-
-.dark .cancel-btn:hover {
-  background: #475569;
-}
-
-.dark .submit-btn {
-  background: #333;
-}
-
-.dark .submit-btn:hover:not(:disabled) {
-  background: #222;
-}
-
-.dark .submit-btn:disabled,
-.dark .submit-btn.loading {
-  background: #64748b;
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .min-w-\[700px\] {
+    margin: 10px;
+    width: calc(100% - 20px);
+    min-width: auto;
+    max-height: 95vh;
+  }
+  
+  .px-6 {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .py-5 {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  
+  .pb-4 {
+    padding-bottom: 16px;
+  }
+  
+  .p-6 {
+    padding: 16px 20px;
+  }
+  
+  .pb-5 {
+    padding-bottom: 20px;
+  }
+  
+  .h-\[calc\(85vh-200px\)\] {
+    height: calc(95vh - 180px);
+  }
+  
+  .flex.gap-3.justify-end {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .min-w-\[100px\] {
+    width: 100%;
+  }
+  
+  .text-sm {
+    font-size: 16px; /* 防止iOS缩放 */
+  }
 }
 </style> 

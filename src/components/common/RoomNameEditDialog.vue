@@ -1,20 +1,20 @@
 <template>
-  <div v-if="visible" class="room-name-edit-overlay" @click="$emit('cancel')">
-    <div class="room-name-edit-dialog" @click.stop>
-      <div class="dialog-header">
-        <h3>
-          <i class="fas fa-edit"></i>
+  <div v-if="visible" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in" @click="$emit('cancel')">
+    <div class="bg-white dark:bg-secondary-800 rounded-xl shadow-2xl max-w-lg w-[90%] max-h-[90vh] overflow-hidden animate-slide-in" @click.stop>
+      <div class="flex justify-between items-center p-5 pb-4 border-b border-gray-200 dark:border-secondary-600">
+        <h3 class="m-0 text-lg font-semibold text-gray-900 dark:text-secondary-100 flex items-center gap-2">
+          <i class="fas fa-edit text-blue-600 dark:text-blue-400"></i>
           修改聊天室名称
         </h3>
-        <button @click="$emit('cancel')" class="close-btn">
+        <button @click="$emit('cancel')" class="bg-transparent border-none text-gray-500 dark:text-gray-400 text-base cursor-pointer p-2 rounded-md transition-all duration-200 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-secondary-700">
           <i class="fas fa-times"></i>
         </button>
       </div>
       
-      <div class="dialog-content">
-        <div class="input-group">
-          <label class="input-label">
-            <i class="fas fa-tag"></i>
+      <div class="p-6">
+        <div class="mb-5">
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-secondary-100 mb-2">
+            <i class="fas fa-tag text-blue-600 dark:text-blue-400"></i>
             聊天室名称
           </label>
           <input
@@ -22,29 +22,29 @@
             v-model="newRoomName"
             type="text"
             placeholder="请输入新的聊天室名称"
-            class="room-name-input"
+            class="w-full px-4 py-3 border-2 border-gray-200 dark:border-secondary-600 rounded-lg bg-white dark:bg-secondary-700 text-sm text-gray-900 dark:text-secondary-100 transition-all duration-200 focus:outline-none focus:border-blue-600 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900"
             maxlength="50"
             @keydown.enter="handleSubmit"
           >
-          <div class="char-count">{{ newRoomName.length }}/50</div>
+          <div class="text-right text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ newRoomName.length }}/50</div>
         </div>
         
-        <div class="tips">
-          <i class="fas fa-info-circle"></i>
+        <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-secondary-700 rounded-lg text-xs text-gray-600 dark:text-gray-400">
+          <i class="fas fa-info-circle text-blue-600 dark:text-blue-400"></i>
           <span>只有聊天室创建者可以修改名称</span>
         </div>
       </div>
       
-      <div class="dialog-actions">
-        <button @click="$emit('cancel')" class="cancel-btn">
+      <div class="flex justify-end gap-3 px-6 pb-5">
+        <button @click="$emit('cancel')" class="px-5 py-2.5 border-none bg-gray-100 dark:bg-secondary-600 text-gray-600 dark:text-gray-300 rounded-md cursor-pointer text-sm font-medium transition-all duration-200 flex items-center gap-1.5 hover:bg-gray-200 dark:hover:bg-secondary-500 hover:text-gray-700 dark:hover:text-gray-200">
           <i class="fas fa-times"></i>
           取消
         </button>
         <button 
           @click="handleSubmit" 
           :disabled="!canSubmit"
-          class="submit-btn"
-          :class="{ 'loading': isSubmitting }"
+          class="px-5 py-2.5 border-none bg-blue-600 dark:bg-blue-500 text-white rounded-md cursor-pointer text-sm font-medium transition-all duration-200 flex items-center gap-1.5 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          :class="{ 'pointer-events-none': isSubmitting }"
         >
           <i class="fas fa-spinner fa-spin" v-if="isSubmitting"></i>
           <i class="fas fa-check" v-else></i>
@@ -120,23 +120,8 @@ watch(() => props.visible, (newVisible) => {
 </script>
 
 <style scoped>
-.room-name-edit-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  animation: overlayFadeIn 0.2s ease-out;
-}
-
-@keyframes overlayFadeIn {
+/* 动画效果 */
+@keyframes fade-in {
   from {
     opacity: 0;
   }
@@ -145,7 +130,7 @@ watch(() => props.visible, (newVisible) => {
   }
 }
 
-@keyframes dialogSlideIn {
+@keyframes slide-in {
   from {
     opacity: 0;
     transform: scale(0.9) translateY(-20px);
@@ -156,256 +141,33 @@ watch(() => props.visible, (newVisible) => {
   }
 }
 
-.room-name-edit-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-  animation: dialogSlideIn 0.3s ease-out;
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
 
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e9ecef;
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
 }
 
-.dialog-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.dialog-header h3 i {
-  color: #1976d2;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #6c757d;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  color: #2c3e50;
-  background: #f8f9fa;
-}
-
-.dialog-content {
-  padding: 24px;
-}
-
-.input-group {
-  margin-bottom: 20px;
-}
-
-.input-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #2c3e50;
-  margin-bottom: 8px;
-}
-
-.input-label i {
-  color: #1976d2;
-}
-
-.room-name-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px !important;
-  background: white;
-  font-size: 14px;
-  color: #2c3e50;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-.room-name-input:focus {
-  outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
-}
-
-.char-count {
-  text-align: right;
-  font-size: 12px;
-  color: #6c757d;
-  margin-top: 6px;
-}
-
-.tips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #6c757d;
-}
-
-.tips i {
-  color: #1976d2;
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 0 24px 20px;
-}
-
-.cancel-btn {
-  padding: 10px 20px;
-  border: none;
-  background: #f8f9fa;
-  color: #6c757d;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.cancel-btn:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.submit-btn {
-  padding: 10px 20px;
-  border: none;
-  background: #1976d2;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background: #1565c0;
-}
-
-.submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.submit-btn.loading {
-  pointer-events: none;
-}
-
+/* 移动端优化 */
 @media (max-width: 480px) {
   .room-name-edit-dialog {
     margin: 20px;
     width: calc(100% - 40px);
   }
+  
+  /* 移动端触摸反馈 */
+  button:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
 }
 
-/* 暗色模式样式 */
-.dark .room-name-edit-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.dark .room-name-edit-dialog {
-  background: #1e293b;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.dark .dialog-header {
-  border-bottom: 1px solid #475569;
-}
-
-.dark .dialog-header h3 {
-  color: #f1f5f9;
-}
-
-.dark .dialog-header h3 i {
-  color: #60a5fa;
-}
-
-.dark .close-btn {
-  color: #94a3b8;
-}
-
-.dark .close-btn:hover {
-  color: #f1f5f9;
-  background: #334155;
-}
-
-.dark .input-label {
-  color: #f1f5f9;
-}
-
-.dark .input-label i {
-  color: #60a5fa;
-}
-
-.dark .room-name-input {
-  border: 2px solid #475569;
-  background: #334155;
-  color: #f1f5f9;
-}
-
-.dark .room-name-input:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
-}
-
-.dark .char-count {
-  color: #94a3b8;
-}
-
-.dark .tips {
-  background: #334155;
-  color: #94a3b8;
-}
-
-.dark .tips i {
-  color: #60a5fa;
-}
-
-.dark .cancel-btn {
-  background: #64748b;
-  color: #f1f5f9;
-}
-
-.dark .cancel-btn:hover {
-  background: #475569;
-}
-
-.dark .submit-btn {
-  background: #3b82f6;
-}
-
-.dark .submit-btn:hover:not(:disabled) {
-  background: #2563eb;
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-in {
+    animation: none;
+  }
 }
 </style> 

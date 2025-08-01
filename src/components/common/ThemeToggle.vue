@@ -1,16 +1,16 @@
 <!-- 主题切换组件 -->
 <template>
-  <div class="theme-toggle" ref="toggleRef">
+  <div class="relative" ref="toggleRef">
     <!-- 当前主题按钮 -->
     <button 
-      class="theme-btn"
+      class="flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 hover:transform hover:scale-105 hover:shadow-md"
       @click="handleToggle"
       @mouseenter="isMobile ? null : handleMouseEnter"
       @mouseleave="isMobile ? null : startHideTimer"
       :title="currentConfig.description"
     >
       <i :class="currentConfig.icon"></i>
-      <span v-if="showText" class="theme-text">{{ currentConfig.name }}</span>
+      <span v-if="showText" class="text-sm font-medium">{{ currentConfig.name }}</span>
     </button>
 
     <!-- 主题选项面板 -->
@@ -18,43 +18,43 @@
       <div 
         v-show="showOptions"
         ref="optionsRef"
-        class="theme-options"
+        class="absolute w-72 bg-white rounded-xl shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-600"
         :style="optionsStyle"
         @mouseenter="isMobile ? null : clearHideTimer"
         @mouseleave="isMobile ? null : startHideTimer"
       >
-        <div class="options-header">
-          <i class="fas fa-palette"></i>
-          <span>主题设置</span>
+        <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-600">
+          <i class="fas fa-palette text-primary-500"></i>
+          <span class="font-medium text-gray-900 dark:text-gray-100">主题设置</span>
         </div>
         
-        <div class="options-list">
+        <div class="p-2">
           <button
             v-for="themeMode in themeOptions"
             :key="themeMode"
-            class="option-item"
+            class="w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50"
             :class="{ 
-              active: themeStore.mode === themeMode,
-              current: themeStore.currentTheme === themeMode || 
+              'bg-primary-50 dark:bg-primary-900 dark:bg-opacity-30': themeStore.mode === themeMode,
+              'current': themeStore.currentTheme === themeMode || 
                       (themeMode === 'auto' && themeStore.mode === 'auto')
             }"
             @click="selectTheme(themeMode)"
           >
-            <div class="option-icon">
-              <i :class="themeStore.getThemeConfig(themeMode).icon"></i>
+            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700">
+              <i :class="[themeStore.getThemeConfig(themeMode).icon, 'text-gray-600 dark:text-gray-400', { 'text-primary-500': themeStore.currentTheme === themeMode || (themeMode === 'auto' && themeStore.mode === 'auto') }]"></i>
             </div>
-            <div class="option-content">
-              <div class="option-name">
+            <div class="flex-1 text-left">
+              <div class="font-medium text-gray-900 dark:text-gray-100 text-sm">
                 {{ themeStore.getThemeConfig(themeMode).name }}
-                <span v-if="themeMode === 'auto' && themeStore.mode === 'auto'" class="auto-indicator">
+                <span v-if="themeMode === 'auto' && themeStore.mode === 'auto'" class="text-xs text-gray-500 dark:text-gray-400">
                   ({{ themeStore.systemPrefersDark ? '深色' : '浅色' }})
                 </span>
               </div>
-              <div class="option-description">
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {{ themeStore.getThemeConfig(themeMode).description }}
               </div>
             </div>
-            <div v-if="themeStore.mode === themeMode" class="option-check">
+            <div v-if="themeStore.mode === themeMode" class="text-primary-500">
               <i class="fas fa-check"></i>
             </div>
           </button>
@@ -272,126 +272,66 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped lang="postcss">
-.theme-toggle {
-  @apply relative;
-}
-
-.theme-btn {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200;
-  @apply bg-gray-100 hover:bg-gray-200 text-gray-700;
-  @apply dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300;
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50;
-}
-
-.theme-btn:hover {
-  @apply transform scale-105 shadow-md;
-}
-
-.theme-text {
-  @apply text-sm font-medium;
-}
-
-.theme-options {
-  @apply absolute w-72 bg-white rounded-xl shadow-lg border border-gray-200;
-  @apply dark:bg-gray-800 dark:border-gray-600;
-  /* 位置将由JavaScript动态控制 */
-}
-
-.options-header {
-  @apply flex items-center gap-2 px-4 py-3 border-b border-gray-200;
-  @apply dark:border-gray-600;
-}
-
-.options-header i {
-  @apply text-primary-500;
-}
-
-.options-header span {
-  @apply font-medium text-gray-900 dark:text-gray-100;
-}
-
-.options-list {
-  @apply p-2;
-}
-
-.option-item {
-  @apply w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200;
-  @apply hover:bg-gray-50 dark:hover:bg-gray-700;
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50;
-}
-
-.option-item.active {
-  @apply bg-primary-50 dark:bg-primary-900 dark:bg-opacity-30;
-}
-
-.option-item.current .option-icon i {
-  @apply text-primary-500;
-}
-
-.option-icon {
-  @apply flex items-center justify-center w-8 h-8 rounded-full;
-  @apply bg-gray-100 dark:bg-gray-700;
-}
-
-.option-icon i {
-  @apply text-gray-600 dark:text-gray-400;
-}
-
-.option-content {
-  @apply flex-1 text-left;
-}
-
-.option-name {
-  @apply font-medium text-gray-900 dark:text-gray-100 text-sm;
-}
-
-.auto-indicator {
-  @apply text-xs text-gray-500 dark:text-gray-400;
-}
-
-.option-description {
-  @apply text-xs text-gray-500 dark:text-gray-400 mt-1;
-}
-
-.option-check {
-  @apply text-primary-500;
-}
-
+<style scoped>
 /* 动画 */
 .theme-options-enter-active,
 .theme-options-leave-active {
-  @apply transition-all duration-200;
+  transition: all 0.2s ease;
   transform-origin: top right;
 }
 
 .theme-options-enter-from,
 .theme-options-leave-to {
-  @apply opacity-0 scale-95;
+  opacity: 0;
+  transform: scale(0.95);
 }
 
 .theme-options-enter-to,
 .theme-options-leave-from {
-  @apply opacity-100 scale-100;
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* 移动端优化 */
 @media (max-width: 768px) {
   .theme-options {
-    @apply w-64; /* 移动端稍微缩小宽度 */
+    width: 16rem; /* 移动端稍微缩小宽度 */
   }
   
   .option-item {
-    @apply py-4; /* 增大点击区域 */
+    padding-top: 1rem;
+    padding-bottom: 1rem; /* 增大点击区域 */
   }
   
   /* 禁用移动端悬停效果 */
   .theme-btn:hover {
-    @apply transform-none scale-100 shadow-none;
+    transform: none;
+    scale: 1;
+    box-shadow: none;
   }
   
   .option-item:hover {
-    @apply bg-transparent dark:bg-transparent;
+    background-color: transparent;
+  }
+  
+  .dark .option-item:hover {
+    background-color: transparent;
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .theme-options-enter-active,
+  .theme-options-leave-active {
+    transition: none;
+  }
+  
+  .theme-btn {
+    transition: none;
+  }
+  
+  .option-item {
+    transition: none;
   }
 }
 </style> 

@@ -14,13 +14,17 @@
 
     <!-- 主路由视图 -->
     <RouterView v-slot="{ Component, route }">
-      <Transition 
-        :name="route.meta.transition || 'fade'"
-        mode="out-in"
-        appear
-      >
-        <component :is="Component" :key="route.path" />
-      </Transition>
+      <template v-if="Component">
+        <Suspense timeout="0">
+          <!-- 主要内容 -->
+          <component :is="Component" :key="route.path" />
+          
+          <!-- 加载状态 -->
+          <template #fallback>
+            <RouterLoading />
+          </template>
+        </Suspense>
+      </template>
     </RouterView>
 
     <!-- 全局通知组件 -->
@@ -39,6 +43,7 @@ import { useNotificationStore } from '@/stores/notification'
 import { useThemeStore } from '@/stores/theme'
 import { useRouteCacheStore } from '@/stores/routeCache'
 import NotificationContainer from '@/components/common/NotificationContainer.vue'
+import RouterLoading from '@/components/common/RouterLoading.vue'
 
 // 响应式数据
 const isLoading = ref(true)
@@ -257,4 +262,4 @@ provide('hideNotification', notificationStore.removeNotification)
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
-</style> 
+</style>

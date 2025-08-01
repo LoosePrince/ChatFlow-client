@@ -2,66 +2,66 @@
   <!-- 右键菜单 -->
   <div 
     v-if="visible" 
-    class="context-menu" 
+    class="fixed bg-white dark:bg-secondary-800 border border-gray-200 dark:border-secondary-600 rounded-lg shadow-xl z-50 min-w-[200px] overflow-hidden backdrop-blur-md animate-context-menu-fade-in" 
     :style="{ left: adjustedPosition.x + 'px', top: adjustedPosition.y + 'px' }"
     @click.stop
   >
-    <div class="context-menu-header">
+    <div class="p-3 bg-gray-50 dark:bg-secondary-900 border-b border-gray-200 dark:border-secondary-600 flex items-center gap-2.5">
       <img 
         :src="targetUser?.avatarUrl" 
         :alt="targetUser?.nickname"
-        class="context-menu-avatar"
+        class="w-8 h-8 rounded-full object-cover"
       >
-      <div class="context-menu-user-info">
-        <div class="context-menu-nickname">{{ targetUser?.nickname }}</div>
-        <div class="context-menu-uid">{{ targetUser?.uid }}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-tight">{{ targetUser?.nickname }}</div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 leading-tight">{{ targetUser?.uid }}</div>
       </div>
     </div>
-    <div class="context-menu-items">
+    <div class="py-2">
       <!-- 管理员相关 (只有创建者可以设置管理员，不能对创建者操作) -->
       <div 
         v-if="currentUserIsCreator && !targetUser?.isCreator && !targetUser?.isAdmin"
-        class="context-menu-item"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-secondary-700"
         @click="$emit('setAdmin', targetUser, true)"
       >
-        <i class="fas fa-shield-alt"></i>
+        <i class="fas fa-shield-alt w-3.5 text-center text-xs"></i>
         <span>设为管理员</span>
       </div>
       <div 
         v-else-if="currentUserIsCreator && !targetUser?.isCreator && targetUser?.isAdmin"
-        class="context-menu-item"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-secondary-700"
         @click="$emit('setAdmin', targetUser, false)"
       >
-        <i class="fas fa-shield-alt"></i>
+        <i class="fas fa-shield-alt w-3.5 text-center text-xs"></i>
         <span>取消管理员</span>
       </div>
       
       <!-- 禁言相关 (创建者和管理员都可以禁言，不能对创建者操作) -->
       <div 
         v-if="!targetUser?.isCreator && !targetUser?.isMuted"
-        class="context-menu-item"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-secondary-700"
         @click="$emit('showMute', targetUser)"
       >
-        <i class="fas fa-comment-slash"></i>
+        <i class="fas fa-comment-slash w-3.5 text-center text-xs"></i>
         <span>禁言用户</span>
       </div>
       <div 
         v-else-if="!targetUser?.isCreator && targetUser?.isMuted"
-        class="context-menu-item"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-secondary-700"
         @click="$emit('unmute', targetUser)"
       >
-        <i class="fas fa-microphone"></i>
+        <i class="fas fa-microphone w-3.5 text-center text-xs"></i>
         <span>取消禁言</span>
       </div>
       
       <!-- 移出用户 (创建者和管理员都可以移出，不能对创建者操作) -->
-      <div v-if="!targetUser?.isCreator" class="context-menu-divider"></div>
+      <div v-if="!targetUser?.isCreator" class="h-px bg-gray-200 dark:bg-secondary-600 my-1"></div>
       <div 
         v-if="!targetUser?.isCreator"
-        class="context-menu-item danger"
+        class="flex items-center gap-2 px-3.5 py-2 cursor-pointer transition-all duration-150 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-300"
         @click="$emit('showKick', targetUser)"
       >
-        <i class="fas fa-user-times"></i>
+        <i class="fas fa-user-times w-3.5 text-center text-xs"></i>
         <span>移出房间</span>
       </div>
     </div>
@@ -70,7 +70,7 @@
   <!-- 全局点击遮罩，用于关闭右键菜单 -->
   <div 
     v-if="visible" 
-    class="context-menu-overlay"
+    class="fixed inset-0 z-40"
     @click="$emit('close')"
   ></div>
 </template>
@@ -143,29 +143,7 @@ const adjustedPosition = computed(() => {
 </script>
 
 <style scoped>
-/* 右键菜单样式 */
-.context-menu-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-}
-
-.context-menu {
-  position: fixed;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 200px;
-  overflow: hidden;
-  backdrop-filter: blur(8px);
-  animation: contextMenuFadeIn 0.15s ease-out;
-}
-
+/* 自定义动画 */
 @keyframes contextMenuFadeIn {
   from {
     opacity: 0;
@@ -177,123 +155,13 @@ const adjustedPosition = computed(() => {
   }
 }
 
-.context-menu-header {
-  padding: 12px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.animate-context-menu-fade-in {
+  animation: contextMenuFadeIn 0.15s ease-out;
 }
 
-.context-menu-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.context-menu-user-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.context-menu-nickname {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.context-menu-uid {
-  font-size: 12px;
-  color: #6c757d;
-  line-height: 1.2;
-}
-
-.context-menu-items {
-  padding: 8px 0;
-}
-
-.context-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 13px;
-  color: #374151;
-}
-
-.context-menu-item:hover {
-  background: #f3f4f6;
-}
-
-.context-menu-item.danger {
-  color: #ef4444;
-}
-
-.context-menu-item.danger:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.context-menu-item i {
-  width: 14px;
-  text-align: center;
-  font-size: 12px;
-}
-
-.context-menu-divider {
-  height: 1px;
-  background: #e5e7eb;
-  margin: 4px 0;
-}
-
-/* 暗色模式样式 */
-.dark .context-menu {
-  background: #1f2937;
-  border-color: #374151;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-.dark .context-menu-header {
-  background: #0f172a;
-  border-bottom: 1px solid #374151;
-}
-
-.dark .context-menu-nickname {
-  color: #f1f5f9;
-}
-
-.dark .context-menu-uid {
-  color: #94a3b8;
-}
-
-.dark .context-menu-item {
-  color: #f3f4f6;
-}
-
-.dark .context-menu-item:hover {
-  background: #374151;
-}
-
-.dark .context-menu-item.danger {
-  color: #f87171;
-}
-
-.dark .context-menu-item.danger:hover {
-  background: #3f1f1f;
-  color: #f87171;
-}
-
-.dark .context-menu-divider {
-  background: #374151;
-}
-
+/* 移动端适配 */
 @media (max-width: 480px) {
-  .context-menu {
+  .min-w-\[200px\] {
     min-width: 180px;
   }
 }

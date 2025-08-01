@@ -1,53 +1,51 @@
 <template>
-  <div v-if="visible" class="bilibili-input-overlay" @click="$emit('cancel')">
-    <div class="bilibili-input-dialog" @click.stop>
-      <div class="dialog-header">
-        <h3>
+  <div v-if="visible" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm" @click="$emit('cancel')">
+    <div class="bg-white dark:bg-secondary-800 rounded-xl shadow-2xl min-w-[500px] max-w-2xl w-[90%] max-h-[80vh] overflow-hidden animate-dialog-fade-in" @click.stop>
+      <div class="flex justify-between items-center p-5 pb-4 border-b border-gray-200 dark:border-secondary-600 bg-gradient-to-br from-pink-400 to-pink-500 dark:from-pink-500 dark:to-pink-600 text-white">
+        <h3 class="text-lg font-semibold m-0 flex items-center gap-2.5">
           <i class="fab fa-bilibili"></i>
           发送B站视频
         </h3>
-        <button @click="$emit('cancel')" class="close-btn">
+        <button @click="$emit('cancel')" class="bg-white/20 hover:bg-white/30 text-white border-none rounded-full w-8 h-8 cursor-pointer flex items-center justify-center transition-all duration-200 hover:scale-105">
           <i class="fas fa-times"></i>
         </button>
       </div>
       
-      <div class="dialog-content">
-        <div class="input-group">
-          <label class="input-label">
+      <div class="p-6 max-h-[60vh] overflow-y-auto">
+        <div class="mb-5">
+          <label class="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">
             <i class="fas fa-video"></i>
-            BV号 <span class="required">*</span>
+            BV号 <span class="text-red-500">*</span>
           </label>
           <input
             ref="bvInput"
             v-model="bvId"
             type="text"
             placeholder="请输入B站视频BV号，如：BV1234567890"
-            class="bv-input"
+            class="w-full px-4 py-3 border-2 border-gray-200 dark:border-secondary-600 rounded-lg text-sm transition-all duration-300 bg-gray-50 dark:bg-secondary-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-pink-400 dark:focus:border-pink-500 focus:bg-white dark:focus:bg-secondary-800 focus:ring-3 focus:ring-pink-100 dark:focus:ring-pink-900/20"
             @input="validateBvId"
             @keyup.enter="handleSubmit"
           >
-          <div v-if="bvError" class="error-message">
+          <div v-if="bvError" class="flex items-center gap-1.5 text-red-500 text-xs mt-1.5">
             <i class="fas fa-exclamation-circle"></i>
             {{ bvError }}
           </div>
-          <div v-if="isValidBv && bvId" class="success-message">
+          <div v-if="isValidBv && bvId" class="flex items-center gap-1.5 text-green-600 text-xs mt-1.5">
             <i class="fas fa-check-circle"></i>
             BV号格式正确
           </div>
         </div>
         
-
-        
         <!-- 预览区域 -->
-        <div v-if="isValidBv && bvId" class="preview-section">
-          <div class="preview-header">
+        <div v-if="isValidBv && bvId" class="mt-6 pt-5 border-t border-gray-200 dark:border-secondary-600">
+          <div class="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3">
             <i class="fas fa-eye"></i>
             预览
           </div>
-          <div class="video-preview">
+          <div class="border-2 border-gray-200 dark:border-secondary-600 rounded-lg overflow-hidden aspect-video">
             <iframe 
-              :src="`//player.bilibili.com/player.html?bvid=${bvId}`"
-              class="preview-player"
+              :src="`//player.bilibili.com/player.html?bvid=${bvId}&autoplay=0&muted=1`"
+              class="w-full h-full border-none block"
               frameborder="0"
               allowfullscreen
             ></iframe>
@@ -55,16 +53,16 @@
         </div>
       </div>
       
-      <div class="dialog-actions">
-        <button @click="$emit('cancel')" class="cancel-btn">
+      <div class="flex gap-3 justify-end p-4 pb-5 bg-gray-50 dark:bg-secondary-900 border-t border-gray-200 dark:border-secondary-600">
+        <button @click="$emit('cancel')" class="px-5 py-2.5 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center gap-2 min-w-[100px] justify-center bg-gray-500 hover:bg-gray-600 text-white hover:-translate-y-px">
           <i class="fas fa-times"></i>
           取消
         </button>
         <button 
           @click="handleSubmit" 
           :disabled="!canSubmit"
-          class="submit-btn"
-          :class="{ 'loading': isSubmitting }"
+          class="px-5 py-2.5 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center gap-2 min-w-[100px] justify-center bg-pink-500 hover:bg-pink-600 dark:bg-pink-500 dark:hover:bg-pink-600 text-white hover:-translate-y-px disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed disabled:transform-none"
+          :class="{ 'bg-gray-500 dark:bg-gray-600': isSubmitting }"
         >
           <i class="fas fa-spinner fa-spin" v-if="isSubmitting"></i>
           <i class="fas fa-paper-plane" v-else></i>
@@ -166,32 +164,7 @@ watch(() => props.visible, (newVisible) => {
 </script>
 
 <style scoped>
-.bilibili-input-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 150;
-  backdrop-filter: blur(3px);
-}
-
-.bilibili-input-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2);
-  min-width: 500px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  overflow: hidden;
-  animation: dialogFadeIn 0.3s ease-out;
-}
-
+/* 自定义动画 */
 @keyframes dialogFadeIn {
   from {
     opacity: 0;
@@ -203,309 +176,33 @@ watch(() => props.visible, (newVisible) => {
   }
 }
 
-.dialog-header {
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #fb7299 0%, #ff6b9d 100%);
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dialog-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.close-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
-}
-
-.dialog-content {
-  padding: 24px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.input-group {
-  margin-bottom: 20px;
-}
-
-.input-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 8px;
-}
-
-.required {
-  color: #e74c3c;
-}
-
-.bv-input,
-.description-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px !important;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  background: #f8f9fa;
-}
-
-.bv-input:focus,
-.description-input:focus {
-  outline: none;
-  border-color: #fb7299;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(251, 114, 153, 0.1);
-}
-
-.description-input {
-  resize: vertical;
-  min-height: 80px;
-  font-family: inherit;
-}
-
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #e74c3c;
-  font-size: 12px;
-  margin-top: 6px;
-}
-
-.success-message {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #27ae60;
-  font-size: 12px;
-  margin-top: 6px;
-}
-
-.char-count {
-  text-align: right;
-  font-size: 12px;
-  color: #6c757d;
-  margin-top: 4px;
-}
-
-.preview-section {
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #e9ecef;
-}
-
-.preview-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 12px;
-}
-
-.video-preview {
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  overflow: hidden;
-  aspect-ratio: 16/9;
-}
-
-.preview-player {
-  width: 100%;
-  height: 100%;
-  border: none;
-  display: block;
-}
-
-.dialog-actions {
-  padding: 16px 24px 20px;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  background: #f8f9fa;
-  border-top: 1px solid #e9ecef;
-}
-
-.cancel-btn,
-.submit-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 100px;
-  justify-content: center;
-}
-
-.cancel-btn {
-  background: #6c757d;
-  color: white;
-}
-
-.cancel-btn:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-.submit-btn {
-  background: #fb7299;
-  color: white;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background: #e85a8a;
-  transform: translateY(-1px);
-}
-
-.submit-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.submit-btn.loading {
-  background: #6c757d;
+.animate-dialog-fade-in {
+  animation: dialogFadeIn 0.3s ease-out;
 }
 
 /* 移动端适配 */
 @media (max-width: 480px) {
-  .bilibili-input-dialog {
+  .min-w-\[500px\] {
+    min-width: auto;
     margin: 20px;
     width: calc(100% - 40px);
-    min-width: auto;
   }
   
-  .dialog-header,
-  .dialog-content,
-  .dialog-actions {
+  .p-6 {
     padding: 16px 20px;
   }
   
-  .dialog-actions {
+  .p-4 {
+    padding: 16px 20px;
+  }
+  
+  .flex.gap-3 {
     flex-direction: column;
     gap: 8px;
   }
   
-  .cancel-btn,
-  .submit-btn {
+  .min-w-\[100px\] {
     width: 100%;
   }
-}
-
-/* 暗色模式样式 */
-.dark .bilibili-input-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.dark .bilibili-input-dialog {
-  background: #1e293b;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
-}
-
-.dark .dialog-header {
-  background: linear-gradient(135deg, #fb7299 0%, #f64a83 100%);
-  border-bottom: 1px solid #475569;
-}
-
-.dark .dialog-content {
-  background: #1e293b;
-}
-
-.dark .input-label {
-  color: #f1f5f9;
-}
-
-.dark .bv-input,
-.dark .description-input {
-  background: #334155;
-  border: 2px solid #475569;
-  color: #f1f5f9;
-}
-
-.dark .bv-input::placeholder,
-.dark .description-input::placeholder {
-  color: #94a3b8;
-}
-
-.dark .bv-input:focus,
-.dark .description-input:focus {
-  background: #1e293b;
-  border-color: #fb7299;
-  box-shadow: 0 0 0 3px rgba(251, 114, 153, 0.2);
-}
-
-.dark .char-count {
-  color: #94a3b8;
-}
-
-.dark .preview-section {
-  border-top: 1px solid #475569;
-}
-
-.dark .preview-header {
-  color: #f1f5f9;
-}
-
-.dark .video-preview {
-  border: 2px solid #475569;
-}
-
-.dark .dialog-actions {
-  background: #0f172a;
-  border-top: 1px solid #475569;
-}
-
-.dark .cancel-btn {
-  background: #64748b;
-}
-
-.dark .cancel-btn:hover {
-  background: #475569;
-}
-
-.dark .submit-btn {
-  background: #fb7299;
-}
-
-.dark .submit-btn:hover:not(:disabled) {
-  background: #e85a8a;
-}
-
-.dark .submit-btn:disabled,
-.dark .submit-btn.loading {
-  background: #64748b;
 }
 </style> 

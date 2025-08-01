@@ -1,49 +1,49 @@
 <template>
-  <div v-if="visible" class="compression-dialog-overlay">
-    <div class="compression-dialog">
-      <div class="compression-dialog-header">
-        <i class="fas fa-compress-alt"></i>
+  <div v-if="visible" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white dark:bg-secondary-800 rounded-xl shadow-2xl min-w-[480px] max-w-[90%] overflow-hidden animate-compression-dialog-fade-in">
+      <div class="bg-gradient-to-br from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 text-white p-4 flex items-center gap-2.5 font-semibold">
+        <i class="fas fa-compress-alt text-lg"></i>
         <span>图片压缩确认</span>
       </div>
       
-      <div class="compression-dialog-content">
-        <div class="file-info">
-          <div class="file-icon">
+      <div class="p-6">
+        <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-secondary-700 rounded-lg mb-5">
+          <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-xl">
             <i class="fas fa-image"></i>
           </div>
-          <div class="file-details">
-            <div class="file-name">{{ fileName }}</div>
-            <div class="file-size">{{ fileSizeInMB }}MB</div>
+          <div class="flex-1">
+            <div class="font-semibold text-gray-800 dark:text-gray-100 mb-1 break-all">{{ fileName }}</div>
+            <div class="text-gray-500 dark:text-gray-400 text-sm">{{ fileSizeInMB }}MB</div>
           </div>
         </div>
         
-        <div class="compression-message">
-          <p>图片大小超过了1MB限制，需要压缩后才能发送。</p>
-          <p>压缩后图片质量可能会有所降低，但仍能保持较好的视觉效果。</p>
+        <div class="mb-5 leading-relaxed">
+          <p class="m-0 mb-2 text-gray-700 dark:text-gray-300">图片大小超过了1MB限制，需要压缩后才能发送。</p>
+          <p class="m-0 text-gray-700 dark:text-gray-300">压缩后图片质量可能会有所降低，但仍能保持较好的视觉效果。</p>
         </div>
         
-        <div class="compression-options">
-          <div class="option-item">
-            <i class="fas fa-check-circle text-success"></i>
+        <div class="mb-5">
+          <div class="flex items-center gap-2.5 mb-2 text-sm text-gray-700 dark:text-gray-300">
+            <i class="fas fa-check-circle text-green-500"></i>
             <span>自动调整分辨率至1920x1080以内</span>
           </div>
-          <div class="option-item">
-            <i class="fas fa-check-circle text-success"></i>
+          <div class="flex items-center gap-2.5 mb-2 text-sm text-gray-700 dark:text-gray-300">
+            <i class="fas fa-check-circle text-green-500"></i>
             <span>智能压缩质量以控制文件大小</span>
           </div>
-          <div class="option-item">
-            <i class="fas fa-check-circle text-success"></i>
+          <div class="flex items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+            <i class="fas fa-check-circle text-green-500"></i>
             <span>保持图片原始格式和比例</span>
           </div>
         </div>
       </div>
       
-      <div class="compression-dialog-actions">
-        <button class="btn btn-secondary" @click="handleCancel">
+      <div class="flex gap-3 p-4 bg-gray-50 dark:bg-secondary-700 justify-end">
+        <button class="px-5 py-2.5 border-none rounded-md font-medium cursor-pointer flex items-center gap-2 transition-all duration-200 bg-gray-500 hover:bg-gray-600 text-white hover:-translate-y-px" @click="handleCancel">
           <i class="fas fa-times"></i>
           取消发送
         </button>
-        <button class="btn btn-primary" @click="handleConfirm">
+        <button class="px-5 py-2.5 border-none rounded-md font-medium cursor-pointer flex items-center gap-2 transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white hover:-translate-y-px hover:shadow-lg hover:shadow-indigo-500/30" @click="handleConfirm">
           <i class="fas fa-compress-alt"></i>
           压缩并发送
         </button>
@@ -90,30 +90,7 @@ const handleCancel = () => {
 </script>
 
 <style scoped>
-.compression-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  backdrop-filter: blur(4px);
-}
-
-.compression-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  min-width: 480px;
-  max-width: 90%;
-  overflow: hidden;
-  animation: dialogFadeIn 0.3s ease-out;
-}
-
+/* 自定义动画 */
 @keyframes dialogFadeIn {
   from {
     opacity: 0;
@@ -125,181 +102,32 @@ const handleCancel = () => {
   }
 }
 
-.compression-dialog-header {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-  color: white;
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-}
-
-.compression-dialog-header i {
-  font-size: 18px;
-}
-
-.compression-dialog-content {
-  padding: 24px;
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.file-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 20px;
-}
-
-.file-details {
-  flex: 1;
-}
-
-.file-name {
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 4px;
-  word-break: break-all;
-}
-
-.file-size {
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.compression-message {
-  margin-bottom: 20px;
-  line-height: 1.6;
-}
-
-.compression-message p {
-  margin: 0 0 8px 0;
-  color: #495057;
-}
-
-.compression-options {
-  margin-bottom: 20px;
-}
-
-.option-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #495057;
-}
-
-.text-success {
-  color: #28a745 !important;
-}
-
-.compression-dialog-actions {
-  display: flex;
-  gap: 12px;
-  padding: 16px 24px;
-  background: #f8f9fa;
-  justify-content: flex-end;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-/* 暗色模式样式 */
-.dark .compression-dialog-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.dark .compression-dialog {
-  background: #1f2937;
-  color: #f1f5f9;
-}
-
-.dark .file-info {
-  background: #374151;
-}
-
-.dark .file-name {
-  color: #f1f5f9;
-}
-
-.dark .file-size {
-  color: #9ca3af;
-}
-
-.dark .compression-message p {
-  color: #d1d5db;
-}
-
-.dark .option-item {
-  color: #d1d5db;
-}
-
-.dark .compression-dialog-actions {
-  background: #374151;
+.animate-compression-dialog-fade-in {
+  animation: dialogFadeIn 0.3s ease-out;
 }
 
 /* 移动端适配 */
 @media (max-width: 480px) {
-  .compression-dialog {
+  .min-w-\[480px\] {
     min-width: auto;
     margin: 20px;
     width: calc(100% - 40px);
   }
   
-  .compression-dialog-content {
+  .p-6 {
     padding: 20px;
   }
   
-  .compression-dialog-actions {
+  .p-4 {
+    padding: 16px 20px;
+  }
+  
+  .flex.gap-3 {
     flex-direction: column;
     gap: 8px;
   }
   
-  .btn {
+  .px-5 {
     width: 100%;
     justify-content: center;
   }

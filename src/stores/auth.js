@@ -203,6 +203,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
     
     clearAuth()
+    
+    // 返回Promise以确保异步操作完成
+    return Promise.resolve()
   }
   
   // 获取当前用户信息

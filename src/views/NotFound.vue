@@ -1,27 +1,33 @@
 <template>
-  <div class="not-found-container">
-    <div class="not-found-content">
-      <div class="error-code">404</div>
-      <h1 class="error-title">页面未找到</h1>
-      <p class="error-message">抱歉，您访问的页面不存在或已被删除</p>
-      <p class="redirect-message">将在 {{ countdown }} 秒后自动跳转到首页...</p>
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center relative overflow-hidden">
+    <div class="text-center text-gray-800 dark:text-white z-10 relative">
+      <div class="text-9xl font-black leading-none mb-5 drop-shadow-2xl bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-200 bg-clip-text text-transparent">
+        404
+      </div>
+      <h1 class="text-4xl font-bold mb-4 drop-shadow-lg text-gray-800 dark:text-gray-100">页面未找到</h1>
+      <p class="text-lg mb-4 opacity-90 max-w-lg mx-auto text-gray-700 dark:text-gray-300 dark:opacity-100">
+        抱歉，您访问的页面不存在或已被删除
+      </p>
+      <p class="text-base mb-8 opacity-80 text-yellow-600 font-medium dark:text-yellow-300 dark:opacity-100">
+        将在 {{ countdown }} 秒后自动跳转到首页...
+      </p>
       
-      <div class="action-buttons">
-        <button @click="goHome" class="home-button">
+      <div class="flex gap-5 justify-center flex-wrap">
+        <button @click="goHome" class="px-8 py-4 border-none rounded-full text-base font-semibold cursor-pointer flex items-center gap-2.5 transition-all duration-300 bg-indigo-600 text-white hover:bg-indigo-700 hover:-translate-y-0.5 dark:bg-indigo-500 dark:hover:bg-indigo-600">
           <i class="fas fa-home"></i>
           立即返回首页
         </button>
-        <button @click="goBack" class="back-button">
+        <button @click="goBack" class="px-8 py-4 bg-transparent text-gray-700 border-2 border-gray-400 rounded-full text-base font-semibold cursor-pointer flex items-center gap-2.5 transition-all duration-300 hover:bg-gray-100 hover:-translate-y-0.5 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-800">
           <i class="fas fa-arrow-left"></i>
           上一页
         </button>
       </div>
     </div>
     
-    <div class="floating-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-      <div class="shape shape-3"></div>
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute w-48 h-48 top-1/5 left-1/10 bg-gray-300/30 dark:bg-gray-600/20 rounded-full animate-float"></div>
+      <div class="absolute w-36 h-36 top-3/5 right-1/6 bg-gray-300/30 dark:bg-gray-600/20 rounded-full animate-float animation-delay-2000"></div>
+      <div class="absolute w-24 h-24 bottom-1/5 left-3/5 bg-gray-300/30 dark:bg-gray-600/20 rounded-full animate-float animation-delay-4000"></div>
     </div>
   </div>
 </template>
@@ -72,203 +78,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.not-found-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-/* 暗色模式支持 */
-.dark .not-found-container {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-}
-
-.not-found-content {
-  text-align: center;
-  color: white;
-  z-index: 2;
-  position: relative;
-}
-
-.error-code {
-  font-size: 150px;
-  font-weight: 900;
-  line-height: 1;
-  margin-bottom: 20px;
-  text-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  background: linear-gradient(45deg, #ffffff, #f0f0f0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* 暗色模式下的错误代码 */
-.dark .error-code {
-  background: linear-gradient(45deg, #ffffff, #e2e8f0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
-}
-
-.error-title {
-  font-size: 36px;
-  font-weight: 700;
-  margin-bottom: 15px;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-/* 暗色模式下的标题 */
-.dark .error-title {
-  color: #f1f5f9;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-}
-
-.error-message {
-  font-size: 18px;
-  margin-bottom: 15px;
-  opacity: 0.9;
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* 暗色模式下的消息 */
-.dark .error-message {
-  color: #cbd5e1;
-  opacity: 1;
-}
-
-.redirect-message {
-  font-size: 16px;
-  margin-bottom: 30px;
-  opacity: 0.8;
-  color: #ffd700;
-  font-weight: 500;
-}
-
-/* 暗色模式下的重定向消息 */
-.dark .redirect-message {
-  color: #fbbf24;
-  opacity: 1;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.home-button,
-.back-button {
-  padding: 15px 30px;
-  border: none;
-  border-radius: 50px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.home-button {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.home-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-/* 暗色模式下的首页按钮 */
-.dark .home-button {
-  background: rgba(255, 255, 255, 0.15);
-  color: #f1f5f9;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-}
-
-.dark .home-button:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-}
-
-.back-button {
-  background: transparent;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-}
-
-.back-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
-}
-
-/* 暗色模式下的返回按钮 */
-.dark .back-button {
-  color: #cbd5e1;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-}
-
-.dark .back-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-}
-
-.floating-shapes {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.shape {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  animation: float 6s ease-in-out infinite;
-}
-
-/* 暗色模式下的浮动形状 */
-.dark .shape {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.shape-1 {
-  width: 200px;
-  height: 200px;
-  top: 20%;
-  left: 10%;
-  animation-delay: 0s;
-}
-
-.shape-2 {
-  width: 150px;
-  height: 150px;
-  top: 60%;
-  right: 15%;
-  animation-delay: 2s;
-}
-
-.shape-3 {
-  width: 100px;
-  height: 100px;
-  bottom: 20%;
-  left: 60%;
-  animation-delay: 4s;
-}
-
+/* 自定义动画 */
 @keyframes float {
   0%, 100% {
     transform: translateY(0px) rotate(0deg);
@@ -278,33 +88,48 @@ onUnmounted(() => {
   }
 }
 
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* 响应式设计 */
 @media (max-width: 768px) {
-  .error-code {
-    font-size: 100px;
+  .text-9xl {
+    font-size: 6.25rem; /* 100px */
   }
   
-  .error-title {
-    font-size: 28px;
+  .text-4xl {
+    font-size: 1.75rem; /* 28px */
   }
   
-  .error-message {
-    font-size: 16px;
-    padding: 0 20px;
+  .text-lg {
+    font-size: 1rem; /* 16px */
   }
 
-  .redirect-message {
-    font-size: 14px;
-    padding: 0 20px;
+  .text-base {
+    font-size: 0.875rem; /* 14px */
   }
   
-  .action-buttons {
-    padding: 0 20px;
+  .px-8 {
+    padding-left: 1.5rem; /* 24px */
+    padding-right: 1.5rem; /* 24px */
   }
   
-  .home-button,
-  .back-button {
-    padding: 12px 24px;
-    font-size: 14px;
+  .py-4 {
+    padding-top: 0.75rem; /* 12px */
+    padding-bottom: 0.75rem; /* 12px */
+  }
+  
+  .text-base {
+    font-size: 0.875rem; /* 14px */
   }
 }
 </style> 

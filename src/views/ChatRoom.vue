@@ -1,17 +1,18 @@
 <template>
-  <div class="chatroom-container" @contextmenu.prevent="handleRightClick">
+  <div class="h-screen flex flex-col bg-gray-50 dark:bg-slate-800 overflow-hidden" @contextmenu.prevent="handleRightClick">
     <!-- 加载状态 -->
-    <div v-if="isLoading" class="loading-container">
-      <div class="loading-spinner">
+    <div v-if="isLoading" class="flex flex-col justify-center items-center h-screen bg-gray-50 dark:bg-slate-800">
+      <div class="text-3xl text-blue-600 dark:text-blue-400 mb-4">
         <i class="fas fa-spinner fa-spin"></i>
       </div>
-      <p>正在加载聊天室...</p>
+      <p class="text-gray-600 dark:text-slate-300 text-lg">正在加载聊天室...</p>
     </div>
 
     <!-- 聊天室内容 -->
-    <div v-else class="chatroom-layout">
-      <!-- 左侧房间列表 (桌面端) -->
+    <div v-else class="flex h-full relative overflow-hidden" :class="{ 'justify-center': isPrivateChat }">
+      <!-- 左侧房间列表 (桌面端) - 私聊模式不显示 -->
              <LeftSidebar
+         v-if="!isPrivateChat"
          :show="showRoomList"
          :rooms="joinedRooms"
          :currentRoomId="roomId"
@@ -28,115 +29,138 @@
        />
 
       <!-- 主聊天区域 -->
-      <div class="main-content">
+      <div class="flex-1 min-w-0 flex flex-col relative h-full">
         <!-- 顶部导航栏 -->
-        <div class="chatroom-header">
-          <div class="header-left">
-            <button @click="toggleRoomList" class="mobile-menu-btn">
+        <div class="bg-white dark:bg-slate-900 px-5 py-4 border-b border-gray-200 dark:border-slate-600 flex justify-between items-center shadow-sm flex-shrink-0 relative z-10">
+          <div class="flex items-center gap-3">
+            <button v-if="isPrivateChat" @click="goBack" class="md:hidden bg-transparent border-none text-gray-500 dark:text-slate-400 text-lg cursor-pointer p-2 rounded transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-700 dark:hover:text-slate-200">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <button v-else @click="toggleRoomList" class="md:hidden bg-transparent border-none text-gray-500 dark:text-slate-400 text-lg cursor-pointer p-2 rounded transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-700 dark:hover:text-slate-200">
               <i class="fas fa-bars"></i>
             </button>
-            <div class="room-info">
+            <div class="flex items-center gap-3">
               <h1 
-                class="room-name"
-                :class="{ 'editable': isCreator }"
-                @click="isCreator ? showRoomNameDialog() : null"
+                class="text-2xl font-semibold text-gray-800 dark:text-slate-100 m-0"
+                :class="{ 'cursor-pointer relative transition-all duration-200 hover:underline hover:decoration-blue-500 hover:decoration-2 hover:underline-offset-1': !isPrivateChat && isCreator }"
+                @click="!isPrivateChat && isCreator ? showRoomNameDialog() : null"
               >
                 {{ roomName }}
               </h1>
-              <span class="room-id">ID: {{ roomId }}</span>
-              <span v-if="roomInfo?.hasPassword" class="room-password-indicator">
+              <span v-if="!isPrivateChat" class="text-gray-500 dark:text-slate-400 text-sm bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">ID: {{ roomId }}</span>
+              <span v-if="!isPrivateChat && roomInfo?.hasPassword" class="text-yellow-500 text-base">
                 <i class="fas fa-lock"></i>
               </span>
             </div>
           </div>
-          <div class="header-center">
+          <div class="flex-1 flex justify-end">
             <!-- 用户信息已移动到左侧边栏 -->
           </div>
-          <div class="header-right">
-            <button @click="toggleMemberList" class="mobile-menu-btn">
+          <div class="flex items-center gap-3">
+            <button v-if="!isPrivateChat" @click="toggleMemberList" class="md:hidden bg-transparent border-none text-gray-500 dark:text-slate-400 text-lg cursor-pointer p-2 rounded transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-700 dark:hover:text-slate-200">
               <i class="fas fa-user-friends"></i>
+            </button>
+            <button v-if="isPrivateChat" @click="toggleMemberList" class="md:hidden bg-transparent border-none text-gray-500 dark:text-slate-400 text-lg cursor-pointer p-2 rounded transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-700 dark:hover:text-slate-200">
+              <i class="fas fa-cog"></i>
             </button>
           </div>
         </div>
 
         <!-- 聊天内容区域 -->
-        <div class="chatroom-content">
+        <div class="flex-1 flex flex-col relative overflow-hidden min-h-0">
           <!-- 临时通知区域 -->
-          <div v-if="temporaryNotifications.length > 0" class="temporary-notifications">
+          <div v-if="temporaryNotifications.length > 0" class="absolute top-5 right-5 z-20 flex flex-col gap-2 max-w-xs">
             <div 
               v-for="notification in temporaryNotifications"
               :key="notification.id"
-              :class="['temp-notification', `notification-${notification.type}`]"
+              :class="[
+                'flex items-center gap-2 px-4 py-3 rounded-lg bg-white/95 dark:bg-slate-800/95 backdrop-blur-md shadow-lg border-l-4 text-sm text-gray-800 dark:text-slate-200 animate-slide-in-right transition-all duration-300 hover:-translate-x-1 hover:shadow-xl',
+                {
+                  'border-l-green-500': notification.type === 'join',
+                  'border-l-orange-500': notification.type === 'leave',
+                  'border-l-blue-500': notification.type === 'info',
+                  'border-l-yellow-500': notification.type === 'warning',
+                  'border-l-red-500': notification.type === 'error'
+                }
+              ]"
             >
-              <i :class="getNotificationIcon(notification.type)"></i>
+              <i :class="[
+                getNotificationIcon(notification.type),
+                {
+                  'text-green-500': notification.type === 'join',
+                  'text-orange-500': notification.type === 'leave',
+                  'text-blue-500': notification.type === 'info',
+                  'text-yellow-500': notification.type === 'warning',
+                  'text-red-500': notification.type === 'error'
+                }
+              ]"></i>
               <span>{{ notification.message }}</span>
             </div>
           </div>
           
-          <div class="messages-area">
-            <div class="message-list" ref="messageList" @scroll="handleScroll">
-              <div class="messages-container">
+          <div class="flex-1 overflow-hidden min-h-0">
+            <div class="h-full overflow-y-auto p-5 scroll-smooth flex flex-col-reverse" ref="messageList" @scroll="handleScroll">
+              <div class="flex flex-col min-h-full justify-end">
                 <!-- 加载更多指示器 -->
-                <div v-if="messagesPagination.isLoading && messagesPagination.currentPage > 1" class="loading-more">
-                  <div class="loading-spinner">
-                    <i class="fas fa-spinner fa-spin"></i>
+                <div v-if="messagesPagination.isLoading && messagesPagination.currentPage > 1" class="flex items-center justify-center gap-2 py-4 text-gray-600 dark:text-slate-400 text-sm mb-4">
+                  <div class="flex items-center justify-center">
+                    <i class="fas fa-spinner fa-spin text-blue-600 dark:text-blue-400 text-base"></i>
                   </div>
                   <span>加载更多消息...</span>
                 </div>
                 
                 <!-- 没有更多消息提示 -->
-                <div v-if="!messagesPagination.hasMore && messages.length > 0" class="no-more-messages">
-                  <i class="fas fa-history"></i>
+                <div v-if="!messagesPagination.hasMore && messages.length > 0" class="flex items-center justify-center gap-2 py-3 text-gray-500 dark:text-slate-500 text-xs opacity-80">
+                  <i class="fas fa-history text-gray-500 dark:text-slate-500"></i>
                   <span>已显示所有历史消息</span>
                 </div>
                 
-                <div v-if="messages.length === 0 && !messagesPagination.isLoading" class="empty-messages">
-                  <i class="fas fa-comment-dots"></i>
+                <div v-if="messages.length === 0 && !messagesPagination.isLoading" class="flex flex-col items-center justify-center flex-1 text-gray-600 dark:text-slate-400">
+                  <i class="fas fa-comment-dots text-5xl mb-4 opacity-70 text-blue-500 dark:text-blue-400"></i>
                   <p>暂无消息，开始聊天吧！</p>
                 </div>
               
               <TransitionGroup 
                 name="message-delete" 
                 tag="div" 
-                class="messages-transition-group"
+                class="relative"
               >
                 <div 
                   v-for="message in processedMessages" 
                   :key="message.id"
                   :data-message-id="message.id"
                   :class="[
-                    'message', 
-                    `message-${message.type}`,
+                    'p-1 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900/20',
                     { 
-                      'message-own': message.isOwn,
-                      'message-first-in-group': message.isFirstInGroup,
-                      'message-last-in-group': message.isLastInGroup,
-                      'message-continuous': !message.isFirstInGroup,
-                      'message-deleting': message.isDeleting
+                      'mb-1': !message.isFirstInGroup,
+                      'mb-2': message.isFirstInGroup,
+                      'mb-4': message.isLastInGroup,
+                      'opacity-50 scale-95 transition-all duration-300 relative': message.isDeleting
                     }
                   ]"
                   @contextmenu="message.type !== 'system' ? handleShowMessageContextMenu($event, message) : null"
                 >
                 <!-- 系统消息 -->
-                <div v-if="message.type === 'system'" class="system-message">
-                  <div class="system-message-content">
-                    <div class="system-icon">
+                <div v-if="message.type === 'system'" class="flex justify-center">
+                  <div class="flex items-center gap-2 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400 px-4 py-2.5 rounded-full text-sm max-w-4/5 shadow-lg border border-blue-200/20 dark:border-blue-700/20 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-blue-300 via-purple-400 to-blue-300 animate-shimmer"></div>
+                    <div class="text-blue-600 dark:text-blue-400 text-sm opacity-80">
                       <i class="fas fa-info-circle"></i>
                     </div>
-                    <div class="system-text">{{ message.text }}</div>
-                    <div class="system-time">{{ formatTime(message.timestamp) }}</div>
+                    <div class="flex-1 font-medium text-center leading-tight">{{ message.text }}</div>
+                    <div class="text-gray-500 dark:text-gray-400 text-xs font-normal opacity-70 ml-2 whitespace-nowrap">{{ formatTime(message.timestamp) }}</div>
                   </div>
                 </div>
                 
                 <!-- 用户消息 -->
-                <div v-else class="message-wrapper">
+                <div v-else class="flex gap-3 items-start" :class="{ 'flex-row-reverse': message.isOwn }">
                   <!-- 头像区域 -->
-                  <div class="message-avatar" :class="{ 'avatar-placeholder': !message.showAvatar }">
+                  <div class="flex-shrink-0 w-10 flex justify-center" :class="{ 'avatar-placeholder': !message.showAvatar }">
                     <img 
                       v-if="message.showAvatar"
                       :src="getAvatarUrl(message.userAvatar)" 
                       :alt="message.userName"
-                      class="avatar-img"
+                      class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
                       @contextmenu="handleShowUserContextMenu($event, {
                         uid: message.userUid,
                         nickname: message.userName,
@@ -147,27 +171,30 @@
                   </div>
                   
                   <!-- 消息内容 -->
-                  <div class="message-content">
+                  <div class="max-w-[70%] px-4 py-3 rounded-xl bg-white dark:bg-slate-700 shadow-sm word-wrap break-words relative" :class="{ 
+                    'py-2 mt-0.5': !message.isFirstInGroup,
+                    'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-700': message.isOwn
+                  }">
                     <!-- 消息头部（用户名和时间） -->
-                    <div v-if="message.showHeader" class="message-header">
-                      <span class="user-name">
+                    <div v-if="message.showHeader" class="flex justify-between items-center text-xs gap-1 mb-1">
+                      <span class="font-medium" :class="{ 'text-blue-600 dark:text-blue-400': message.isOwn }">
                         {{ message.userName }}
-                        <i v-if="message.isAdmin" class="fas fa-shield-alt admin-icon" title="管理员"></i>
+                        <i v-if="message.isAdmin" class="fas fa-shield-alt text-yellow-500 text-xs ml-1" title="管理员"></i>
                       </span>
-                      <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                      <span class="text-gray-500 dark:text-slate-400 text-xs" :class="{ 'text-blue-600 dark:text-blue-400': message.isOwn }">{{ formatTime(message.timestamp) }}</span>
                     </div>
                     
                     <!-- 非文本消息的时间显示（连续消息中） -->
-                    <div v-else-if="message.type !== 'user' && message.type !== 'system' && !message.showHeader" class="message-time-header">
-                      <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+                    <div v-else-if="message.type !== 'user' && message.type !== 'system' && !message.showHeader" class="mb-1 text-right">
+                      <span class="text-gray-500 dark:text-slate-400 text-xs opacity-80" :class="{ 'text-blue-600 dark:text-blue-400 opacity-80': message.isOwn }">{{ formatTime(message.timestamp) }}</span>
                     </div>
                     
                     <!-- 回复信息 -->
-                    <div v-if="message.replyToMessage" class="reply-message" @click="scrollToMessage(message.replyToMessage.id, true)">
-                      <div class="reply-line"></div>
-                      <div class="reply-content">
-                        <div class="reply-user">{{ message.replyToMessage.user.nickname }}</div>
-                        <div class="reply-text">
+                    <div v-if="message.replyToMessage" class="mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md cursor-pointer transition-colors duration-200 hover:bg-blue-100 dark:hover:bg-blue-900/30 flex items-start gap-2" @click="scrollToMessage(message.replyToMessage.id, true)">
+                      <div class="w-0.5 bg-blue-500 rounded-full mt-1 flex-shrink-0 self-stretch"></div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-0.5 leading-tight">{{ message.replyToMessage.user.nickname }}</div>
+                        <div class="text-xs text-gray-600 dark:text-slate-400 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                           <span v-if="message.replyToMessage.messageType === 'image'">
                             <i class="fas fa-image"></i> 图片
                           </span>
@@ -186,41 +213,41 @@
                     </div>
                     
                     <!-- 消息文本和时间 -->
-                    <div class="message-body">
+                    <div class="w-full">
                       <!-- 图片消息 -->
-                      <div v-if="message.type === 'image'" class="message-image">
+                      <div v-if="message.type === 'image'" class="my-1">
                         <img 
                           :src="getImageUrl(message.imageUrl)" 
                           :alt="message.text || '图片'"
-                          class="image-content"
+                          class="max-h-96 h-auto rounded-lg cursor-pointer transition-all duration-300 shadow-md hover:scale-[1.02] hover:shadow-lg"
                           @click="openImagePreview(message.imageUrl, `${message.userName}发送的图片`)"
                           @error="handleImageError"
                         >
-                        <div v-if="message.text" class="image-caption">{{ message.text }}</div>
+                        <div v-if="message.text" class="mt-2 text-sm leading-relaxed">{{ message.text }}</div>
                       </div>
                       <!-- B站视频消息 -->
-                      <div v-else-if="message.type === 'bilibili'" class="bilibili-message">
+                      <div v-else-if="message.type === 'bilibili'" class="my-2">
                         <BilibiliVideo :bvid="message.bilibiliId" />
                       </div>
                       <!-- 文件消息 -->
-                      <div v-else-if="message.type === 'file'" class="file-message">
-                        <div class="message-type-header file-header">
-                          <i class="fas fa-file"></i>
-                          <span>文件</span>
+                      <div v-else-if="message.type === 'file'" class="max-w-md my-2">
+                        <div class="flex items-center gap-1.5 text-xs mb-1.5 opacity-70 font-medium">
+                          <i class="fas fa-file text-base"></i>
+                          <span class="bg-gray-100 dark:bg-slate-600 px-1.5 py-0.5 rounded text-xs">文件</span>
                         </div>
-                        <div class="file-content">
-                          <div class="file-info">
-                            <div class="file-icon">
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-slate-600 border border-gray-200 dark:border-slate-500 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-500 hover:shadow-md">
+                          <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                            <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 text-lg flex-shrink-0">
                               <i :class="getFileIcon(message.fileName)"></i>
                             </div>
-                            <div class="file-details">
-                              <div class="file-name">{{ message.fileName }}</div>
-                              <div class="file-size">{{ formatFileSize(message.fileSize) }}</div>
-                              <div v-if="message.fileExpired" class="file-status expired">
+                            <div class="flex-1 min-w-0">
+                              <div class="font-semibold text-gray-800 dark:text-slate-200 text-sm mb-0.5 break-all leading-tight">{{ message.fileName }}</div>
+                              <div class="text-xs text-gray-500 dark:text-slate-400 mb-0.5">{{ formatFileSize(message.fileSize) }}</div>
+                              <div v-if="message.fileExpired" class="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 文件已过期
                               </div>
-                              <div v-else class="file-status valid">
+                              <div v-else class="flex items-center gap-1 text-xs text-green-500 dark:text-green-400">
                                 <i class="fas fa-clock"></i>
                                 {{ formatFileExpiry(message.fileExpiry) }}
                               </div>
@@ -229,7 +256,7 @@
                           <button 
                             v-if="!message.fileExpired"
                             @click="downloadFile(message.fileId, message.fileName)"
-                            class="download-btn"
+                            class="w-9 h-9 bg-green-500 hover:bg-green-600 text-white border-none rounded-full cursor-pointer flex items-center justify-center transition-all duration-200 flex-shrink-0 text-sm hover:scale-105"
                             title="下载文件"
                           >
                             <i class="fas fa-download"></i>
@@ -237,22 +264,22 @@
                         </div>
                       </div>
                       <!-- Markdown消息 -->
-                      <div v-else-if="message.type === 'markdown'" class="markdown-message">
-                        <div class="message-text">{{ message.text }}</div>
-                        <div class="message-type-header markdown-header">
-                          <i class="fab fa-markdown"></i>
-                          <span>Markdown</span>
+                      <div v-else-if="message.type === 'markdown'" class="max-w-2xl my-2">
+                        <div class="leading-relaxed text-gray-800 dark:text-slate-200">{{ message.text }}</div>
+                        <div class="flex items-center gap-1.5 text-xs mb-1.5 opacity-70 font-medium">
+                          <i class="fab fa-markdown text-base"></i>
+                          <span class="bg-gray-100 dark:bg-slate-600 px-1.5 py-0.5 rounded text-xs">Markdown</span>
                         </div>
                         <div 
-                          class="markdown-content"
+                          class="leading-relaxed text-gray-800 dark:text-slate-200 text-sm"
                           v-html="renderMarkdown(message.markdownContent)"
                           @click="handleMarkdownImageClick"
                         ></div>
                       </div>
                       <!-- 文本消息 -->
-                      <div v-else class="message-text">
+                      <div v-else class="leading-relaxed text-gray-800 dark:text-slate-200 text-justify text-sm break-words whitespace-break-spaces flex-1">
                         {{ message.text }}
-                        <span v-if="!message.showHeader && message.type === 'user'" class="message-time-inline">{{ formatTime(message.timestamp) }}</span>
+                        <span v-if="!message.showHeader && message.type === 'user'" class="text-gray-500 dark:text-slate-400 text-xs opacity-70 whitespace-nowrap float-right ml-2 leading-inherit">{{ formatTime(message.timestamp) }}</span>
                       </div>
                     </div>
                   </div>
@@ -263,7 +290,7 @@
             </div>
           </div>
 
-          <div class="input-area">
+          <div class="p-5 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-600 flex-shrink-0 relative z-10">
             <!-- 隐藏的文件输入框 -->
             <input
               ref="imageInput"
@@ -298,180 +325,207 @@
               @paste="handlePaste"
             />
             
-            <div v-if="!canSendMessage && muteTimeRemaining > 0" class="mute-notice">
-              <i class="fas fa-clock"></i>
+            <div v-if="!canSendMessage && muteTimeRemaining > 0" class="mt-3 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 rounded-lg flex items-center gap-2 text-sm">
+              <i class="fas fa-clock text-yellow-500 dark:text-yellow-400"></i>
               您已被禁言，还需等待 {{ formatMuteTime(muteTimeRemaining) }} 后才能发言
             </div>
             
-            <div v-if="!authStore.isAuthenticated" class="auth-notice">
-              <i class="fas fa-user-slash"></i>
+            <div v-if="!authStore.isAuthenticated" class="mt-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 rounded-lg flex items-center gap-2 text-sm">
+              <i class="fas fa-user-slash text-red-500 dark:text-red-400"></i>
               请先登录后才能发言
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧成员列表 (桌面端) -->
-      <RightSidebar
-        :show="showMemberList"
-        :members="roomMembers"
-        @toggle="toggleMemberList"
-        @showUserContextMenu="handleShowUserContextMenu"
-      />
-    </div>
-
-    <!-- 移动端遮罩层 -->
-    <div 
-      v-if="(showRoomList || showMemberList) && isMobile" 
-      class="mobile-overlay"
-      @click="closeMobileSidebars"
-    ></div>
-
-    <!-- 退出确认对话框 -->
-    <div v-if="showLeaveConfirm" class="confirm-dialog-overlay" @click="cancelLeave">
-      <div class="confirm-dialog" @click.stop>
-        <div class="dialog-header">
-          <h3>{{ isCreator ? '解散房间' : '退出房间' }}</h3>
-        </div>
-        <div class="dialog-content">
-          <p v-if="isCreator">
-            <i class="fas fa-exclamation-triangle warning-icon"></i>
-            您是房主，退出房间将会解散整个房间，所有成员都将被移除。此操作不可撤销！
-          </p>
-          <p v-else>
-            确定要退出房间"{{ roomName }}"吗？
-          </p>
-        </div>
-        <div class="dialog-actions">
-          <button @click="cancelLeave" class="cancel-button">取消</button>
-          <button @click="confirmLeave" class="confirm-button" :class="{ 'danger': isCreator }">
-            {{ isCreator ? '确认解散' : '确认退出' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 右键菜单组件 -->
-    <ContextMenu
-        :visible="contextMenu.visible"
-        :x="contextMenu.x"
-        :y="contextMenu.y"
-        :targetUser="contextMenuUser"
-        :currentUserIsCreator="isCreator"
-        @close="closeContextMenu"
-        @setAdmin="setUserAdmin"
-        @showMute="showMuteDialog"
-        @unmute="unmuteUser"
-        @showKick="showKickDialog"
-      />
-
-    <!-- 消息右键菜单组件 -->
-    <MessageContextMenu
-      :visible="messageContextMenu.visible"
-      :x="messageContextMenu.x"
-      :y="messageContextMenu.y"
-      :targetMessage="messageContextMenu.targetMessage"
-      :currentUser="authStore.user"
-      :isAdmin="currentUserIsAdmin"
-      :isCreator="isCreator"
-      @close="closeMessageContextMenu"
-      @reply="handleReplyMessage"
-      @delete="handleDeleteMessage"
-    />
-
-    <!-- 禁言弹窗组件 -->
-    <MuteDialog 
-      :visible="muteDialog.visible"
-      :targetUser="muteDialogUser"
-      @cancel="cancelMute"
-      @confirm="confirmMute"
-    />
-
-    <!-- 踢人确认弹窗组件 -->
-    <KickDialog 
-      :visible="kickDialog.visible"
-      :targetUser="kickDialogUser"
-      @cancel="cancelKick"
-      @confirm="confirmKickUser"
-    />
-
-    <!-- 删除消息确认弹窗 -->
-    <DeleteMessageDialog
-      :visible="deleteMessageDialog.visible"
-      :targetMessage="deleteMessageDialog.targetMessage"
-      @confirm="confirmDeleteMessage"
-      @cancel="cancelDeleteMessage"
-    />
-
-    <!-- 图片预览组件 -->
-    <ImagePreview
-      :visible="imagePreview.visible"
-      :imageUrl="imagePreview.imageUrl"
-      :imageTitle="imagePreview.title"
-      @close="closeImagePreview"
-    />
-
-    <!-- 消息类型选择器 -->
-    <MessageTypeSelector
-      :visible="messageTypeDialog.visible"
-      @close="closeMessageTypeSelector"
-      @select="handleMessageTypeSelect"
-    />
-
-    <!-- B站视频输入对话框 -->
-    <BilibiliInputDialog
-      :visible="bilibiliDialog.visible"
-      @cancel="closeBilibiliDialog"
-      @submit="handleBilibiliSubmit"
-    />
-
-    <!-- Markdown输入对话框 -->
-    <MarkdownInputDialog
-      :visible="markdownDialog.visible"
-      @cancel="closeMarkdownDialog"
-      @submit="handleMarkdownSubmit"
-    />
-
-    <!-- 房间名称编辑弹窗 -->
-    <RoomNameEditDialog
-      :visible="roomNameDialog.visible"
-      :current-name="roomName"
-      @cancel="closeRoomNameDialog"
-      @submit="handleRoomNameUpdate"
-    />
-
-    <!-- 上传进度对话框 -->
-    <div v-if="uploadProgress.visible" class="upload-progress-overlay">
-      <div class="upload-progress-dialog">
-        <div class="upload-progress-header">
-          <i :class="uploadProgress.type === 'image' ? 'fas fa-image' : 'fas fa-file'"></i>
-          <span>{{ uploadProgress.type === 'image' ? '发送图片' : '发送文件' }}</span>
-        </div>
+      <!-- 右侧边栏 (桌面端) -->
+      <div v-if="showMemberList" class="w-280 flex-shrink-0 border-l border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 h-full overflow-y-auto relative transition-transform duration-300" :class="{ 'translate-x-0': showMemberList }">
+        <!-- 聊天室模式：显示成员列表 -->
+        <RightSidebar
+          v-if="!isPrivateChat"
+          :show="showMemberList"
+          :members="roomMembers"
+          @toggle="toggleMemberList"
+          @showUserContextMenu="handleShowUserContextMenu"
+        />
         
-        <div class="upload-progress-content">
-          <div class="upload-file-name">
-            {{ uploadProgress.fileName }}
+        <!-- 私聊模式：显示私聊设置 -->
+        <div v-else class="h-full flex flex-col">
+          <div class="p-4 border-b border-gray-200 dark:border-slate-600 flex justify-between items-center">
+            <h3 class="flex items-center gap-2">
+              <i class="fas fa-cog"></i>
+              私聊设置
+            </h3>
+            <div class="button-container">
+              <button v-if="isMobile" @click="toggleMemberList" class="sidebar-toggle">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
           </div>
-          
-          <div class="upload-progress-bar">
-            <div class="upload-progress-fill" :style="{ width: uploadProgress.progress + '%' }"></div>
-          </div>
-          
-          <div class="upload-progress-text">
-            {{ uploadProgress.progress }}%
+          <div class="flex-1 overflow-y-auto p-4">
+            <PrivateChatConversationSettings :targetUid="targetUid" />
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 图片压缩确认对话框 -->
-    <ImageCompressionDialog
-      :visible="compressionDialog.visible"
-      :fileName="compressionDialog.fileName"
-      :fileSize="compressionDialog.fileSize"
-      @confirm="handleCompressionConfirm"
-      @cancel="handleCompressionCancel"
-    />
+      <!-- 移动端遮罩层 -->
+      <div 
+        v-if="(showRoomList || showMemberList) && isMobile" 
+        class="fixed inset-0 bg-black/50 z-15"
+        @click="closeMobileSidebars"
+      ></div>
+
+      <!-- 退出确认对话框 -->
+      <div v-if="showLeaveConfirm" class="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50" @click="cancelLeave">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-md w-11/12 max-h-80vh overflow-hidden" @click.stop>
+          <div class="p-5 pb-0 text-center">
+            <h3 class="text-gray-800 dark:text-slate-100 text-lg m-0">{{ isCreator ? '解散房间' : '退出房间' }}</h3>
+          </div>
+          <div class="p-5 text-center">
+            <p v-if="isCreator" class="text-gray-600 dark:text-slate-300 leading-relaxed m-0">
+              <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+              您是房主，退出房间将会解散整个房间，所有成员都将被移除。此操作不可撤销！
+            </p>
+            <p v-else class="text-gray-600 dark:text-slate-300 leading-relaxed m-0">
+              确定要退出房间"{{ roomName }}"吗？
+            </p>
+          </div>
+          <div class="p-5 pt-0 flex gap-3 justify-center">
+            <button @click="cancelLeave" class="px-5 py-2.5 bg-gray-100 dark:bg-slate-600 text-gray-600 dark:text-slate-300 border-none rounded-lg cursor-pointer text-sm font-medium transition-all duration-200 hover:bg-gray-200 dark:hover:bg-slate-500 hover:text-gray-700 dark:hover:text-slate-200">取消</button>
+            <button @click="confirmLeave" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white border-none rounded-lg cursor-pointer text-sm font-medium transition-all duration-200" :class="{ 'bg-red-600 hover:bg-red-700': isCreator }">
+              {{ isCreator ? '确认解散' : '确认退出' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右键菜单组件 -->
+      <ContextMenu
+          :visible="contextMenu.visible"
+          :x="contextMenu.x"
+          :y="contextMenu.y"
+          :targetUser="contextMenuUser"
+          :currentUserIsCreator="isCreator"
+          @close="closeContextMenu"
+          @setAdmin="setUserAdmin"
+          @showMute="showMuteDialog"
+          @unmute="unmuteUser"
+          @showKick="showKickDialog"
+        />
+
+      <!-- 消息右键菜单组件 -->
+      <MessageContextMenu
+        :visible="messageContextMenu.visible"
+        :x="messageContextMenu.x"
+        :y="messageContextMenu.y"
+        :targetMessage="messageContextMenu.targetMessage"
+        :currentUser="authStore.user"
+        :isAdmin="currentUserIsAdmin"
+        :isCreator="isCreator"
+        @close="closeMessageContextMenu"
+        @reply="handleReplyMessage"
+        @delete="handleDeleteMessage"
+        @privateChat="startPrivateChat"
+        @block="toggleBlockUser"
+        :isBlocked="privateChatStore.isBlocked(messageContextMenu.targetMessage?.userUid)"
+      />
+
+      <!-- 禁言弹窗组件 -->
+      <MuteDialog 
+        :visible="muteDialog.visible"
+        :targetUser="muteDialogUser"
+        @cancel="cancelMute"
+        @confirm="confirmMute"
+      />
+
+      <!-- 踢人确认弹窗组件 -->
+      <KickDialog 
+        :visible="kickDialog.visible"
+        :targetUser="kickDialogUser"
+        @cancel="cancelKick"
+        @confirm="confirmKickUser"
+      />
+
+      <!-- 删除消息确认弹窗 -->
+      <DeleteMessageDialog
+        :visible="deleteMessageDialog.visible"
+        :targetMessage="deleteMessageDialog.targetMessage"
+        @confirm="confirmDeleteMessage"
+        @cancel="cancelDeleteMessage"
+      />
+
+      <!-- 图片预览组件 -->
+      <ImagePreview
+        :visible="imagePreview.visible"
+        :imageUrl="imagePreview.imageUrl"
+        :imageTitle="imagePreview.title"
+        @close="closeImagePreview"
+      />
+
+      <!-- 消息类型选择器 -->
+      <MessageTypeSelector
+        :visible="messageTypeDialog.visible"
+        @close="closeMessageTypeSelector"
+        @select="handleMessageTypeSelect"
+      />
+
+      <!-- B站视频输入对话框 -->
+      <BilibiliInputDialog
+        :visible="bilibiliDialog.visible"
+        @cancel="closeBilibiliDialog"
+        @submit="handleBilibiliSubmit"
+      />
+
+      <!-- Markdown输入对话框 -->
+      <MarkdownInputDialog
+        :visible="markdownDialog.visible"
+        @cancel="closeMarkdownDialog"
+        @submit="handleMarkdownSubmit"
+      />
+
+      <!-- 房间名称编辑弹窗 -->
+      <RoomNameEditDialog
+        :visible="roomNameDialog.visible"
+        :current-name="roomName"
+        @cancel="closeRoomNameDialog"
+        @submit="handleRoomNameUpdate"
+      />
+
+      <!-- 上传进度对话框 -->
+      <div v-if="uploadProgress.visible" class="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl min-w-80 max-w-11/12 overflow-hidden animate-upload-dialog-fade-in">
+          <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-5 py-4 flex items-center gap-2.5 font-semibold">
+            <i :class="uploadProgress.type === 'image' ? 'fas fa-image' : 'fas fa-file'" class="text-lg"></i>
+            <span>{{ uploadProgress.type === 'image' ? '发送图片' : '发送文件' }}</span>
+          </div>
+          
+          <div class="p-5">
+            <div class="text-gray-800 dark:text-slate-100 font-medium mb-4 break-all leading-relaxed">
+              {{ uploadProgress.fileName }}
+            </div>
+            
+            <div class="w-full h-2 bg-gray-200 dark:bg-slate-600 rounded-full overflow-hidden mb-3">
+              <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full transition-all duration-300 relative" :style="{ width: uploadProgress.progress + '%' }">
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-progress-shimmer"></div>
+              </div>
+            </div>
+            
+            <div class="text-center text-indigo-600 dark:text-indigo-400 font-semibold text-sm">
+              {{ uploadProgress.progress }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 图片压缩确认对话框 -->
+      <ImageCompressionDialog
+        :visible="compressionDialog.visible"
+        :fileName="compressionDialog.fileName"
+        :fileSize="compressionDialog.fileSize"
+        @confirm="handleCompressionConfirm"
+        @cancel="handleCompressionCancel"
+      />
+    </div>
   </div>
 </template>
 
@@ -500,10 +554,29 @@ import RightSidebar from '@/components/common/RightSidebar.vue'
 import MessageInput from '@/components/common/MessageInput.vue'
 import { useContextMenu } from '@/composables/useContextMenu.js'
 import { marked } from 'marked'
+import { usePrivateChatStore } from '@/stores/privateChat'
+import { useUserInfo } from '@/composables/useUserInfo'
+import PrivateChatConversationSettings from '@/components/common/PrivateChatConversationSettings.vue'
 
 // 定义组件名称（在 <script setup> 中可选）
 defineOptions({
   name: 'ChatRoom'
+})
+
+// 定义 props
+const props = defineProps({
+  roomId: {
+    type: String,
+    default: null
+  },
+  targetUid: {
+    type: String,
+    default: null
+  },
+  isPrivateChat: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const router = useRouter()
@@ -511,7 +584,14 @@ const route = useRoute()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 const chatroomStore = useChatroomStore()
-const roomId = computed(() => route.params.roomId)
+const privateChatStore = usePrivateChatStore()
+const { getUserInfo } = useUserInfo()
+const roomId = computed(() => props.roomId || route.params.roomId)
+const isPrivateChat = computed(() => props.isPrivateChat || false)
+const targetUid = computed(() => props.targetUid || null)
+
+// 私聊对象的用户信息
+const targetUserInfo = ref(null)
 const roomInfo = ref(null)
 const newMessage = ref('')
 const messageList = ref(null)
@@ -564,7 +644,13 @@ const {
 } = useContextMenu()
     
     // 计算属性
-    const roomName = computed(() => roomInfo.value?.name || '聊天室')
+    const roomName = computed(() => {
+      if (isPrivateChat.value) {
+        const nickname = targetUserInfo.value?.nickname || targetUid.value
+        return `与 ${nickname} 私聊`
+      }
+      return roomInfo.value?.name || '聊天室'
+    })
 
 // 右键菜单用户数据（需要包含头像URL和最新状态）
 const contextMenuUser = computed(() => {
@@ -746,49 +832,104 @@ const loadMessages = async (loadMore = false, scrollToMessageId = null) => {
       offset: messagesPagination.currentPage * messagesPagination.pageSize
     }
     
-    const response = await axios.get(`/api/chatrooms/${roomId.value}/messages`, { params })
+    let response
+    if (isPrivateChat.value) {
+      // 私聊模式：从私聊API获取消息
+      // 直接使用 targetUid 作为参数，让后端处理会话查找
+      try {
+        response = await axios.get(`/api/private-chats/user/${targetUid.value}/messages`, { params })
+      } catch (error) {
+        // 如果没有现有会话，返回空消息列表
+        if (error.response?.status === 404) {
+          response = { data: { data: [] } }
+        } else {
+          throw error
+        }
+      }
+    } else {
+      // 聊天室模式：从聊天室API获取消息
+      response = await axios.get(`/api/chatrooms/${roomId.value}/messages`, { params })
+    }
     
     const messageData = response.data.data
     const messagesArray = Array.isArray(messageData) ? messageData : messageData.messages || []
     
-    // 只过滤掉临时系统消息，保留持久系统消息
-    const persistentMessages = messagesArray.filter(msg => 
-      msg.messageType !== 'system' || 
-      (msg.messageType === 'system' && msg.systemMessageType === 'persistent')
-    )
+    let processedMessages = messagesArray
+    
+    if (isPrivateChat.value) {
+      // 私聊模式：直接处理消息
+      processedMessages = messagesArray
+    } else {
+      // 聊天室模式：只过滤掉临时系统消息，保留持久系统消息
+      processedMessages = messagesArray.filter(msg => 
+        msg.messageType !== 'system' || 
+        (msg.messageType === 'system' && msg.systemMessageType === 'persistent')
+      )
+    }
     
     // 检查是否有重复消息（防止重复加载）
     const existingIds = new Set(messages.map(m => m.id))
-    const newMessages = persistentMessages.filter(msg => !existingIds.has(msg.id))
+    const newMessages = processedMessages.filter(msg => {
+      const messageId = isPrivateChat.value ? msg.messageId : msg.id
+      return !existingIds.has(messageId)
+    })
     
-    const formattedMessages = newMessages.map(msg => ({
-      id: msg.id,
-      type: msg.messageType === 'system' ? 'system' : 
-            msg.messageType === 'image' ? 'image' :
-            msg.messageType === 'bilibili' ? 'bilibili' :
-            msg.messageType === 'markdown' ? 'markdown' :
-            msg.messageType === 'file' ? 'file' : 'user',
-      userName: msg.user?.nickname || msg.nickname || '未知用户',
-      userUid: msg.userUid || msg.sender_uid,
-      userAvatar: msg.user?.avatarUrl || msg.avatar_url || '/avatars/default',
-      text: msg.content,
-      imageUrl: msg.imageUrl,
-      bilibiliId: msg.bilibiliId,
-      markdownContent: msg.markdownContent,
-      fileId: msg.fileId,
-      fileName: msg.fileName,
-      fileSize: msg.fileSize,
-      fileExpiry: msg.fileExpiry,
-      fileExpired: msg.fileExpired,
-      timestamp: msg.createdAt,
-      isOwn: (msg.userUid || msg.sender_uid) === authStore.user?.uid,
-      isAdmin: msg.user?.isAdmin || false,
-      systemMessageType: msg.systemMessageType,
-      visibilityScope: msg.visibilityScope,
-      visibleToUsers: msg.visibleToUsers,
-      replyToMessageId: msg.replyToMessageId,
-      replyToMessage: msg.replyToMessage
-    }))
+    const formattedMessages = newMessages.map(msg => {
+      if (isPrivateChat.value) {
+        // 私聊消息格式化
+        const isOwn = msg.senderUid === authStore.user?.uid
+        const displayName = isOwn 
+          ? (authStore.user?.nickname || '我')
+          : (targetUserInfo.value?.nickname || msg.senderUid)
+        
+        return {
+          id: msg.messageId,
+          type: msg.messageType === 'image' ? 'image' :
+                msg.messageType === 'file' ? 'file' : 'user',
+          userName: displayName,
+          userUid: msg.senderUid,
+          userAvatar: msg.senderUid === authStore.user?.uid ? authStore.user?.avatarUrl || '/avatars/default' : `/avatars/${msg.senderUid}`,
+          text: msg.content,
+          imageUrl: msg.imageUrl,
+          fileId: msg.fileId,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          timestamp: msg.createdAt,
+          isOwn: isOwn,
+          isAdmin: false
+        }
+      } else {
+        // 聊天室消息格式化
+        return {
+          id: msg.id,
+          type: msg.messageType === 'system' ? 'system' : 
+                msg.messageType === 'image' ? 'image' :
+                msg.messageType === 'bilibili' ? 'bilibili' :
+                msg.messageType === 'markdown' ? 'markdown' :
+                msg.messageType === 'file' ? 'file' : 'user',
+          userName: msg.user?.nickname || msg.nickname || '未知用户',
+          userUid: msg.userUid || msg.sender_uid,
+          userAvatar: msg.user?.avatarUrl || msg.avatar_url || '/avatars/default',
+          text: msg.content,
+          imageUrl: msg.imageUrl,
+          bilibiliId: msg.bilibiliId,
+          markdownContent: msg.markdownContent,
+          fileId: msg.fileId,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize,
+          fileExpiry: msg.fileExpiry,
+          fileExpired: msg.fileExpired,
+          timestamp: msg.createdAt,
+          isOwn: (msg.userUid || msg.sender_uid) === authStore.user?.uid,
+          isAdmin: msg.user?.isAdmin || false,
+          systemMessageType: msg.systemMessageType,
+          visibilityScope: msg.visibilityScope,
+          visibleToUsers: msg.visibleToUsers,
+          replyToMessageId: msg.replyToMessageId,
+          replyToMessage: msg.replyToMessage
+        }
+      }
+    })
     
     if (loadMore) {
       // 加载更多时，将新消息插入到数组开头（保持时间顺序）
@@ -850,6 +991,8 @@ const maintainScrollPosition = () => {
   }
 }
 
+
+
 // 监听滚动事件，实现上拉加载更多
 const handleScroll = () => {
   if (!messageList.value || messagesPagination.isLoading || !messagesPagination.hasMore) {
@@ -895,6 +1038,11 @@ const selectImage = () => {
   if (imageInput.value) {
     imageInput.value.click()
   }
+}
+
+// 返回上一页（私聊模式）
+const goBack = () => {
+  router.go(-1)
 }
 
 // 处理图片选择
@@ -1182,8 +1330,12 @@ const sendImageMessage = async (file, skipSizeCheck = false) => {
     // 创建FormData
     const formData = new FormData()
     formData.append('image', finalFile)
-    formData.append('roomId', roomId.value)
-    formData.append('messageType', 'image')
+    
+    // 如果是聊天室模式，添加roomId
+    if (!isPrivateChat.value) {
+      formData.append('roomId', roomId.value)
+      formData.append('messageType', 'image')
+    }
     
     // 如果是回复消息，添加回复信息
     if (replyState.value.isReplying && replyState.value.targetMessage) {
@@ -1192,33 +1344,66 @@ const sendImageMessage = async (file, skipSizeCheck = false) => {
     
     uploadProgress.value.progress = 80
     
-    // 发送图片
-    const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.lengthComputable) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
+    let response
+    
+    if (isPrivateChat.value) {
+      // 私聊模式：使用私聊图片API
+      response = await axios.post(`/api/private-chats/${targetUid.value}/messages/image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
+          }
         }
-      }
-    })
+      })
+      
+      // 私聊模式下手动添加消息到本地列表
+      const msg = response.data.data
+      messages.push({
+        id: msg.messageId,
+        type: 'user',
+        userName: authStore.user?.nickname || '我',
+        userUid: msg.senderUid,
+        userAvatar: authStore.user?.avatarUrl || '/avatars/default',
+        text: msg.content, // 图片URL
+        messageType: 'image',
+        timestamp: msg.createdAt,
+        isOwn: true,
+        isAdmin: false
+      })
+    } else {
+      // 聊天室模式：使用聊天室图片API
+      response = await axios.post(`/api/chatrooms/${roomId.value}/messages/image`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            uploadProgress.value.progress = 80 + (progress * 0.2) // 80-100%
+          }
+        }
+      })
+    }
     
     uploadProgress.value.progress = 100
     
-    // 图片发送成功，WebSocket会自动广播消息
+    // 图片发送成功
     cancelReply() // 清除回复状态
     
     setTimeout(() => {
       hideUploadProgress()
     }, 500)
     
-    // 等待WebSocket消息到达后滚动到底部
+    // 滚动到底部
+    await nextTick()
     setTimeout(() => {
       scrollToBottom(false)
     }, 100)
-    
+
   } catch (error) {
     console.error('发送图片失败:', error)
     hideUploadProgress()
@@ -1251,6 +1436,42 @@ const handleSendMessage = async (messageText) => {
 const sendMessage = async () => {
   if (!newMessage.value.trim() || !canSendMessage.value) return
   
+  if (isPrivateChat.value) {
+    // 私聊模式：使用私聊API发送消息
+    try {
+      const messageData = {
+        content: newMessage.value.trim(),
+        messageType: 'text'
+      }
+      
+      const response = await axios.post(`/api/private-chats/${targetUid.value}/messages`, messageData)
+      const msg = response.data.data
+      
+      // 添加消息到本地消息列表
+      messages.push({
+        id: msg.messageId,
+        type: 'user',
+        userName: authStore.user?.nickname || '我',
+        userUid: msg.senderUid,
+        userAvatar: authStore.user?.avatarUrl || '/avatars/default',
+        text: msg.content,
+        timestamp: msg.createdAt,
+        isOwn: true,
+        isAdmin: false
+      })
+      
+      newMessage.value = ''
+      await nextTick()
+      scrollToBottom(false)
+      
+    } catch (error) {
+      console.error('发送私聊消息失败:', error)
+      notificationStore.error('发送消息失败: ' + (error.response?.data?.message || error.message))
+    }
+    return
+  }
+  
+  // 聊天室模式：原有逻辑
   // 准备消息数据
   const messageData = {
     roomId: roomId.value,
@@ -2213,6 +2434,52 @@ const leaveRoom = () => {
   router.push({ name: 'Home' })
 }
 
+// 初始化私聊
+const initializePrivateChat = async () => {
+  isLoading.value = true
+  
+  try {
+    // 等待认证状态初始化完成
+    if (!authStore.isInitialized) {
+      await authStore.initialize()
+    }
+    
+    // 检查用户是否已登录
+    if (!authStore.isAuthenticated) {
+      notificationStore.error('请先登录')
+      router.push({ name: 'Home' })
+      return
+    }
+    
+    // 验证目标用户是否有效
+    if (!targetUid.value) {
+      notificationStore.error('无效的私聊对象')
+      router.push({ name: 'Dashboard' })
+      return
+    }
+    
+    // 加载目标用户信息
+    try {
+      targetUserInfo.value = await getUserInfo(targetUid.value)
+    } catch (error) {
+      console.error('加载目标用户信息失败:', error)
+    }
+    
+    // 加载私聊历史消息
+    await loadMessages()
+    
+    // 私聊不需要连接WebSocket，使用轮询或其他方式获取新消息
+    // 这里可以根据需要实现消息更新机制
+    
+  } catch (error) {
+    console.error('初始化私聊失败:', error)
+    notificationStore.error('初始化私聊失败')
+    router.push({ name: 'Dashboard' })
+  } finally {
+    isLoading.value = false
+  }
+}
+
 // 初始化聊天室
 const initializeChatroom = async () => {
   isLoading.value = true
@@ -2800,9 +3067,17 @@ const confirmKickUser = async () => {
     onMounted(async () => {
       window.addEventListener('resize', handleResize)
       checkMobile()
-      await initializeChatroom()
-      await loadJoinedRooms()
-      await loadRoomMembers()
+      
+      if (isPrivateChat.value) {
+        // 私聊模式初始化
+        await initializePrivateChat()
+      } else {
+        // 聊天室模式初始化
+        await initializeChatroom()
+        await loadJoinedRooms()
+        await loadRoomMembers()
+      }
+      
       startMuteTimer()
     })
     
@@ -2816,497 +3091,38 @@ const confirmKickUser = async () => {
     })
     
 // 在 <script setup> 中，所有顶层定义的变量和函数都会自动暴露给模板
+
+// function to start private chat
+const startPrivateChat = (message) => {
+  const otherUid = message.userUid
+  sessionStorage.setItem('openChatUid', otherUid)
+  sessionStorage.setItem('dashboard-active-tab', 'private')
+  router.push({ name: 'Dashboard' })
+  closeMessageContextMenu()
+}
+
+// toggle block user
+const toggleBlockUser = async (message) => {
+  const uid = message.userUid
+  const blocked = privateChatStore.isBlocked(uid)
+  try {
+    if (blocked) {
+      await privateChatStore.unblockUser(uid)
+      notificationStore.success('已解除拉黑')
+    } else {
+      await privateChatStore.blockUser(uid)
+      notificationStore.success('已拉黑该用户')
+    }
+  } catch (error) {
+    notificationStore.error('操作失败')
+  }
+  closeMessageContextMenu()
+}
 </script>
 
 <style scoped>
-/* 基础样式 */
-.chatroom-container {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f8f9fa;
-  overflow: hidden;
-}
-
-/* 暗色模式基础样式 */
-.dark .chatroom-container {
-  background: #1e293b;
-}
-
-/* 加载状态 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background: #f8f9fa;
-}
-
-/* 暗色模式加载状态 */
-.dark .loading-container {
-  background: #1e293b;
-}
-
-.loading-container .loading-spinner {
-  font-size: 2rem;
-  color: #1976d2;
-  margin-bottom: 1rem;
-}
-
-/* 暗色模式加载图标 */
-.dark .loading-container .loading-spinner {
-  color: #60a5fa;
-}
-
-.loading-container p {
-  color: #6c757d;
-  font-size: 1.1rem;
-}
-
-/* 暗色模式加载文字 */
-.dark .loading-container p {
-  color: #cbd5e1;
-}
-
-/* 布局 */
-.chatroom-layout {
-  height: 100vh;
-  display: flex;
-  background: #f8f9fa;
-  overflow: hidden;
-}
-
-/* 暗色模式布局 */
-.dark .chatroom-layout {
-  background: #1e293b;
-}
-
-
-
-/* 主内容区域 */
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-/* 顶部导航栏 */
-.chatroom-header {
-  background: white;
-  padding: 15px 20px;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  flex-shrink: 0;
-  position: relative;
-  z-index: 10;
-}
-
-/* 暗色模式顶部导航栏 */
-.dark .chatroom-header {
-  background: #0f172a;
-  border-bottom: 1px solid #475569;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.header-left,
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-center {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.mobile-menu-btn {
-  display: none;
-  background: none;
-  border: none;
-  color: #6c757d;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.mobile-menu-btn:hover {
-  background: #f8f9fa;
-  color: #2c3e50;
-}
-
-/* 暗色模式移动端菜单按钮 */
-.dark .mobile-menu-btn {
-  color: #94a3b8;
-}
-
-.dark .mobile-menu-btn:hover {
-  background: #1e293b;
-  color: #f1f5f9;
-}
-
-/* 移动端菜单按钮图标颜色 */
-.mobile-menu-btn i {
-  color: #1976d2;
-}
-
-.header-right .mobile-menu-btn i {
-  color: #17a2b8;
-}
-
-/* 暗色模式移动端菜单按钮图标 */
-.dark .mobile-menu-btn i {
-  color: #60a5fa;
-}
-
-.dark .header-right .mobile-menu-btn i {
-  color: #06b6d4;
-}
-
-.room-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.room-info h1 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 24px;
-}
-
-.room-info .room-name.editable {
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.room-info .room-name.editable:hover {
-  text-decoration: underline;
-  text-decoration-color: var(--primary-color);
-  text-decoration-thickness: 2px;
-  text-underline-offset: 4px;
-}
-
-/* 暗色模式房间信息标题 */
-.dark .room-info h1 {
-  color: #f1f5f9;
-}
-
-.room-id,
-.room-info .room-id {
-  color: #6c757d;
-  font-size: 14px;
-  background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-/* 暗色模式房间ID */
-.dark .room-id,
-.dark .room-info .room-id {
-  color: #94a3b8;
-  background: #1e293b;
-}
-
-.room-info .room-name {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
-}
-
-/* 暗色模式房间名称 */
-.dark .room-info .room-name {
-  color: #f1f5f9;
-}
-
-.room-password-indicator {
-  color: #ffc107;
-  font-size: 16px;
-}
-
-/* 用户信息样式已移动到 LeftSidebar.vue */
-
-
-
-
-
-
-
-/* 移动端遮罩层 */
-.mobile-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 15;
-  display: none;
-}
-
-/* 确认对话框 */
-.confirm-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-/* 暗色模式对话框遮罩 */
-.dark .confirm-dialog-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.confirm-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 400px;
-  width: 90%;
-  max-height: 80vh;
-  overflow: hidden;
-}
-
-/* 暗色模式确认对话框 */
-.dark .confirm-dialog {
-  background: #1e293b;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-.dialog-header {
-  padding: 20px 20px 0;
-  text-align: center;
-}
-
-.dialog-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 18px;
-}
-
-/* 暗色模式对话框标题 */
-.dark .dialog-header h3 {
-  color: #f1f5f9;
-}
-
-.dialog-content {
-  padding: 20px;
-  text-align: center;
-}
-
-.dialog-content p {
-  margin: 0;
-  color: #6c757d;
-  line-height: 1.5;
-}
-
-/* 暗色模式对话框内容 */
-.dark .dialog-content p {
-  color: #cbd5e1;
-}
-
-.warning-icon {
-  color: #ffc107;
-  margin-right: 8px;
-  font-size: 16px;
-}
-
-.dialog-actions {
-  padding: 0 20px 20px;
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-.cancel-button,
-.confirm-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.cancel-button {
-  background: #f8f9fa;
-  color: #6c757d;
-}
-
-.cancel-button:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-/* 暗色模式取消按钮 */
-.dark .cancel-button {
-  background: #334155;
-  color: #cbd5e1;
-}
-
-.dark .cancel-button:hover {
-  background: #475569;
-  color: #f1f5f9;
-}
-
-.confirm-button {
-  background: #1976d2;
-  color: white;
-}
-
-.confirm-button:hover {
-  background: #1565c0;
-}
-
-/* 暗色模式确认按钮 */
-.dark .confirm-button {
-  background: #3b82f6;
-}
-
-.dark .confirm-button:hover {
-  background: #2563eb;
-}
-
-.confirm-button.danger {
-  background: #dc3545;
-}
-
-.confirm-button.danger:hover {
-  background: #c82333;
-}
-
-/* 暗色模式危险按钮 */
-.dark .confirm-button.danger {
-  background: #ef4444;
-}
-
-.dark .confirm-button.danger:hover {
-  background: #dc2626;
-}
-
-/* 聊天内容区域 */
-.chatroom-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
-  min-height: 0;
-  /* Safari 修复 */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* 移动端和Safari滚动修复 */
-@media (max-width: 768px) {
-  .messages-area {
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .message-list {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
-}
-
-/* 针对iOS Safari的特殊处理 */
-@supports (-webkit-appearance: none) and (not (appearance: none)) {
-  .message-list {
-    -webkit-overflow-scrolling: touch;
-    overflow-scrolling: touch;
-  }
-}
-
-/* 临时通知样式 */
-.temporary-notifications {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 300px;
-}
-
-.temp-notification {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-left: 4px solid #2196f3;
-  font-size: 14px;
-  color: #2c3e50;
-  animation: slideInRight 0.3s ease-out;
-  transition: all 0.3s ease;
-}
-
-.temp-notification:hover {
-  transform: translateX(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-.notification-join {
-  border-left-color: #4caf50;
-}
-
-.notification-join i {
-  color: #4caf50;
-}
-
-.notification-leave {
-  border-left-color: #ff9800;
-}
-
-.notification-leave i {
-  color: #ff9800;
-}
-
-.notification-info {
-  border-left-color: #2196f3;
-}
-
-.notification-info i {
-  color: #2196f3;
-}
-
-.notification-warning {
-  border-left-color: #ff9800;
-}
-
-.notification-warning i {
-  color: #ff9800;
-}
-
-.notification-error {
-  border-left-color: #f44336;
-}
-
-.notification-error i {
-  color: #f44336;
-}
-
-@keyframes slideInRight {
+/* 动画样式 */
+@keyframes slide-in-right {
   from {
     transform: translateX(100%);
     opacity: 0;
@@ -3317,1184 +3133,12 @@ const confirmKickUser = async () => {
   }
 }
 
-.messages-area {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.message-list {
-  height: 100%;
-  overflow-y: auto;
-  padding: 20px;
-  scroll-behavior: smooth;
-  display: flex;
-  flex-direction: column-reverse;
-  /* Safari 滚动条修复 */
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
-}
-
-/* Safari 和 Webkit 浏览器滚动条样式 */
-.message-list::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.message-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.message-list::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
-  border-radius: 3px;
-  transition: background-color 0.2s ease;
-}
-
-.message-list::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
-}
-
-/* 暗色模式滚动条 */
-.dark .message-list {
-  scrollbar-color: #475569 transparent;
-}
-
-.dark .message-list::-webkit-scrollbar-thumb {
-  background-color: #475569;
-}
-
-.dark .message-list::-webkit-scrollbar-thumb:hover {
-  background-color: #64748b;
-}
-
-.messages-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  justify-content: flex-end;
-}
-
-.empty-messages {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  color: #6c757d;
-}
-
-/* 暗色模式空消息 */
-.dark .empty-messages {
-  color: #94a3b8;
-}
-
-.empty-messages i {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.7;
-  color: #17a2b8;
-}
-
-/* 暗色模式空消息图标 */
-.dark .empty-messages i {
-  color: #06b6d4;
-}
-
-/* 加载指示器样式 */
-.loading-more,
-.no-more-messages {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px;
-  color: #6c757d;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-/* 暗色模式加载指示器 */
-.dark .loading-more,
-.dark .no-more-messages {
-  color: #94a3b8;
-}
-
-.no-more-messages {
-  color: #999;
-  font-size: 13px;
-  padding: 12px;
-  opacity: 0.8;
-}
-
-.loading-more .loading-spinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-more .loading-spinner i {
-  font-size: 16px;
-  color: #1976d2;
-}
-
-.no-more-messages i {
-  font-size: 14px;
-  color: #6c757d;
-}
-
-/* 暗色模式加载和历史消息图标 */
-.dark .loading-more .loading-spinner i {
-  color: #60a5fa;
-}
-
-.dark .no-more-messages i {
-  color: #94a3b8;
-}
-
-/* 消息样式 */
-.message {
-  padding: 5px;
-  border-radius: 10px;
-  transition: all 0.3s ease;
-}
-
-.message:hover {
-  background: rgba(25, 118, 210, 0.1);
-}
-
-.message-continuous {
-  margin-bottom: 4px;
-}
-
-.message-first-in-group {
-  margin-bottom: 2px;
-}
-
-.message-last-in-group {
-  margin-bottom: 16px;
-}
-
-.message-wrapper {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.message-own .message-wrapper {
-  flex-direction: row-reverse;
-}
-
-.message-avatar {
-  flex-shrink: 0;
-  width: 40px;
-  display: flex;
-  justify-content: center;
-}
-
-.message-markdown .message-content .markdown-message{
-  min-width: 100px;
-}
-
-.avatar-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e9ecef;
-}
-
-.message-content {
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: white;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  word-wrap: break-word;
-  position: relative;
-}
-
-/* 暗色模式消息内容 */
-.dark .message-content {
-  background: #334155;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-  color: #f1f5f9;
-}
-
-.message-continuous .message-content {
-  padding: 8px 16px;
-  margin-top: 2px;
-}
-
-.message-own .message-content {
-  background: #e3f2fd;
-  color: #1976d2;
-  border: 1px solid #bbdefb;
-}
-
-/* 暗色模式自己的消息 */
-.dark .message-own .message-content {
-  background: #334155;
-  color: #ffffff;
-  border: 1px solid #1e293b;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  gap: 4px;
-}
-
-
-.message-own .user-name {
-  color: #1976d2;
-}
-
-/* 暗色模式自己消息的用户名 */
-.dark .message-own .user-name {
-  color: #ffffff;
-}
-
-.admin-icon {
-  color: #ffc107;
-  font-size: 10px;
-}
-
-.message-time {
-  color: #6c757d;
-  font-size: 11px;
-}
-
-/* 暗色模式消息时间 */
-.dark .message-time {
-  color: #94a3b8;
-}
-
-.message-own .message-time {
-  color: #1976d2;
-}
-
-/* 暗色模式自己消息的时间 */
-.dark .message-own .message-time {
-  color: #ffffff;
-}
-
-/* 非文本消息的时间头部样式 */
-.message-time-header {
-  margin-bottom: 4px;
-  text-align: right;
-}
-
-.message-time-header .message-time {
-  font-size: 11px;
-  color: #6c757d;
-  opacity: 0.8;
-}
-
-/* 暗色模式时间头部 */
-.dark .message-time-header .message-time {
-  color: #94a3b8;
-}
-
-/* 自己消息的时间头部 */
-.message-own .message-time-header .message-time {
-  color: #1976d2;
-  opacity: 0.8;
-}
-
-/* 暗色模式自己消息的时间头部 */
-.dark .message-own .message-time-header .message-time {
-  color: #ffffff;
-  opacity: 0.8;
-}
-
-.message-body {
-  width: 100%;
-}
-
-.message-text {
-  line-height: 1.4;
-  color: #2c3e50;
-  word-break: break-word;
-  white-space: break-spaces;
-  flex: 1;
-  overflow: hidden;
-  text-align: justify;
-  font-size: 14px;
-}
-
-/* 暗色模式消息文本 */
-.dark .message-text {
-  color: #f1f5f9;
-}
-
-.message-own .message-text {
-  color: #1976d2;
-}
-
-/* 暗色模式自己消息的文本 */
-.dark .message-own .message-text {
-  color: #ffffff;
-}
-
-.message-time-inline {
-  color: #6c757d;
-  font-size: 10px;
-  opacity: 0.7;
-  white-space: nowrap;
-  float: right;
-  margin-left: 8px;
-  line-height: inherit;
-}
-
-/* 暗色模式内联时间 */
-.dark .message-time-inline {
-  color: #94a3b8;
-}
-
-.message-own .message-time-inline {
-  color: #1976d2;
-  opacity: 0.8;
-}
-
-/* 暗色模式自己消息的内联时间 */
-.dark .message-own .message-time-inline {
-  color: #ffffff;
-  opacity: 0.8;
-}
-
-/* 系统消息样式 */
-.system-message {
-  display: flex;
-  justify-content: center;
-}
-
-.system-message-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-  color: #1976d2;
-  padding: 10px 16px;
-  border-radius: 20px;
-  font-size: 13px;
-  max-width: 80%;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
-  border: 1px solid rgba(25, 118, 210, 0.2);
-  position: relative;
-  overflow: hidden;
-}
-
-.system-message-content::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, #b2d0ee, #d258e7, #b2d0ee);
-  animation: shimmer 2s infinite;
-}
-
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
 
-.system-icon {
-  color: #1976d2;
-  font-size: 14px;
-  opacity: 0.8;
-}
-
-/* 暗色模式系统图标 */
-.dark .system-icon {
-  color: #60a5fa;
-}
-
-.system-text {
-  flex: 1;
-  font-weight: 500;
-  text-align: center;
-  line-height: 1.3;
-}
-
-.system-time {
-  color: #666;
-  font-size: 11px;
-  font-weight: 400;
-  opacity: 0.7;
-  margin-left: 8px;
-  white-space: nowrap;
-}
-
-/* 消息高亮效果 */
-.message-highlight {
-  background: rgba(25, 118, 210, 0.1);
-}
-
-/* 回复消息样式 */
-.reply-message {
-  margin-bottom: 8px;
-  padding: 8px 12px;
-  background: rgba(25, 118, 210, 0.05);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.reply-message:hover {
-  background: rgba(25, 118, 210, 0.1);
-}
-
-.reply-line {
-  width: 2px;
-  background: #1976d2;
-  border-radius: 1px;
-  margin-top: 2px;
-  flex-shrink: 0;
-  align-self: stretch;
-}
-
-.reply-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.reply-user {
-  font-size: 12px;
-  font-weight: 600;
-  color: #1976d2;
-  margin-bottom: 2px;
-  line-height: 1.2;
-}
-
-.reply-text {
-  font-size: 12px;
-  color: #6c757d;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.message-own .reply-message {
-  background: rgba(25, 118, 210, 0.1);
-  border: 1px solid rgba(25, 118, 210, 0.2);
-}
-
-.message-own .reply-user {
-  color: #1976d2;
-}
-
-.message-own .reply-text {
-  color: #1976d2;
-  opacity: 0.8;
-}
-
-.message-own .reply-line {
-  background: #1976d2;
-}
-
-/* 输入区域 */
-.input-area {
-  padding: 20px;
-  background: white;
-  border-top: 1px solid #e9ecef;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 10;
-}
-
-/* 暗色模式输入区域 */
-.dark .input-area {
-  background: #0f172a;
-  border-top: 1px solid #475569;
-}
-
-
-
-
-
-.mute-notice,
-.auth-notice {
-  margin-top: 12px;
-  padding: 12px 16px;
-  background: #fff3cd;
-  color: #856404;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-/* 暗色模式禁言提示 */
-.dark .mute-notice {
-  background: #451a03;
-  color: #fbbf24;
-}
-
-.auth-notice {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-/* 暗色模式认证提示 */
-.dark .auth-notice {
-  background: #450a0a;
-  color: #fca5a5;
-}
-
-/* 提示信息图标颜色 */
-.mute-notice i {
-  color: #ffc107;
-}
-
-.auth-notice i {
-  color: #dc3545;
-}
-
-/* 暗色模式提示图标 */
-.dark .mute-notice i {
-  color: #fbbf24;
-}
-
-.dark .auth-notice i {
-  color: #ef4444;
-}
-
-/* 移动端响应式样式 */
-@media (max-width: 768px) {
-  .chatroom-layout {
-    position: relative;
-  }
-  
-  .mobile-overlay {
-    display: block;
-  }
-  
-  .mobile-menu-btn {
-    display: flex;
-  }
-  
-  .chatroom-header {
-    padding: 12px 15px;
-  }
-  
-  .header-center .user-info {
-    display: none;
-  }
-  
-
-  
-  .room-info h1 {
-    font-size: 18px;
-  }
-  
-  .room-info {
-    gap: 8px;
-  }
-  
-  .confirm-dialog {
-    margin: 20px;
-    width: calc(100% - 40px);
-  }
-  
-  .message-content {
-    max-width: calc(100% - 80px);
-  }
-  
-  .input-area {
-    padding: 16px;
-  }
-  
-
-  
-  .temporary-notifications {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    max-width: none;
-  }
-  
-  .temp-notification {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-}
-
-@media (max-width: 480px) {
-  
-  .chatroom-header {
-    padding: 10px 12px;
-  }
-  
-  .room-info h1 {
-    font-size: 16px;
-  }
-  
-  .room-id {
-    font-size: 12px;
-  }
-  
-  .header-left,
-  .header-right {
-    gap: 8px;
-  }
-}
-
-
-
-/* 图片消息样式 */
-.message-image {
-  margin: 4px 0;
-}
-
-.image-content {
-  max-height: 500px;
-  height: auto;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.image-content:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.image-caption {
-  margin-top: 8px;
-  font-size: 13px;
-  color: inherit;
-  line-height: 1.4;
-}
-
-/* 消息类型标记样式 */
-.message-type-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  margin-bottom: 6px;
-  opacity: 0.7;
-  font-weight: 500;
-}
-
-.message-type-header i {
-  font-size: 14px;
-}
-
-
-
-.markdown-header {
-  color: #333;
-}
-
-.markdown-header span {
-  background: rgba(51, 51, 51, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-.file-header {
-  color: #28a745;
-}
-
-.file-header span {
-  background: rgba(40, 167, 69, 0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-/* 暗色模式Markdown标记 */
-.dark .markdown-header {
-  color: #e2e8f0;
-}
-
-.dark .markdown-header span {
-  background: rgba(226, 232, 240, 0.2);
-  color: #e2e8f0;
-}
-
-/* 暗色模式文件标记 */
-.dark .file-header {
-  color: #10b981;
-}
-
-.dark .file-header span {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
-/* 发送者消息中的类型标记样式 */
-.message-own .message-type-header {
-  color: #1976d2;
-}
-
-.message-own .markdown-header {
-  color: #1976d2;
-}
-
-.message-own .markdown-header span {
-  background: rgba(25, 118, 210, 0.2);
-  color: #1976d2;
-}
-
-.message-own .file-header {
-  color: #28a745;
-}
-
-.message-own .file-header span {
-  background: rgba(40, 167, 69, 0.2);
-  color: #28a745;
-}
-
-/* B站视频消息样式 */
-.bilibili-message {
-  margin: 8px 0;
-}
-
-/* 文件消息样式 */
-.file-message {
-  max-width: 400px;
-  margin: 8px 0;
-}
-
-.file-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.file-content:hover {
-  background: #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* 暗色模式文件内容 */
-.dark .file-content {
-  background: #334155;
-  border: 1px solid #475569;
-}
-
-.dark .file-content:hover {
-  background: #475569;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
-}
-
-.file-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e3f2fd;
-  border-radius: 8px;
-  color: #1976d2;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-/* 暗色模式文件图标 */
-.dark .file-icon {
-  background: #1e3a8a;
-  color: #60a5fa;
-}
-
-.file-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.file-name {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
-  margin-bottom: 2px;
-  word-break: break-all;
-  line-height: 1.2;
-}
-
-/* 暗色模式文件名 */
-.dark .file-name {
-  color: #f1f5f9;
-}
-
-.file-size {
-  font-size: 12px;
-  color: #6c757d;
-  margin-bottom: 2px;
-}
-
-/* 暗色模式文件大小 */
-.dark .file-size {
-  color: #94a3b8;
-}
-
-.file-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.file-status.valid {
-  color: #28a745;
-}
-
-.file-status.expired {
-  color: #dc3545;
-}
-
-/* 暗色模式文件状态 */
-.dark .file-status.valid {
-  color: #10b981;
-}
-
-.dark .file-status.expired {
-  color: #ef4444;
-}
-
-.download-btn {
-  width: 36px;
-  height: 36px;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.download-btn:hover {
-  background: #218838;
-  transform: scale(1.05);
-}
-
-/* 暗色模式下载按钮 */
-.dark .download-btn {
-  background: #10b981;
-}
-
-.dark .download-btn:hover {
-  background: #059669;
-}
-
-/* 消息发送者的文件消息样式 */
-.message-own .file-content {
-  background: rgba(25, 118, 210, 0.1);
-  border: 1px solid rgba(25, 118, 210, 0.2);
-}
-
-.message-own .file-content:hover {
-  background: rgba(25, 118, 210, 0.15);
-}
-
-.message-own .file-icon {
-  background: rgba(25, 118, 210, 0.2);
-  color: #1976d2;
-}
-
-.message-own .file-name {
-  color: #1976d2;
-}
-
-.message-own .file-size {
-  color: #1976d2;
-  opacity: 0.7;
-}
-
-.message-own .file-status.valid {
-  color: #28a745;
-}
-
-.message-own .file-status.expired {
-  color: #dc3545;
-}
-
-.message-own .download-btn {
-  background: #28a745;
-  color: white;
-}
-
-.message-own .download-btn:hover {
-  background: #218838;
-}
-
-/* Markdown消息样式 */
-.markdown-message {
-  max-width: 600px;
-  margin: 8px 0;
-}
-
-.markdown-content {
-  line-height: 1.6;
-  color: inherit;
-  font-size: 14px;
-}
-
-/* Markdown内容样式 */
-.markdown-content :deep(h1),
-.markdown-content :deep(h2),
-.markdown-content :deep(h3),
-.markdown-content :deep(h4),
-.markdown-content :deep(h5),
-.markdown-content :deep(h6) {
-  margin: 0.8em 0 0.4em 0;
-  color: inherit;
-}
-
-.markdown-content :deep(h1) {
-  font-size: 1.4em;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 0.2em;
-}
-
-/* 暗色模式标题边框 */
-.dark .markdown-content :deep(h1) {
-  border-bottom-color: #475569;
-}
-
-.markdown-content :deep(h2) {
-  font-size: 1.2em;
-  border-bottom: 1px solid #e9ecef;
-  padding-bottom: 0.2em;
-}
-
-/* 暗色模式标题边框 */
-.dark .markdown-content :deep(h2) {
-  border-bottom-color: #475569;
-}
-
-.markdown-content :deep(h3) {
-  font-size: 1.1em;
-}
-
-.markdown-content :deep(p) {
-  margin: 0.6em 0;
-}
-
-.markdown-content :deep(code) {
-  background: #f8f9fa;
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
-  font-size: 0.85em;
-  color: #e83e8c;
-}
-
-/* 暗色模式代码 */
-.dark .markdown-content :deep(code) {
-  background: #374151;
-  color: #f472b6;
-}
-
-.markdown-content :deep(pre) {
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 6px;
-  overflow-x: auto;
-  border-left: 3px solid #333;
-  margin: 12px 0;
-}
-
-/* 暗色模式代码块 */
-.dark .markdown-content :deep(pre) {
-  background: #374151;
-  border-left-color: #9ca3af;
-}
-
-.markdown-content :deep(pre code) {
-  background: none;
-  padding: 0;
-  color: #2c3e50;
-}
-
-/* 暗色模式代码块内容 */
-.dark .markdown-content :deep(pre code) {
-  color: #e5e7eb;
-}
-
-.markdown-content :deep(strong) {
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-/* 暗色模式粗体 */
-.dark .markdown-content :deep(strong) {
-  color: #f1f5f9;
-}
-
-.markdown-content :deep(em) {
-  font-style: italic;
-  color: #6c757d;
-}
-
-/* 暗色模式斜体 */
-.dark .markdown-content :deep(em) {
-  color: #94a3b8;
-}
-
-.markdown-content :deep(a) {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.markdown-content :deep(a:hover) {
-  text-decoration: underline;
-}
-
-/* 消息删除动画样式 */
-.messages-transition-group {
-  position: relative;
-}
-
-/* 消息删除动画 */
-.message-delete-leave-active {
-  transition: all 0.3s ease-out;
-  transform-origin: left center;
-}
-
-.message-delete-leave-to {
-  opacity: 0;
-  transform: translateX(-100%) scale(0.8);
-  max-height: 0;
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
-}
-
-/* 消息删除中的状态样式 */
-.message-deleting {
-  opacity: 0.5;
-  transform: scale(0.98);
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.message-deleting::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-  animation: shimmer 1.5s infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* 消息移动动画（当其他消息被删除时） */
-.message-delete-move {
-  transition: transform 0.3s ease;
-}
-
-/* 系统消息删除动画特殊处理 */
-.message-system.message-delete-leave-active {
-  transition: all 0.25s ease-out;
-}
-
-.message-system.message-delete-leave-to {
-  opacity: 0;
-  transform: scale(0.9);
-  max-height: 0;
-  padding: 0;
-  margin: 0;
-}
-
-/* 删除动画的淡入效果优化 */
-.message-delete-enter-active {
-  transition: all 0.3s ease-in;
-}
-
-.message-delete-enter-from {
-  opacity: 0;
-  transform: translateX(30px) scale(0.95);
-}
-
-.message-delete-enter-to {
-  opacity: 1;
-  transform: translateX(0) scale(1);
-}
-
-
-
-/* 移动端删除动画优化 */
-@media (max-width: 768px) {
-  .message-delete-leave-to {
-    transform: translateX(-50%) scale(0.9);
-  }
-  
-  .message-deleting::after {
-    animation-duration: 1s;
-  }
-}
-
-/* 上传进度对话框样式 */
-.upload-progress-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  backdrop-filter: blur(4px);
-}
-
-.upload-progress-dialog {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  min-width: 350px;
-  max-width: 90%;
-  overflow: hidden;
-  animation: uploadDialogFadeIn 0.3s ease-out;
-}
-
-@keyframes uploadDialogFadeIn {
+@keyframes upload-dialog-fade-in {
   from {
     opacity: 0;
     transform: scale(0.9) translateY(-10px);
@@ -4505,61 +3149,7 @@ const confirmKickUser = async () => {
   }
 }
 
-.upload-progress-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-}
-
-.upload-progress-header i {
-  font-size: 18px;
-}
-
-.upload-progress-content {
-  padding: 20px;
-}
-
-.upload-file-name {
-  color: #2c3e50;
-  font-weight: 500;
-  margin-bottom: 16px;
-  word-break: break-all;
-  line-height: 1.4;
-}
-
-.upload-progress-bar {
-  width: 100%;
-  height: 8px;
-  background: #e9ecef;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.upload-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  border-radius: 4px;
-  transition: width 0.3s ease;
-  position: relative;
-}
-
-.upload-progress-fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: progressShimmer 1.5s infinite;
-}
-
-@keyframes progressShimmer {
+@keyframes progress-shimmer {
   0% {
     transform: translateX(-100%);
   }
@@ -4568,57 +3158,60 @@ const confirmKickUser = async () => {
   }
 }
 
-.upload-progress-text {
-  text-align: center;
-  color: #667eea;
-  font-weight: 600;
-  font-size: 14px;
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
 }
 
-/* 暗色模式样式 */
-.dark .upload-progress-overlay {
-  background: rgba(0, 0, 0, 0.7);
+.animate-shimmer {
+  animation: shimmer 2s infinite;
 }
 
-.dark .upload-progress-dialog {
-  background: #1f2937;
-  color: #f1f5f9;
+.animate-upload-dialog-fade-in {
+  animation: upload-dialog-fade-in 0.3s ease-out;
 }
 
-.dark .upload-file-name {
-  color: #f1f5f9;
+.animate-progress-shimmer {
+  animation: progress-shimmer 1.5s infinite;
 }
 
-.dark .upload-progress-bar {
-  background: #374151;
-}
-
-/* 移动端适配 */
-@media (max-width: 480px) {
-  .upload-progress-dialog {
-    min-width: auto;
-    margin: 20px;
-    width: calc(100% - 40px);
-  }
-  
-  .upload-progress-header,
-  .upload-progress-content {
-    padding: 16px;
+/* 移动端样式 */
+@media (max-width: 768px) {
+  .right-sidebar-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(100%);
   }
 
-  .message-list {
-    padding: 10px;
+  .right-sidebar-container.sidebar-visible {
+    transform: translateX(0);
   }
+}
 
-  .system-message-content {
+/* 移动端显示私聊设置关闭按钮 */
+@media (max-width: 768px) {
+  .private-chat-sidebar .sidebar-toggle {
     display: block;
-    text-align: center;
-  }
-
-  .message-text {
-    font-size: 13px;
   }
 }
 
-/* 右键菜单样式已移动到 @/components/common 组件中 */
+.w-280 {
+  width: 280px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .w-280 {
+    width: 280px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .w-280 {
+    width: max(80%, 280px);
+  }
+}
 </style> 

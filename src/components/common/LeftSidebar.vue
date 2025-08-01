@@ -1,31 +1,56 @@
 <template>
-  <div class="sidebar left-sidebar" :class="{ 'sidebar-hidden': !show }">
-    <div class="sidebar-header">
-      <h3>
-        <i class="fas fa-home"></i>
+  <div 
+    class="w-280 bg-white dark:bg-slate-900 flex flex-col transition-transform duration-300 ease-in-out z-20 shadow-sm border-r border-gray-200 dark:border-slate-700"
+    :class="{ '-translate-x-full': !show }"
+  >
+    <!-- 侧边栏头部 -->
+    <div class="px-4 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center bg-gray-50 dark:bg-slate-800 min-h-14">
+      <h3 class="m-0 text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+        <i class="fas fa-home text-green-600 dark:text-emerald-500 text-sm"></i>
         房间列表
       </h3>
-      <button @click="$emit('toggle')" class="sidebar-toggle">
-        <i class="fas fa-times"></i>
-      </button>
     </div>
-    <div class="room-list">
+
+    <!-- 房间列表 -->
+    <div class="flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-slate-600">
       <div 
         v-for="room in rooms" 
         :key="room.roomId"
-        :class="['room-item', { 'room-active': room.roomId === currentRoomId }]"
+        :class="[
+          'p-3 rounded-lg cursor-pointer flex justify-between items-center mb-0.5 transition-all duration-200 border border-transparent select-none',
+          room.roomId === currentRoomId 
+            ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-500 shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/40' 
+            : 'hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-gray-200 dark:hover:border-slate-600'
+        ]"
         @click="handleRoomClick(room)"
         @contextmenu="handleRoomContextMenu($event, room)"
       >
-        <div class="room-info">
-          <div class="room-name">{{ room.name }}</div>
-          <div class="room-id">{{ room.roomId }}</div>
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-sm mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
+            {{ room.name }}
+          </div>
+          <div class="text-xs opacity-60 font-mono">
+            {{ room.roomId }}
+          </div>
         </div>
-        <div class="room-status">
-          <span v-if="room.unreadCount > 0" class="unread-badge">{{ room.unreadCount }}</span>
-          <i :class="['connection-dot', room.connected ? 'connected' : 'disconnected']"></i>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <span 
+            v-if="room.unreadCount > 0" 
+            class="bg-red-500 text-white rounded-lg px-1.5 py-0.5 text-xs font-semibold min-w-4 text-center leading-tight"
+          >
+            {{ room.unreadCount }}
+          </span>
+          <i 
+            :class="[
+              'w-1.5 h-1.5 rounded-full inline-block flex-shrink-0',
+              room.connected 
+                ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' 
+                : 'bg-gray-500'
+            ]"
+          ></i>
           <button 
-            class="room-menu-btn" 
+            class="bg-transparent border-none text-gray-500 dark:text-gray-400 cursor-pointer p-1 rounded opacity-0 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200 text-xs flex items-center justify-center w-5 h-5 group-hover:opacity-100"
+            :class="{ 'opacity-100 text-white/80 hover:bg-white/20 hover:text-white': room.roomId === currentRoomId }"
             @click.stop="handleRoomMenuClick($event, room)"
             :title="'房间菜单'"
           >
@@ -34,33 +59,50 @@
         </div>
       </div>
     </div>
-    <div class="sidebar-footer">
-      <button @click="$emit('goToRoomSelect')" class="join-chat-button">
+
+    <!-- 侧边栏底部 -->
+    <div class="p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 flex flex-col gap-2.5">
+      <button 
+        @click="$emit('goToRoomSelect')" 
+        class="w-full py-2.5 px-3 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white hover:-translate-y-px hover:shadow-lg hover:shadow-indigo-500/30"
+      >
         <i class="fas fa-plus"></i>
         <span>添加房间</span>
       </button>
-      <button @click="$emit('goHome')" class="home-button">
+      <button 
+        @click="$emit('goHome')" 
+        class="w-full py-2.5 px-3 border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 bg-gray-500 hover:bg-gray-600 text-white hover:-translate-y-px"
+      >
         <i class="fas fa-home"></i>
         <span>返回首页</span>
       </button>
+      
       <!-- 用户信息和主题切换 -->
-      <div class="footer-action-buttons">
+      <div class="flex gap-2.5 items-center">
         <ThemeToggle />
         <div 
-          class="user-info-section"
+          class="flex-1 flex items-center gap-2.5 p-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:-translate-y-px hover:shadow-md hover:shadow-black/10 dark:hover:shadow-black/30 select-none group"
           @click="handleUserInfoClick"
           @contextmenu="handleUserInfoContextMenu"
         >
           <img 
             :src="userAvatarUrl" 
             :alt="currentUser?.nickname"
-            class="user-avatar"
+            class="w-8 h-8 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600 flex-shrink-0"
           >
-          <div class="user-details">
-            <span class="user-name">{{ currentUser?.nickname }}</span>
-            <span class="user-uid">{{ currentUser?.uid }}</span>
+          <div class="flex-1 min-w-0">
+            <span class="block font-semibold text-sm text-slate-700 dark:text-slate-200 leading-tight mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
+              {{ currentUser?.nickname }}
+            </span>
+            <span class="block text-xs text-gray-500 dark:text-slate-400 font-mono leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+              {{ currentUser?.uid }}
+            </span>
           </div>
-          <button class="user-menu-btn" @click.stop="handleUserMenuClick" title="用户菜单">
+          <button 
+            class="bg-transparent border-none text-gray-500 dark:text-gray-400 cursor-pointer p-1 rounded opacity-70 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200 text-xs flex items-center justify-center w-5 h-5 flex-shrink-0 group-hover:opacity-100" 
+            @click.stop="handleUserMenuClick" 
+            title="用户菜单"
+          >
             <i class="fas fa-ellipsis-h"></i>
           </button>
         </div>
@@ -266,470 +308,35 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 侧边栏通用样式 */
-.sidebar {
-  width: 260px;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s ease;
-  z-index: 20;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-/* 暗色模式侧边栏 */
-.dark .sidebar {
-  background: #0f172a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.left-sidebar {
-  border-right: 1px solid #e9ecef;
-}
-
-/* 暗色模式左侧边栏 */
-.dark .left-sidebar {
-  border-right: 1px solid #475569;
-}
-
-.sidebar-hidden {
-  transform: translateX(-100%);
-}
-
-.sidebar-header {
-  padding: 16px 18px;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8f9fa;
-  min-height: 56px;
-}
-
-/* 暗色模式侧边栏头部 */
-.dark .sidebar-header {
-  border-bottom: 1px solid #475569;
-  background: #1e293b;
-}
-
-.sidebar-header h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* 暗色模式侧边栏标题 */
-.dark .sidebar-header h3 {
-  color: #f1f5f9;
-}
-
-/* 房间列表图标 */
-.left-sidebar .sidebar-header h3 i {
-  color: #28a745;
-  font-size: 14px;
-}
-
-/* 暗色模式侧边栏图标 */
-.dark .left-sidebar .sidebar-header h3 i {
-  color: #10b981;
-}
-
-.sidebar-toggle {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  display: none;
-  font-size: 14px;
-}
-
-.sidebar-toggle:hover {
-  background: #e9ecef;
-  color: #2c3e50;
-}
-
-/* 暗色模式侧边栏切换按钮 */
-.dark .sidebar-toggle {
-  color: #94a3b8;
-}
-
-.dark .sidebar-toggle:hover {
-  background: #334155;
-  color: #f1f5f9;
-}
-
-/* 房间列表样式 */
-.room-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px 12px;
+/* 自定义滚动条样式 */
+.scrollbar-thin {
   scrollbar-width: thin;
 }
 
-.room-list::-webkit-scrollbar {
-  width: 4px;
+.scrollbar-track-transparent {
+  scrollbar-color: transparent transparent;
 }
 
-.room-list::-webkit-scrollbar-track {
-  background: transparent;
+.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
 }
 
-.room-list::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 2px;
+.dark .scrollbar-thumb-slate-600::-webkit-scrollbar-thumb {
+  background-color: #475569;
 }
 
-.dark .room-list::-webkit-scrollbar-thumb {
-  background: #374151;
+.w-280 {
+  width: 280px;
 }
-
-.room-item {
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2px;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  position: relative;
-  user-select: none;
-}
-
-.room-item:hover {
-  background: #f8f9fa;
-  border-color: #e9ecef;
-}
-
-.room-item:hover .room-menu-btn {
-  opacity: 1;
-}
-
-.room-item.room-active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.room-item.room-active .room-id {
-  opacity: 0.9;
-}
-
-/* 暗色模式房间项 */
-.dark .room-item:hover {
-  background: #1e293b;
-  border-color: #475569;
-}
-
-.dark .room-item.room-active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-}
-
-.room-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.room-name {
-  font-weight: 500;
-  font-size: 14px;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
-}
-
-.room-id {
-  font-size: 11px;
-  opacity: 0.6;
-  font-family: monospace;
-}
-
-.room-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.unread-badge {
-  background: #dc3545;
-  color: white;
-  border-radius: 8px;
-  padding: 1px 5px;
-  font-size: 10px;
-  font-weight: 600;
-  min-width: 16px;
-  text-align: center;
-  line-height: 1.4;
-}
-
-.connection-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.connection-dot.connected {
-  background: #10b981;
-  box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
-}
-
-.connection-dot.disconnected {
-  background: #6b7280;
-}
-
-/* 房间菜单按钮 */
-.room-menu-btn {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  opacity: 0;
-  transition: all 0.2s ease;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-}
-
-.room-menu-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #374151;
-}
-
-.room-item.room-active .room-menu-btn {
-  color: rgba(255, 255, 255, 0.8);
-  opacity: 1;
-}
-
-.room-item.room-active .room-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.dark .room-menu-btn {
-  color: #9ca3af;
-}
-
-.dark .room-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f3f4f6;
-}
-
-/* 侧边栏底部 */
-.sidebar-footer {
-  padding: 16px 18px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* 暗色模式侧边栏底部 */
-.dark .sidebar-footer {
-  border-top: 1px solid #475569;
-  background: #1e293b;
-}
-
-.join-chat-button,
-.home-button {
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.join-chat-button {
-  background: #667eea;
-  color: white;
-}
-
-.join-chat-button:hover {
-  background: #5a67d8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-}
-
-.home-button {
-  background: #6b7280;
-  color: white;
-}
-
-.home-button:hover {
-  background: #4b5563;
-  transform: translateY(-1px);
-}
-
-/* 底部操作按钮 */
-.footer-action-buttons {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-/* 用户信息区域样式 */
-.user-info-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  user-select: none;
-}
-
-.user-info-section:hover {
-  background: #e9ecef;
-  border-color: #dee2e6;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.dark .user-info-section {
-  background: #334155;
-  border: 1px solid #475569;
-}
-
-.dark .user-info-section:hover {
-  background: #475569;
-  border-color: #64748b;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e9ecef;
-  flex-shrink: 0;
-}
-
-.dark .user-avatar {
-  border-color: #475569;
-}
-
-.user-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.user-name {
-  display: block;
-  font-weight: 600;
-  font-size: 13px;
-  color: #2c3e50;
-  line-height: 1.2;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dark .user-name {
-  color: #f1f5f9;
-}
-
-.user-uid {
-  display: block;
-  font-size: 11px;
-  color: #6c757d;
-  font-family: monospace;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dark .user-uid {
-  color: #94a3b8;
-}
-
-.user-menu-btn {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  opacity: 0.7;
-  transition: all 0.2s ease;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}
-
-.user-menu-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #374151;
-  opacity: 1;
-}
-
-.user-info-section:hover .user-menu-btn {
-  opacity: 1;
-}
-
-.dark .user-menu-btn {
-  color: #9ca3af;
-}
-
-.dark .user-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f3f4f6;
-}
-
-
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .sidebar {
+  .w-280 {
     position: absolute;
     top: 0;
     left: 0;
     height: 100%;
-    z-index: 1000;
     width: 280px;
-  }
-  
-  .sidebar-toggle {
-    display: block;
   }
   
   .user-details .user-name,
@@ -738,16 +345,16 @@ onUnmounted(() => {
   }
   
   .user-menu-btn {
-    opacity: 1;
+    opacity: 1 !important;
   }
   
   .room-menu-btn {
-    opacity: 1;
+    opacity: 1 !important;
   }
 }
 
 @media (max-width: 480px) {
-  .sidebar {
+  .w-280 {
     width: max(80%, 280px);
   }
 }

@@ -1,12 +1,12 @@
 <template>
-  <div class="message-input-container">
+  <div class="w-full">
     <!-- 回复预览样式 -->
-    <div v-if="replyState.isReplying" class="reply-preview">
-      <div class="reply-info">
-        <i class="fas fa-reply"></i>
+    <div v-if="replyState.isReplying" class="bg-gray-50 dark:bg-secondary-800 border border-gray-200 dark:border-secondary-600 rounded-lg p-3 mb-3 flex items-start gap-3 relative">
+      <div class="flex items-center gap-2 text-sm text-primary-600 dark:text-primary-400 font-semibold min-w-0">
+        <i class="fas fa-reply text-primary-600 dark:text-primary-400"></i>
         <span>回复 {{ replyState.targetMessage?.userName }}</span>
       </div>
-      <div class="reply-content">
+      <div class="flex-1 text-sm text-gray-600 dark:text-secondary-400 leading-tight mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
         <span v-if="replyState.targetMessage?.type === 'image'">
           <i class="fas fa-image"></i> 图片
         </span>
@@ -21,20 +21,20 @@
         </span>
         <span v-else>{{ replyState.targetMessage?.text }}</span>
       </div>
-      <button @click="cancelReply" class="reply-cancel">
+      <button @click="cancelReply" class="bg-transparent border-none text-gray-500 dark:text-secondary-400 cursor-pointer p-1 rounded flex items-center justify-center w-6 h-6 flex-shrink-0 transition-all duration-200 hover:bg-gray-200 dark:hover:bg-secondary-600 hover:text-red-500 dark:hover:text-red-400">
         <i class="fas fa-times"></i>
       </button>
     </div>
     
-    <form @submit.prevent="handleSubmit" class="message-form">
+    <form @submit.prevent="handleSubmit" class="flex flex-col gap-2 lg:flex-row lg:items-end lg:gap-3">
       <!-- 功能按钮行 -->
-      <div class="function-buttons">
+      <div class="flex gap-2 justify-start">
         <!-- 图片选择按钮 -->
         <button 
           type="button" 
           @click="$emit('selectImage')" 
           :disabled="!canSendMessage"
-          class="image-button"
+          class="w-9 h-9 lg:w-10 lg:h-10 bg-gray-50 dark:bg-secondary-800 text-gray-600 dark:text-secondary-400 border border-gray-300 dark:border-secondary-600 rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 flex-shrink-0 text-sm lg:text-base hover:bg-gray-100 dark:hover:bg-secondary-700 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-600 dark:hover:border-primary-400 hover:scale-105 disabled:bg-gray-50 dark:disabled:bg-secondary-800 disabled:text-gray-300 dark:disabled:text-secondary-600 disabled:border-gray-200 dark:disabled:border-secondary-600 disabled:cursor-not-allowed disabled:transform-none"
           title="发送图片"
         >
           <i class="fas fa-image"></i>
@@ -45,7 +45,7 @@
           type="button" 
           @click="$emit('showMessageTypeSelector')" 
           :disabled="!canSendMessage"
-          class="extend-button"
+          class="w-9 h-9 lg:w-10 lg:h-10 bg-indigo-500 dark:bg-blue-600 text-white border border-indigo-500 dark:border-blue-600 rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 flex-shrink-0 text-sm lg:text-base hover:bg-indigo-600 dark:hover:bg-blue-700 hover:border-indigo-600 dark:hover:border-blue-700 hover:scale-105 disabled:bg-gray-300 dark:disabled:bg-secondary-600 disabled:text-gray-500 dark:disabled:text-secondary-500 disabled:border-gray-300 dark:disabled:border-secondary-600 disabled:cursor-not-allowed disabled:transform-none"
           title="更多消息类型"
         >
           <i class="fas fa-plus"></i>
@@ -53,13 +53,13 @@
       </div>
       
       <!-- 输入行 -->
-      <div class="input-row">
+      <div class="flex gap-3 items-end flex-1">
         <textarea
           ref="messageInput"
           v-model="messageValue"
           :placeholder="placeholderText"
           :disabled="!canSendMessage"
-          class="message-input"
+          class="flex-1 px-4 py-3 border border-gray-300 dark:border-secondary-600 rounded-xl outline-none text-sm leading-5 resize-none font-inherit transition-all duration-300 min-h-11 max-h-36 overflow-y-auto bg-white dark:bg-secondary-800 text-gray-900 dark:text-secondary-100 placeholder-gray-500 dark:placeholder-secondary-400 focus:border-primary-600 dark:focus:border-primary-400 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900 disabled:bg-gray-50 dark:disabled:bg-secondary-800 disabled:text-gray-500 dark:disabled:text-secondary-500 disabled:cursor-not-allowed scrollbar-hide"
           :maxlength="maxLength"
           rows="1"
           @keydown="handleKeyDown"
@@ -68,8 +68,9 @@
         ></textarea>
         <button 
           type="submit" 
-          :disabled="!canSendMessage || !messageValue.trim()" 
-          class="send-button"
+          :disabled="!canSendMessage" 
+          class="w-12 h-12 bg-primary-600 dark:bg-primary-500 text-white border-none rounded-full cursor-pointer flex items-center justify-center transition-all duration-300 flex-shrink-0 relative hover:bg-primary-700 dark:hover:bg-primary-600 hover:scale-105 disabled:bg-gray-300 dark:disabled:bg-secondary-600 disabled:cursor-not-allowed disabled:transform-none"
+          :class="{ 'opacity-50': !messageValue.trim() && canSendMessage }"
           :title="sendButtonTitle"
           @mousedown="handleMouseDown"
           @mouseup="handleMouseUp"
@@ -79,7 +80,7 @@
         >
           <i class="fas fa-paper-plane"></i>
           <!-- 快捷键小标 -->
-          <span v-if="sendMode" class="shortcut-badge">
+          <span v-if="sendMode" class="absolute -bottom-1.5 -right-2 bg-primary-700 dark:bg-primary-600 text-white text-xs font-semibold px-1 py-0.5 rounded leading-none whitespace-nowrap z-10 border border-white dark:border-secondary-800 shadow-sm">
             {{ sendMode === 1 ? 'Shift + ↵' : '↵' }}
           </span>
         </button>
@@ -88,53 +89,72 @@
   </div>
 
   <!-- 发送方案选择对话框 -->
-  <div v-if="showSendModeDialog" class="send-mode-overlay" @click="closeSendModeDialog">
-    <div class="send-mode-dialog" @click.stop>
-      <div class="dialog-header">
-        <h3>
+  <div v-if="showSendModeDialog" class="fixed inset-0 flex items-center justify-center z-50" @click="closeSendModeDialog">
+    <div class="bg-white dark:bg-secondary-800 rounded-2xl shadow-2xl min-w-[500px] max-w-[600px] w-[90%] max-h-[80vh] overflow-hidden animate-fade-in" @click.stop>
+      <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 text-center">
+        <h3 class="m-0 text-xl font-semibold flex items-center justify-center gap-3">
           <i class="fas fa-keyboard"></i>
           选择发送方案
         </h3>
       </div>
       
-      <div class="dialog-content">
-        <p class="dialog-description">
+      <div class="p-8 pt-8 pb-6">
+        <p class="text-center text-gray-600 dark:text-secondary-400 mb-6 leading-relaxed">
           请选择您喜欢的发送消息方式，选择后将记住您的偏好：
         </p>
         
-        <div class="send-mode-options">
+        <div class="flex flex-col gap-4">
           <div 
-            class="mode-option"
-            :class="{ 'recommended': true }"
+            :class="[
+              'flex items-center gap-4 p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 relative hover:-translate-y-0.5 hover:shadow-lg',
+              currentSendMode === 1 
+                ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/30' 
+                : 'border-gray-200 dark:border-secondary-600 hover:border-primary-600 dark:hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+            ]"
             @click="selectSendMode(1)"
           >
-            <div class="mode-icon">
+            <div :class="[
+              'w-12 h-12 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-xl flex-shrink-0',
+              currentSendMode === 1 
+                ? 'bg-primary-600 dark:bg-primary-400 text-white' 
+                : 'bg-gray-100 dark:bg-secondary-700 text-primary-600 dark:text-primary-400'
+            ]">
               <i class="fas fa-level-up-alt"></i>
             </div>
-            <div class="mode-info">
-              <div class="mode-title">方案一（推荐）</div>
-              <div class="mode-description">
-                <strong>Shift + Enter</strong> 发送消息<br>
-                <strong>Enter</strong> 换行
+            <div class="flex-1">
+              <div class="text-base font-semibold text-gray-900 dark:text-secondary-100 mb-2">方案一（推荐）</div>
+              <div class="text-gray-600 dark:text-secondary-400 leading-relaxed text-sm">
+                <strong class="text-primary-600 dark:text-primary-400 font-semibold">Shift + Enter</strong> 发送消息<br>
+                <strong class="text-primary-600 dark:text-primary-400 font-semibold">Enter</strong> 换行
               </div>
             </div>
-            <div class="mode-badge">
+            <div class="absolute -top-2 right-4 bg-primary-600 dark:bg-primary-400 text-white px-3 py-1 rounded-xl text-xs font-semibold">
               <span>推荐</span>
             </div>
           </div>
           
           <div 
-            class="mode-option"
+            :class="[
+              'flex items-center gap-4 p-5 border-2 rounded-xl cursor-pointer transition-all duration-300 relative hover:-translate-y-0.5 hover:shadow-lg',
+              currentSendMode === 2 
+                ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/30' 
+                : 'border-gray-200 dark:border-secondary-600 hover:border-primary-600 dark:hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+            ]"
             @click="selectSendMode(2)"
           >
-            <div class="mode-icon">
+            <div :class="[
+              'w-12 h-12 lg:w-12 lg:h-12 rounded-full flex items-center justify-center text-xl flex-shrink-0',
+              currentSendMode === 2 
+                ? 'bg-primary-600 dark:bg-primary-400 text-white' 
+                : 'bg-gray-100 dark:bg-secondary-700 text-primary-600 dark:text-primary-400'
+            ]">
               <i class="fas fa-paper-plane"></i>
             </div>
-            <div class="mode-info">
-              <div class="mode-title">方案二</div>
-              <div class="mode-description">
-                <strong>Enter</strong> 发送消息<br>
-                <strong>Shift + Enter</strong> 换行
+            <div class="flex-1">
+              <div class="text-base font-semibold text-gray-900 dark:text-secondary-100 mb-2">方案二</div>
+              <div class="text-gray-600 dark:text-secondary-400 leading-relaxed text-sm">
+                <strong class="text-primary-600 dark:text-primary-400 font-semibold">Enter</strong> 发送消息<br>
+                <strong class="text-primary-600 dark:text-primary-400 font-semibold">Shift + Enter</strong> 换行
               </div>
             </div>
           </div>
@@ -142,9 +162,9 @@
       </div>
       
       <!-- 底部提醒 -->
-      <div class="dialog-footer">
-        <div class="footer-tip">
-          <i class="fas fa-lightbulb"></i>
+      <div class="px-6 pb-6 pt-4 border-t border-gray-200 dark:border-secondary-600 bg-gray-50 dark:bg-secondary-800">
+        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-secondary-400 text-center justify-center">
+          <i class="fas fa-lightbulb text-yellow-500 dark:text-yellow-400"></i>
           <span>提示：选择后可通过长按发送按钮重新修改发送方案</span>
         </div>
       </div>
@@ -219,6 +239,11 @@ const sendButtonTitle = computed(() => {
   return sendMode.value === 1 
     ? 'Shift + Enter 发送消息' 
     : 'Enter 发送消息'
+})
+
+// 当前选中的发送模式（如果没有选择则默认为1）
+const currentSendMode = computed(() => {
+  return sendMode.value || 1
 })
 
 // 本地存储键名
@@ -360,13 +385,14 @@ const cancelLongPress = () => {
 
 const handleMouseDown = (event) => {
   event.preventDefault()
+  // 即使没有文字也可以长按打开发送模式选择
   startLongPress()
 }
 
 const handleMouseUp = (event) => {
   cancelLongPress()
-  // 如果不是长按，执行正常提交
-  if (!isLongPressing.value) {
+  // 如果不是长按，执行正常提交（只有在有文字且可以发送时才提交）
+  if (!isLongPressing.value && messageValue.value.trim() && props.canSendMessage) {
     handleSubmit()
   }
   isLongPressing.value = false
@@ -379,13 +405,14 @@ const handleMouseLeave = () => {
 
 const handleTouchStart = (event) => {
   event.preventDefault()
+  // 即使没有文字也可以长按打开发送模式选择
   startLongPress()
 }
 
 const handleTouchEnd = (event) => {
   cancelLongPress()
-  // 如果不是长按，执行正常提交
-  if (!isLongPressing.value) {
+  // 如果不是长按，执行正常提交（只有在有文字且可以发送时才提交）
+  if (!isLongPressing.value && messageValue.value.trim() && props.canSendMessage) {
     handleSubmit()
   }
   isLongPressing.value = false
@@ -399,358 +426,31 @@ defineExpose({
 </script>
 
 <style scoped>
-.message-input-container {
-  width: 100%;
-}
-
-/* 回复预览样式 */
-.reply-preview {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  position: relative;
-}
-
-/* 暗色模式回复预览 */
-.dark .reply-preview {
-  background: #1e293b;
-  border: 1px solid #475569;
-}
-
-.reply-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #1976d2;
-  font-weight: 600;
-  min-width: 0;
-}
-
-/* 暗色模式回复信息 */
-.dark .reply-info {
-  color: #60a5fa;
-}
-
-.reply-info i {
-  font-size: 14px;
-  color: #1976d2;
-}
-
-/* 暗色模式回复图标 */
-.dark .reply-info i {
-  color: #60a5fa;
-}
-
-.reply-content {
-  flex: 1;
-  font-size: 13px;
-  color: #6c757d;
-  line-height: 1.3;
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 暗色模式回复内容 */
-.dark .reply-content {
-  color: #94a3b8;
-}
-
-.reply-cancel {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.reply-cancel:hover {
-  background: #e9ecef;
-  color: #dc3545;
-}
-
-/* 暗色模式回复取消按钮 */
-.dark .reply-cancel {
-  color: #94a3b8;
-}
-
-.dark .reply-cancel:hover {
-  background: #475569;
-  color: #ef4444;
-}
-
-.message-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.function-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-start;
-}
-
-.input-row {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.message-input {
-  flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  outline: none;
-  font-size: 14px;
-  line-height: 20px;
-  resize: none;
-  font-family: inherit;
-  transition: all 0.3s ease;
-  min-height: 44px;
-  max-height: 144px;
-  overflow-y: auto;
+/* 自定义滚动条隐藏 */
+.scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.message-input:focus {
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
-}
-
-/* 暗色模式消息输入框 */
-.dark .message-input {
-  background: #334155;
-  border: 1px solid #475569;
-  color: #f1f5f9;
-}
-
-.dark .message-input:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.1);
-}
-
-.dark .message-input::placeholder {
-  color: #94a3b8;
-}
-
-.message-input:disabled {
-  background: #f8f9fa;
-  color: #6c757d;
-  cursor: not-allowed;
-}
-
-/* 暗色模式禁用状态 */
-.dark .message-input:disabled {
-  background: #1e293b;
-  color: #64748b;
-}
-
-/* 自定义滚动条 */
-.message-input::-webkit-scrollbar {
+.scrollbar-hide::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
 
-.message-input::-webkit-scrollbar-track {
+.scrollbar-hide::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.message-input::-webkit-scrollbar-thumb {
+.scrollbar-hide::-webkit-scrollbar-thumb {
   background: transparent;
 }
 
-.message-input::-webkit-scrollbar-thumb:hover {
+.scrollbar-hide::-webkit-scrollbar-thumb:hover {
   background: transparent;
 }
 
-/* 暗色模式滚动条 */
-.dark .message-input::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-
-.dark .message-input::-webkit-scrollbar-thumb:hover {
-  background: transparent;
-}
-
-.send-button {
-  width: 48px;
-  height: 48px;
-  background: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.send-button:hover:not(:disabled) {
-  background: #1565c0;
-  transform: scale(1.05);
-}
-
-/* 暗色模式发送按钮悬停 */
-.dark .send-button:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.send-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* 暗色模式发送按钮禁用 */
-.dark .send-button:disabled {
-  background: #64748b;
-}
-
-/* 图片按钮样式 */
-.image-button {
-  width: 36px;
-  height: 36px;
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.image-button:hover:not(:disabled) {
-  background: #e9ecef;
-  color: #1976d2;
-  border-color: #1976d2;
-  transform: scale(1.05);
-}
-
-/* 暗色模式图片按钮 */
-.dark .image-button {
-  background: #334155;
-  color: #94a3b8;
-  border: 1px solid #475569;
-}
-
-.dark .image-button:hover:not(:disabled) {
-  background: #475569;
-  color: #60a5fa;
-  border-color: #60a5fa;
-}
-
-.image-button:disabled {
-  background: #f8f9fa;
-  color: #ccc;
-  border-color: #e9ecef;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* 暗色模式图片按钮禁用 */
-.dark .image-button:disabled {
-  background: #1e293b;
-  color: #64748b;
-  border-color: #475569;
-}
-
-/* 扩展按钮样式 */
-.extend-button {
-  width: 36px;
-  height: 36px;
-  background: #667eea;
-  color: white;
-  border: 1px solid #667eea;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-  font-size: 14px;
-}
-
-.extend-button:hover:not(:disabled) {
-  background: #5a67d8;
-  border-color: #5a67d8;
-  transform: scale(1.05);
-}
-
-/* 暗色模式扩展按钮悬停 */
-.dark .extend-button:hover:not(:disabled) {
-  background: #2563eb;
-  border-color: #2563eb;
-}
-
-.extend-button:disabled {
-  background: #ccc;
-  color: #666;
-  border-color: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* 暗色模式扩展按钮禁用 */
-.dark .extend-button:disabled {
-  background: #64748b;
-  color: #475569;
-  border-color: #64748b;
-}
-
-/* 发送方案选择对话框 */
-.send-mode-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  /* background: rgba(0, 0, 0, 0.5); */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* z-index: 1000; */
-  /* backdrop-filter: blur(4px); */
-}
-
-.send-mode-dialog {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  min-width: 500px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
-  overflow: hidden;
-  animation: dialogFadeIn 0.3s ease-out;
-}
-
-@keyframes dialogFadeIn {
+/* 对话框动画 */
+@keyframes fade-in {
   from {
     opacity: 0;
     transform: scale(0.9) translateY(-20px);
@@ -761,239 +461,12 @@ defineExpose({
   }
 }
 
-/* 暗色模式发送方案对话框 */
-.dark .send-mode-dialog {
-  background: #1e293b;
-}
-
-.dialog-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 24px;
-  text-align: center;
-}
-
-.dialog-header h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.dialog-content {
-  padding: 32px 24px 24px;
-}
-
-.dialog-description {
-  text-align: center;
-  color: #6c757d;
-  margin-bottom: 24px;
-  line-height: 1.5;
-}
-
-/* 暗色模式对话框描述 */
-.dark .dialog-description {
-  color: #94a3b8;
-}
-
-.send-mode-options {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.mode-option {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.mode-option:hover {
-  border-color: #1976d2;
-  background: rgba(25, 118, 210, 0.05);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
-}
-
-.mode-option.recommended {
-  border-color: #1976d2;
-  background: rgba(25, 118, 210, 0.05);
-}
-
-.mode-option.recommended:hover {
-  background: rgba(25, 118, 210, 0.1);
-}
-
-/* 暗色模式方案选项 */
-.dark .mode-option {
-  border-color: #475569;
-  background: transparent;
-}
-
-.dark .mode-option:hover {
-  border-color: #60a5fa;
-  background: rgba(96, 165, 250, 0.1);
-}
-
-.dark .mode-option.recommended {
-  border-color: #60a5fa;
-  background: rgba(96, 165, 250, 0.1);
-}
-
-.mode-icon {
-  width: 48px;
-  height: 48px;
-  background: #f8f9fa;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #1976d2;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.mode-option.recommended .mode-icon {
-  background: #1976d2;
-  color: white;
-}
-
-/* 暗色模式方案图标 */
-.dark .mode-icon {
-  background: #334155;
-  color: #60a5fa;
-}
-
-.dark .mode-option.recommended .mode-icon {
-  background: #60a5fa;
-  color: white;
-}
-
-.mode-info {
-  flex: 1;
-}
-
-.mode-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 8px;
-}
-
-/* 暗色模式方案标题 */
-.dark .mode-title {
-  color: #f1f5f9;
-}
-
-.mode-description {
-  color: #6c757d;
-  line-height: 1.4;
-  font-size: 14px;
-}
-
-/* 暗色模式方案描述 */
-.dark .mode-description {
-  color: #94a3b8;
-}
-
-.mode-description strong {
-  color: #1976d2;
-  font-weight: 600;
-}
-
-/* 暗色模式方案描述强调 */
-.dark .mode-description strong {
-  color: #60a5fa;
-}
-
-.mode-badge {
-  position: absolute;
-  top: -8px;
-  right: 16px;
-  background: #1976d2;
-  color: white;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* 暗色模式推荐徽章 */
-.dark .mode-badge {
-  background: #60a5fa;
-  color: white;
-}
-
-/* 快捷键小标样式 */
-.shortcut-badge {
-  position: absolute;
-  bottom: -6px;
-  right: -8px;
-  background: #1565c0;
-  color: white;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 4px;
-  border-radius: 4px;
-  line-height: 1;
-  white-space: nowrap;
-  z-index: 1;
-  border: 1px solid white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-/* 暗色模式快捷键小标 */
-.dark .shortcut-badge {
-  background: #2563eb;
-  border: 1px solid #1e293b;
-}
-
-/* 桌面端保持横向布局 */
-@media (min-width: 769px) {
-  .message-form {
-    flex-direction: row;
-    align-items: flex-end;
-    gap: 12px;
-  }
-  
-  .function-buttons {
-    gap: 8px;
-  }
-  
-  .input-row {
-    flex: 1;
-  }
-  
-  .image-button,
-  .extend-button {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-  }
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .function-buttons {
-    margin-bottom: 4px;
-  }
-  
-  .image-button,
-  .extend-button {
-    width: 32px;
-    height: 32px;
-    font-size: 13px;
-  }
-  
   .send-mode-dialog {
     min-width: auto;
     margin: 20px;
@@ -1030,42 +503,5 @@ defineExpose({
     top: 8px;
     right: 8px;
   }
-}
-
-.dialog-footer {
-  padding: 16px 24px 24px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-/* 暗色模式对话框底部 */
-.dark .dialog-footer {
-  border-top: 1px solid #475569;
-  background: #334155;
-}
-
-.footer-tip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #6c757d;
-  text-align: center;
-  justify-content: center;
-}
-
-/* 暗色模式底部提示 */
-.dark .footer-tip {
-  color: #94a3b8;
-}
-
-.footer-tip i {
-  color: #fbbf24;
-  font-size: 14px;
-}
-
-/* 暗色模式提示图标 */
-.dark .footer-tip i {
-  color: #f59e0b;
 }
 </style> 

@@ -1,106 +1,106 @@
 <template>
-  <div class="bilibili-video">
+  <div class="max-w-[500px] bg-gray-50 dark:bg-secondary-700 border border-gray-200 dark:border-secondary-600 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg dark:hover:shadow-xl">
     <!-- 加载状态 -->
-    <div v-if="loading" class="video-loading">
-      <i class="fas fa-spinner fa-spin"></i>
+    <div v-if="loading" class="flex items-center justify-center gap-2 p-10 text-gray-500 dark:text-gray-400">
+      <i class="fas fa-spinner fa-spin text-lg text-pink-500"></i>
       <span>加载视频信息中...</span>
     </div>
 
     <!-- 回退模式：仅显示视频播放器 -->
-    <div v-else-if="fallbackMode" class="video-content fallback-mode">
+    <div v-else-if="fallbackMode" class="border-l-3 border-yellow-500 dark:border-yellow-400">
       <!-- 视频播放器 -->
-      <div class="video-player">
+      <div class="relative w-full aspect-video">
         <iframe 
           :src="`//player.bilibili.com/player.html?bvid=${bvid}&autoplay=0`"
-          class="bilibili-iframe"
+          class="w-full h-full border-none"
           frameborder="0"
           allowfullscreen
         ></iframe>
       </div>
       
       <!-- 简化信息 -->
-      <div class="video-info">
-        <div class="video-header">
-          <div class="video-meta">
-            <span class="bvid">{{ bvid }}</span>
-            <span class="fallback-note">{{ fallbackError || '信息加载失败，仅显示播放器' }}</span>
+      <div class="p-4">
+        <div class="mb-3">
+          <div class="flex gap-3 flex-wrap text-xs">
+            <span class="font-mono bg-pink-100 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded font-medium">{{ bvid }}</span>
+            <span class="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded text-xs font-medium">{{ fallbackError || '信息加载失败，仅显示播放器' }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 错误状态（保留用于其他致命错误） -->
-    <div v-else-if="error" class="video-error">
-      <i class="fas fa-exclamation-triangle"></i>
-      <div class="error-content">
-        <div class="error-title">无法加载视频信息</div>
-        <div class="error-message">{{ error }}</div>
-        <div class="bvid-fallback">BVID: {{ bvid }}</div>
+    <div v-else-if="error" class="flex items-start gap-3 p-5 text-red-500 dark:text-red-400">
+      <i class="fas fa-exclamation-triangle text-xl mt-0.5 flex-shrink-0"></i>
+      <div class="flex-1">
+        <div class="font-semibold mb-1">无法加载视频信息</div>
+        <div class="text-sm opacity-80 mb-2">{{ error }}</div>
+        <div class="text-xs font-mono bg-red-100 dark:bg-red-900/20 px-2 py-1 rounded inline-block">BVID: {{ bvid }}</div>
       </div>
     </div>
 
     <!-- 视频内容 -->
-    <div v-else-if="videoInfo" class="video-content">
+    <div v-else-if="videoInfo">
       <!-- 视频播放器 -->
-      <div class="video-player">
+      <div class="relative w-full aspect-video">
         <iframe 
           :src="`//player.bilibili.com/player.html?bvid=${bvid}&autoplay=0`"
-          class="bilibili-iframe"
+          class="w-full h-full border-none"
           frameborder="0"
           allowfullscreen
         ></iframe>
       </div>
 
       <!-- 视频信息 -->
-      <div class="video-info">
+      <div class="p-4">
         <!-- 标题和基础信息 -->
-        <div class="video-header">
-          <h3 class="video-title">{{ videoInfo.title }}</h3>
-          <div class="video-meta">
-            <span class="bvid">{{ videoInfo.bvid }}</span>
-            <span class="copyright">{{ getCopyrightText(videoInfo.copyright) }}</span>
-            <span class="resolution">{{ getResolutionText(videoInfo.dimension) }}</span>
+        <div class="mb-3">
+          <h3 class="text-base font-semibold text-gray-800 dark:text-gray-100 m-0 mb-2 leading-relaxed">{{ videoInfo.title }}</h3>
+          <div class="flex gap-3 flex-wrap text-xs">
+            <span class="font-mono bg-pink-100 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded font-medium">{{ videoInfo.bvid }}</span>
+            <span class="bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded font-medium">{{ getCopyrightText(videoInfo.copyright) }}</span>
+            <span class="bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium">{{ getResolutionText(videoInfo.dimension) }}</span>
           </div>
         </div>
 
         <!-- 作者信息 -->
-        <div class="author-info">
-          <div class="author-details">
-            <div class="author-name">{{ videoInfo.owner.name }}</div>
-            <div class="publish-time">{{ formatPublishTime(videoInfo.pubdate) }}</div>
+        <div class="mb-3 p-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
+          <div class="w-full flex items-center justify-between">
+            <div class="font-semibold text-gray-800 dark:text-gray-100 text-sm mr-0.5">{{ videoInfo.owner.name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ formatPublishTime(videoInfo.pubdate) }}</div>
           </div>
         </div>
 
         <!-- 视频描述（如果有） -->
-        <div v-if="videoInfo.desc && videoInfo.desc !== '-'" class="video-description">
-          <div class="desc-label">简介：</div>
-          <div class="desc-content">{{ videoInfo.desc }}</div>
+        <div v-if="videoInfo.desc && videoInfo.desc !== '-'" class="mb-3 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md border-l-3 border-gray-500 dark:border-gray-400">
+          <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">简介：</div>
+          <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{{ videoInfo.desc }}</div>
         </div>
 
         <!-- 统计信息 -->
-        <div class="video-stats">
-          <div class="stat-item">
-            <i class="fas fa-play-circle"></i>
+        <div class="flex gap-4 flex-wrap">
+          <div class="stat-item flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
+            <i class="fas fa-play-circle text-sm w-3.5 text-cyan-600 dark:text-cyan-400"></i>
             <span>{{ formatNumber(videoInfo.stat.view) }}</span>
           </div>
-          <div class="stat-item">
-            <i class="fas fa-thumbs-up"></i>
+          <div class="stat-item flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
+            <i class="fas fa-thumbs-up text-sm w-3.5 text-green-600 dark:text-green-400"></i>
             <span>{{ formatNumber(videoInfo.stat.like) }}</span>
           </div>
-          <div class="stat-item">
-            <i class="fas fa-star"></i>
+          <div class="stat-item flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
+            <i class="fas fa-star text-sm w-3.5 text-yellow-600 dark:text-yellow-400"></i>
             <span>{{ formatNumber(videoInfo.stat.favorite) }}</span>
           </div>
-          <div class="stat-item">
-            <i class="fas fa-coins"></i>
+          <div class="stat-item flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
+            <i class="fas fa-coins text-sm w-3.5 text-orange-600 dark:text-orange-400"></i>
             <span>{{ formatNumber(videoInfo.stat.coin) }}</span>
           </div>
-          <div class="stat-item">
-            <i class="fas fa-comment"></i>
+          <div class="stat-item flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
+            <i class="fas fa-comment text-sm w-3.5 text-purple-600 dark:text-purple-400"></i>
             <span>{{ formatNumber(videoInfo.stat.reply) }}</span>
           </div>
-          <div class="stat-item">
-            <i class="fas fa-share"></i>
+          <div class="stat-item flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
+            <i class="fas fa-share text-sm w-3.5 text-teal-600 dark:text-teal-400"></i>
             <span>{{ formatNumber(videoInfo.stat.share) }}</span>
           </div>
         </div>
@@ -273,347 +273,39 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.bilibili-video {
-  max-width: 500px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.bilibili-video:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* 暗色模式 */
-.dark .bilibili-video {
-  background: #334155;
-  border: 1px solid #475569;
-}
-
-.dark .bilibili-video:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* 加载状态 */
-.video-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 40px 20px;
-  color: #6c757d;
-}
-
-.dark .video-loading {
-  color: #94a3b8;
-}
-
-.video-loading i {
-  font-size: 18px;
-  color: #fb7299;
-}
-
-/* 错误状态 */
-.video-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 20px;
-  color: #dc3545;
-}
-
-.dark .video-error {
-  color: #ef4444;
-}
-
-.video-error i {
-  font-size: 20px;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.error-content {
-  flex: 1;
-}
-
-.error-title {
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.error-message {
-  font-size: 14px;
-  opacity: 0.8;
-  margin-bottom: 8px;
-}
-
-.bvid-fallback {
-  font-size: 12px;
-  font-family: 'Monaco', 'Consolas', monospace;
-  background: rgba(220, 53, 69, 0.1);
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-.dark .bvid-fallback {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-/* 视频播放器 */
-.video-player {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
-}
-
-.bilibili-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-/* 回退模式样式 */
-.fallback-mode {
-  border-left: 3px solid #ffc107;
-}
-
-.dark .fallback-mode {
-  border-left-color: #f59e0b;
-}
-
-.fallback-note {
-  background: rgba(255, 193, 7, 0.1);
-  color: #856404;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.dark .fallback-note {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-}
-
-/* 视频信息 */
-.video-info {
-  padding: 16px;
-}
-
-/* 视频标题和元信息 */
-.video-header {
-  margin-bottom: 12px;
-}
-
-.video-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0 0 8px 0;
-  line-height: 1.4;
-}
-
-.dark .video-title {
-  color: #f1f5f9;
-}
-
-.video-meta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 12px;
-}
-
-.bvid {
-  font-family: 'Monaco', 'Consolas', monospace;
-  background: rgba(251, 114, 153, 0.1);
-  color: #fb7299;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.dark .bvid {
-  background: rgba(251, 114, 153, 0.2);
-}
-
-.copyright {
-  background: rgba(28, 167, 69, 0.1);
-  color: #28a745;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.dark .copyright {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
-.resolution {
-  background: rgba(25, 118, 210, 0.1);
-  color: #1976d2;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.dark .resolution {
-  background: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
-}
-
-/* 作者信息 */
-.author-info {
-  margin-bottom: 12px;
-  padding: 8px;
-  background: rgba(25, 118, 210, 0.05);
-  border-radius: 8px;
-}
-
-.dark .author-info {
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.author-details {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.author-name {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
-  margin-right: 2px;
-}
-
-.dark .author-name {
-  color: #f1f5f9;
-}
-
-.publish-time {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.dark .publish-time {
-  color: #94a3b8;
-}
-
-/* 视频描述 */
-.video-description {
-  margin-bottom: 12px;
-  padding: 8px;
-  background: rgba(108, 117, 125, 0.05);
-  border-radius: 6px;
-  border-left: 3px solid #6c757d;
-}
-
-.dark .video-description {
-  background: rgba(148, 163, 184, 0.1);
-  border-left-color: #94a3b8;
-}
-
-.desc-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6c757d;
-  margin-bottom: 4px;
-}
-
-.dark .desc-label {
-  color: #94a3b8;
-}
-
-.desc-content {
-  font-size: 13px;
-  color: #2c3e50;
-  line-height: 1.4;
-}
-
-.dark .desc-content {
-  color: #cbd5e1;
-}
-
-/* 统计信息 */
-.video-stats {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #6c757d;
-  font-weight: 500;
-}
-
-.dark .stat-item {
-  color: #94a3b8;
-}
-
-.stat-item i {
-  font-size: 13px;
-  width: 14px;
-}
-
-/* 不同统计项的图标颜色 */
-.stat-item:nth-child(1) i { color: #17a2b8; } /* 播放 */
-.stat-item:nth-child(2) i { color: #28a745; } /* 点赞 */
-.stat-item:nth-child(3) i { color: #ffc107; } /* 收藏 */
-.stat-item:nth-child(4) i { color: #fd7e14; } /* 硬币 */
-.stat-item:nth-child(5) i { color: #6f42c1; } /* 评论 */
-.stat-item:nth-child(6) i { color: #20c997; } /* 分享 */
-
-/* 暗色模式统计图标颜色 */
-.dark .stat-item:nth-child(1) i { color: #06b6d4; }
-.dark .stat-item:nth-child(2) i { color: #10b981; }
-.dark .stat-item:nth-child(3) i { color: #f59e0b; }
-.dark .stat-item:nth-child(4) i { color: #f97316; }
-.dark .stat-item:nth-child(5) i { color: #8b5cf6; }
-.dark .stat-item:nth-child(6) i { color: #14b8a6; }
-
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .bilibili-video {
+  .max-w-\[500px\] {
     max-width: 100%;
   }
   
-  .video-info {
+  .p-4 {
     padding: 12px;
   }
   
-  .video-title {
+  .text-base {
     font-size: 15px;
   }
   
-  .video-meta {
+  .flex.gap-3 {
     gap: 8px;
   }
   
-  .video-stats {
+  .flex.gap-4 {
     gap: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .video-stats {
+  .flex.gap-4 {
     gap: 8px;
   }
   
-  .stat-item {
+  .text-xs {
     font-size: 11px;
   }
   
-  .author-name {
+  .text-sm {
     font-size: 13px;
   }
 }

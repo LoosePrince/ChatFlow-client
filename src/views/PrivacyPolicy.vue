@@ -124,7 +124,7 @@
           <ul>
             <li>字体服务（Google Fonts）</li>
             <li>图标库（Font Awesome）</li>
-            <li>前端框架（Bootstrap）</li>
+            <li>前端框架（Vue.js + Tailwind CSS）</li>
           </ul>
         </div>
 

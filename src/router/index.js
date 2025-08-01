@@ -2,15 +2,21 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRouteCacheStore } from '@/stores/routeCache'
 
-// 路由组件懒加载
-const Home = () => import('@/views/Home.vue')
-const Profile = () => import('@/views/Profile.vue')
-const ChatRoom = () => import('@/views/ChatRoom.vue')
-const RoomSelect = () => import('@/views/RoomSelect.vue')
-const Dashboard = () => import('@/views/Dashboard.vue')
-const UserAgreement = () => import('@/views/UserAgreement.vue')
-const PrivacyPolicy = () => import('@/views/PrivacyPolicy.vue')
-const NotFound = () => import('@/views/NotFound.vue')
+// 直接导入所有路由组件
+import Home from '@/views/Home.vue'
+import Profile from '@/views/Profile.vue'
+import ChatRoom from '@/views/ChatRoom.vue'
+import RoomSelect from '@/views/RoomSelect.vue'
+import Dashboard from '@/views/Dashboard.vue'
+import UserAgreement from '@/views/UserAgreement.vue'
+import PrivacyPolicy from '@/views/PrivacyPolicy.vue'
+import NotFound from '@/views/NotFound.vue'
+
+// Dashboard子页面组件
+import RoomsPage from '@/components/common/RoomsPage.vue'
+import DomainPage from '@/components/common/DomainPage.vue'
+import PrivateChatPage from '@/components/common/PrivateChatPage.vue'
+import ProfilePage from '@/components/common/ProfilePage.vue'
 
 const routes = [
   {
@@ -29,7 +35,46 @@ const routes = [
     meta: {
       title: '仪表板',
       requiresAuth: true
-    }
+    },
+    children: [
+      {
+        path: '',
+        name: 'DashboardDefault',
+        redirect: 'rooms'
+      },
+      {
+        path: 'rooms',
+        name: 'DashboardRooms',
+        component: RoomsPage,
+        meta: {
+          title: '我的房间'
+        }
+      },
+      {
+        path: 'domain',
+        name: 'DashboardDomain',
+        component: DomainPage,
+        meta: {
+          title: '领域探索'
+        }
+      },
+      {
+        path: 'private',
+        name: 'DashboardPrivate',
+        component: PrivateChatPage,
+        meta: {
+          title: '私聊消息'
+        }
+      },
+      {
+        path: 'profile',
+        name: 'DashboardProfile',
+        component: ProfilePage,
+        meta: {
+          title: '个人资料'
+        }
+      }
+    ]
   },
   {
     path: '/profile',
@@ -59,6 +104,19 @@ const routes = [
     },
     props: route => ({
       roomId: route.params.roomId
+    })
+  },
+  {
+    path: '/private-chat/:targetUid',
+    name: 'PrivateChat',
+    component: ChatRoom,
+    meta: {
+      title: '私聊',
+      requiresAuth: true
+    },
+    props: route => ({
+      targetUid: route.params.targetUid,
+      isPrivateChat: true
     })
   },
   {
@@ -106,7 +164,14 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
   // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - ChatFlow` : 'ChatFlow'
+  let title = 'ChatFlow'
+  if (to.meta.title) {
+    title = `${to.meta.title} - ChatFlow`
+  } else if (to.name && to.name.startsWith('Dashboard')) {
+    // 为Dashboard子路由设置默认标题
+    title = '仪表板 - ChatFlow'
+  }
+  document.title = title
   
   // 设置页面描述
   if (to.meta.description) {
@@ -145,6 +210,12 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
+  // 如果用户已退出登录且尝试访问需要认证的页面，重定向到首页
+  if (!authStore.isAuthenticated && to.meta.requiresAuth) {
+    next({ name: 'Home' })
+    return
+  }
+
   next()
 })
 
@@ -168,4 +239,4 @@ router.onError((error) => {
   console.error('路由错误:', error)
 })
 
-export default router 
+export default router

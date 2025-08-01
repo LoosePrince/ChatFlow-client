@@ -58,7 +58,6 @@ export default defineConfig(({ mode }) => {
       output: {
         manualChunks: {
           vendor: ['vue', 'vue-router', 'pinia'],
-          ui: ['bootstrap'],
           socket: ['socket.io-client']
         }
       }
