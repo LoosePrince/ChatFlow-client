@@ -1,3 +1,4 @@
 node_modules
 **.db
 server/uploads/avatars
+.env
