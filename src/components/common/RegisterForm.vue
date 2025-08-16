@@ -43,6 +43,10 @@
             <div class="avatar-info">
               <p>支持JPG、PNG、WebP格式，将裁切为64x64像素</p>
               <p class="size-limit">选择图片：10MB以内，上传后自动压缩至50KB（这对64x64像素来说完全足够）</p>
+              <p v-if="avatarFile" class="selected-file">
+                <i class="fas fa-check-circle"></i>
+                已选择头像文件，提交表单时会上传
+              </p>
             </div>
           </div>
           <div v-if="errors.avatar" class="error-message">
@@ -254,6 +258,9 @@ const form = reactive({
   acceptTerms: false
 })
 
+// 头像文件状态
+const avatarFile = ref(null)
+
 const errors = reactive({
   avatar: '',
   nickname: '',
@@ -273,7 +280,7 @@ const selectedImageSrc = ref('')
 
 // 计算属性
 const isFormValid = computed(() => {
-  return form.avatar && 
+  return avatarFile.value && 
          form.nickname.trim() && 
          form.password && 
          form.confirmPassword && 
@@ -432,6 +439,9 @@ const handleFileSelect = (event) => {
     return
   }
   
+  // 保存文件引用
+  avatarFile.value = file
+  
   // 读取文件并显示裁切器
   const reader = new FileReader()
   reader.onload = (e) => {
@@ -455,6 +465,7 @@ const handleCropperClose = () => {
 const handleCropResult = (croppedData) => {
   form.avatar = croppedData
   avatarPreview.value = croppedData.preview
+  avatarFile.value = croppedData.file
   showCropper.value = false
   selectedImageSrc.value = ''
   errors.avatar = ''
@@ -470,8 +481,8 @@ const validateForm = () => {
   })
   
   // 验证头像
-  if (!form.avatar) {
-    errors.avatar = '请上传头像'
+  if (!avatarFile.value) {
+    errors.avatar = '请选择头像文件'
     isValid = false
   }
   
@@ -532,7 +543,7 @@ const handleRegister = async () => {
   
   try {
     const result = await authStore.register({
-      avatar: form.avatar.blob,
+      avatar: avatarFile.value,
       nickname: form.nickname.trim(),
       email: form.email.trim() || undefined,
       password: form.password
@@ -1184,6 +1195,20 @@ const handleRegister = async () => {
   
   .dark .avatar-info {
     color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .selected-file {
+    color: #10b981;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  
+  .dark .selected-file {
+    color: #34d399;
+  }
+  
+  .selected-file i {
+    margin-right: 6px;
   }
   
   .input-hint {

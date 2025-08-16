@@ -160,7 +160,7 @@ const handleCrop = async () => {
     const previewUrl = canvas.toDataURL('image/jpeg', 0.7)
     
     // 发送裁切结果
-    emit('crop', { file, previewUrl })
+    emit('crop', { file, preview: previewUrl })
     
     // 关闭模态框
     handleClose()
