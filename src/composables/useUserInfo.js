@@ -30,14 +30,14 @@ export function useUserInfo() {
       return null
     } catch (error) {
       console.error('获取用户信息失败:', error)
-      // 如果获取失败，返回基本信息
-      const fallbackInfo = {
-        uid,
-        nickname: uid,
-        avatarUrl: `/avatars/${uid}`
+      
+      // 如果是404错误（用户不存在），返回null
+      if (error.response && error.response.status === 404) {
+        return null
       }
-      userCache.set(uid, fallbackInfo)
-      return fallbackInfo
+      
+      // 其他错误返回null，不缓存fallback信息
+      return null
     } finally {
       isLoading.value = false
     }

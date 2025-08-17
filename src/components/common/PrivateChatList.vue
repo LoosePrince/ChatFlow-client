@@ -136,8 +136,31 @@ const formatTime = (ts) => {
 const refresh = () => privateChatStore.fetchChats()
 
 // 打开私聊
-const openPrivateChat = (targetUid) => {
-  router.push({ name: 'PrivateChat', params: { targetUid } })
+const openPrivateChat = async (targetUid) => {
+  try {
+    // 验证目标用户是否存在
+    const userInfo = await getUserInfo(targetUid)
+    if (!userInfo) {
+      // 用户不存在，提示并刷新列表
+      console.error('用户不存在:', targetUid)
+      await privateChatStore.fetchChats()
+      return
+    }
+    
+    // 记录来源页面信息（从私聊列表页面）
+    const sourceInfo = {
+      type: 'dashboard',
+      page: 'private',
+      timestamp: Date.now()
+    }
+    sessionStorage.setItem('privateChatSource', JSON.stringify(sourceInfo))
+    
+    router.push({ name: 'PrivateChat', params: { targetUid } })
+  } catch (error) {
+    console.error('验证用户失败:', error)
+    // 验证失败，显示错误提示并刷新列表
+    await privateChatStore.fetchChats()
+  }
 }
 
 onMounted(async () => {

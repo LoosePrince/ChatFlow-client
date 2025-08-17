@@ -885,15 +885,26 @@ const loadMessages = async (loadMore = false, scrollToMessageId = null) => {
         return {
           id: msg.messageId,
           type: msg.messageType === 'image' ? 'image' :
-                msg.messageType === 'file' ? 'file' : 'user',
+                msg.messageType === 'file' ? 'file' :
+                msg.messageType === 'bilibili' ? 'bilibili' :
+                msg.messageType === 'markdown' ? 'markdown' :
+                msg.messageType === 'system' ? 'system' : 'user',
           userName: displayName,
           userUid: msg.senderUid,
           userAvatar: msg.senderUid === authStore.user?.uid ? authStore.user?.avatarUrl || '/avatars/default' : `/avatars/${msg.senderUid}`,
-          text: msg.content,
-          imageUrl: msg.imageUrl,
+          text: msg.messageType === 'image' ? '' : msg.content, // 图片消息不显示文本内容
+          imageUrl: msg.imageUrl || (msg.messageType === 'image' ? msg.content : null), // 优先使用imageUrl字段，兼容旧版本
+          bilibiliId: msg.bilibiliBv,
+          markdownContent: msg.markdownContent,
           fileId: msg.fileId,
           fileName: msg.fileName,
           fileSize: msg.fileSize,
+          fileExpiry: msg.fileExpiry,
+          fileExpired: msg.fileExpiry ? Date.now() > msg.fileExpiry : false,
+          replyToMessageId: msg.replyToMessageId,
+          systemMessageType: msg.systemMessageType,
+          visibilityScope: msg.visibilityScope,
+          visibleToUsers: msg.visibleToUsers,
           timestamp: msg.createdAt,
           isOwn: isOwn,
           isAdmin: false
@@ -1042,6 +1053,35 @@ const selectImage = () => {
 
 // 返回上一页（私聊模式）
 const goBack = () => {
+  // 检查是否有来源页面信息
+  const sourceInfoStr = sessionStorage.getItem('privateChatSource')
+  if (sourceInfoStr) {
+    try {
+      const sourceInfo = JSON.parse(sourceInfoStr)
+      
+      // 检查来源信息是否有效（5分钟内有效）
+      if (sourceInfo.timestamp && Date.now() - sourceInfo.timestamp < 5 * 60 * 1000) {
+        if (sourceInfo.type === 'chatroom' && sourceInfo.roomId) {
+          // 返回到聊天室
+          router.push({ name: 'ChatRoom', params: { roomId: sourceInfo.roomId } })
+          sessionStorage.removeItem('privateChatSource')
+          return
+        } else if (sourceInfo.type === 'dashboard' && sourceInfo.page === 'private') {
+          // 返回到私聊列表页面
+          router.push({ name: 'DashboardPrivate' })
+          sessionStorage.removeItem('privateChatSource')
+          return
+        }
+      }
+    } catch (error) {
+      console.error('解析来源信息失败:', error)
+    }
+    
+    // 如果来源信息无效，清除并返回上一页
+    sessionStorage.removeItem('privateChatSource')
+  }
+  
+  // 默认返回上一页
   router.go(-1)
 }
 
@@ -1215,16 +1255,20 @@ const handleCompressionConfirm = async () => {
     // 创建FormData
     const formData = new FormData()
     formData.append('image', finalFile)
-    formData.append('roomId', roomId.value)
-    formData.append('messageType', 'image')
+    formData.append('originalFileName', finalFile.name) // 单独传递文件名
     
-    console.log('FormData准备完毕，文件名:', finalFile.name, '文件大小:', finalFile.size)
+    // 如果是聊天室模式，添加roomId
+    if (!isPrivateChat.value) {
+      formData.append('roomId', roomId.value)
+      formData.append('messageType', 'image')
+    }
     
     // 如果是回复消息，添加回复信息
     if (replyState.value.isReplying && replyState.value.targetMessage) {
       formData.append('replyToMessageId', replyState.value.targetMessage.id)
-      console.log('添加回复信息:', replyState.value.targetMessage.id)
     }
+    
+    console.log('FormData准备完毕，文件名:', finalFile.name, '文件大小:', finalFile.size)
     
     // 验证FormData内容
     console.log('FormData内容检查:')
@@ -1364,12 +1408,12 @@ const sendImageMessage = async (file, skipSizeCheck = false) => {
       const msg = response.data.data
       messages.push({
         id: msg.messageId,
-        type: 'user',
+        type: 'image', // 修复：应该是image而不是user
         userName: authStore.user?.nickname || '我',
         userUid: msg.senderUid,
         userAvatar: authStore.user?.avatarUrl || '/avatars/default',
-        text: msg.content, // 图片URL
-        messageType: 'image',
+        text: '', // 图片消息不显示文本
+        imageUrl: msg.imageUrl || msg.content, // 优先使用imageUrl字段，兼容旧版本
         timestamp: msg.createdAt,
         isOwn: true,
         isAdmin: false
@@ -1731,61 +1775,121 @@ const sendFileMessage = async (file) => {
     console.log('开始上传文件...')
     showUploadProgress(file.name, 'file')
     
-    // 第一步：上传文件到服务器
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('chatroomId', roomId.value)
+    let uploadResponse, messageResponse
     
-    // 如果是回复消息，添加回复信息
-    if (replyState.value.isReplying && replyState.value.targetMessage) {
-      formData.append('replyToMessageId', replyState.value.targetMessage.id)
-    }
-    
-    uploadProgress.value.progress = 20
-    
-    console.log('发送上传请求到服务器...')
-    // 上传文件
-    const uploadResponse = await axios.post('/api/files/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.lengthComputable) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          uploadProgress.value.progress = 20 + (progress * 0.6) // 20-80%
-          console.log('上传进度:', uploadProgress.value.progress + '%')
-        }
+    if (isPrivateChat.value) {
+      // 私聊模式：使用私聊文件API
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('originalFileName', file.name) // 单独传递文件名
+      
+      // 如果是回复消息，添加回复信息
+      if (replyState.value.isReplying && replyState.value.targetMessage) {
+        formData.append('replyToMessageId', replyState.value.targetMessage.id)
       }
-    })
-    
-    console.log('文件上传响应:', uploadResponse.data)
-    const { fileId, fileName, fileSize, expiryTime } = uploadResponse.data.data
-    
-    uploadProgress.value.progress = 90
-    
-    console.log('发送文件消息到聊天室...')
-    // 第二步：发送文件消息
-    const messageResponse = await axios.post(`/api/chatrooms/${roomId.value}/messages/file`, {
-      fileId,
-      fileName,
-      fileSize,
-      replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
-    })
+      
+      uploadProgress.value.progress = 20
+      
+      console.log('发送私聊文件消息...')
+      // 直接使用私聊文件API
+      messageResponse = await axios.post(`/api/private-chats/${targetUid.value}/messages/file`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            uploadProgress.value.progress = 20 + (progress * 0.8) // 20-100%
+            console.log('上传进度:', uploadProgress.value.progress + '%')
+          }
+        }
+      })
+      
+      // 私聊模式下手动添加消息到本地列表
+      const msg = messageResponse.data.data
+      messages.push({
+        id: msg.messageId,
+        type: 'file',
+        userName: authStore.user?.nickname || '我',
+        userUid: msg.senderUid,
+        userAvatar: authStore.user?.avatarUrl || '/avatars/default',
+        text: msg.content || '',
+        fileId: msg.fileId,
+        fileName: msg.fileName,
+        fileSize: msg.fileSize,
+        fileExpiry: msg.fileExpiry,
+        fileExpired: msg.fileExpiry ? Date.now() > msg.fileExpiry : false,
+        timestamp: msg.createdAt,
+        isOwn: true,
+        isAdmin: false
+      })
+      
+    } else {
+      // 聊天室模式：使用聊天室文件API
+      // 第一步：上传文件到服务器
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('chatroomId', roomId.value)
+      formData.append('originalFileName', file.name) // 单独传递文件名
+      
+      // 如果是回复消息，添加回复信息
+      if (replyState.value.isReplying && replyState.value.targetMessage) {
+        formData.append('replyToMessageId', replyState.value.targetMessage.id)
+      }
+      
+      uploadProgress.value.progress = 20
+      
+      console.log('发送上传请求到服务器...')
+      // 上传文件
+      uploadResponse = await axios.post('/api/files/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+            uploadProgress.value.progress = 20 + (progress * 0.6) // 20-80%
+            console.log('上传进度:', uploadProgress.value.progress + '%')
+          }
+        }
+      })
+      
+      console.log('文件上传响应:', uploadResponse.data)
+      const { fileId, fileName, fileSize, expiryTime } = uploadResponse.data.data
+      
+      uploadProgress.value.progress = 90
+      
+      console.log('发送文件消息到聊天室...')
+      // 第二步：发送文件消息
+      messageResponse = await axios.post(`/api/chatrooms/${roomId.value}/messages/file`, {
+        fileId,
+        fileName,
+        fileSize,
+        replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+      })
+    }
     
     console.log('文件消息发送成功:', messageResponse.data)
     uploadProgress.value.progress = 100
     
-    // 文件发送成功，WebSocket会自动广播消息
+    // 文件发送成功
     cancelReply() // 清除回复状态
     
     setTimeout(() => {
       hideUploadProgress()
     }, 500)
     
-    // 等待WebSocket消息到达后滚动到底部
-    setTimeout(() => {
+    // 根据模式处理滚动
+    if (isPrivateChat.value) {
+      // 私聊模式：立即滚动到底部
+      await nextTick()
       scrollToBottom(false)
-    }, 100)
+    } else {
+      // 聊天室模式：等待WebSocket消息到达后滚动到底部
+      setTimeout(() => {
+        scrollToBottom(false)
+      }, 100)
+    }
     
   } catch (error) {
     console.error('发送文件失败:', error)
@@ -1951,18 +2055,49 @@ const closeBilibiliDialog = () => {
 
 const handleBilibiliSubmit = async (data) => {
   try {
-    const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/bilibili`, {
-      bilibiliId: data.bilibiliId,
-      replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
-    })
+    let response
+    
+    if (isPrivateChat.value) {
+      // 私聊模式：使用私聊B站视频API
+      response = await axios.post(`/api/private-chats/${targetUid.value}/messages/bilibili`, {
+        bvid: data.bilibiliId,
+        caption: data.caption || ''
+      })
+      
+      // 私聊模式下手动添加消息到本地列表
+      const msg = response.data.data
+      messages.push({
+        id: msg.messageId,
+        type: 'bilibili',
+        userName: authStore.user?.nickname || '我',
+        userUid: msg.senderUid,
+        userAvatar: authStore.user?.avatarUrl || '/avatars/default',
+        text: msg.content || '',
+        bilibiliId: msg.bilibiliBv,
+        timestamp: msg.createdAt,
+        isOwn: true,
+        isAdmin: false
+      })
+    } else {
+      // 聊天室模式：使用聊天室B站视频API
+      response = await axios.post(`/api/chatrooms/${roomId.value}/messages/bilibili`, {
+        bilibiliId: data.bilibiliId,
+        replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+      })
+    }
 
     cancelReply() // 清除回复状态
     bilibiliDialog.value.visible = false
     
-    // 等待WebSocket消息到达后滚动到底部
-    setTimeout(() => {
+    // 等待WebSocket消息到达后滚动到底部（聊天室模式）或立即滚动（私聊模式）
+    if (isPrivateChat.value) {
+      await nextTick()
       scrollToBottom(false)
-    }, 100)
+    } else {
+      setTimeout(() => {
+        scrollToBottom(false)
+      }, 100)
+    }
 
   } catch (error) {
     console.error('发送B站视频失败:', error)
@@ -1977,19 +2112,50 @@ const closeMarkdownDialog = () => {
 
 const handleMarkdownSubmit = async (data) => {
   try {
-    const response = await axios.post(`/api/chatrooms/${roomId.value}/messages/markdown`, {
-      markdownContent: data.markdownContent,
-      title: data.title,
-      replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
-    })
+    let response
+    
+    if (isPrivateChat.value) {
+      // 私聊模式：使用私聊Markdown API
+      response = await axios.post(`/api/private-chats/${targetUid.value}/messages/markdown`, {
+        content: data.title || '',
+        markdownContent: data.markdownContent
+      })
+      
+      // 私聊模式下手动添加消息到本地列表
+      const msg = response.data.data
+      messages.push({
+        id: msg.messageId,
+        type: 'markdown',
+        userName: authStore.user?.nickname || '我',
+        userUid: msg.senderUid,
+        userAvatar: authStore.user?.avatarUrl || '/avatars/default',
+        text: msg.content || '',
+        markdownContent: msg.markdownContent,
+        timestamp: msg.createdAt,
+        isOwn: true,
+        isAdmin: false
+      })
+    } else {
+      // 聊天室模式：使用聊天室Markdown API
+      response = await axios.post(`/api/chatrooms/${roomId.value}/messages/markdown`, {
+        markdownContent: data.markdownContent,
+        title: data.title,
+        replyToMessageId: replyState.value.isReplying ? replyState.value.targetMessage.id : undefined
+      })
+    }
 
     cancelReply() // 清除回复状态
     markdownDialog.value.visible = false
     
-    // 等待WebSocket消息到达后滚动到底部
-    setTimeout(() => {
+    // 等待WebSocket消息到达后滚动到底部（聊天室模式）或立即滚动（私聊模式）
+    if (isPrivateChat.value) {
+      await nextTick()
       scrollToBottom(false)
-    }, 100)
+    } else {
+      setTimeout(() => {
+        scrollToBottom(false)
+      }, 100)
+    }
 
   } catch (error) {
     console.error('发送Markdown内容失败:', error)
@@ -2143,8 +2309,27 @@ const getNotificationIcon = (type) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  // 确保timestamp是数字类型
-  const time = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp
+  if (!timestamp) return '时间未知'
+  
+  let time
+  // 处理不同类型的时间戳
+  if (typeof timestamp === 'string') {
+    // 如果是纯数字字符串，直接转换为数字
+    if (/^\d+$/.test(timestamp)) {
+      time = parseInt(timestamp)
+    } else {
+      // 如果是其他格式的字符串，尝试解析为Date
+      time = new Date(timestamp).getTime()
+    }
+  } else {
+    time = timestamp
+  }
+  
+  // 检查是否是有效的时间戳
+  if (isNaN(time) || time <= 0) {
+    return '时间错误'
+  }
+  
   const date = new Date(time)
   
   // 检查是否是有效日期
@@ -2475,8 +2660,18 @@ const initializePrivateChat = async () => {
     // 加载目标用户信息
     try {
       targetUserInfo.value = await getUserInfo(targetUid.value)
+      
+      // 验证目标用户是否存在
+      if (!targetUserInfo.value) {
+        notificationStore.error('用户不存在或已被删除')
+        router.push({ name: 'Dashboard' })
+        return
+      }
     } catch (error) {
       console.error('加载目标用户信息失败:', error)
+      notificationStore.error('用户不存在或无法访问')
+      router.push({ name: 'Dashboard' })
+      return
     }
     
     // 加载私聊历史消息
@@ -3147,12 +3342,34 @@ const confirmKickUser = async () => {
 // 在 <script setup> 中，所有顶层定义的变量和函数都会自动暴露给模板
 
 // function to start private chat
-const startPrivateChat = (message) => {
+const startPrivateChat = async (message) => {
   const otherUid = message.userUid
-  sessionStorage.setItem('openChatUid', otherUid)
-  sessionStorage.setItem('dashboard-active-tab', 'private')
-  router.push({ name: 'Dashboard' })
-  closeMessageContextMenu()
+  
+  try {
+    // 验证目标用户是否存在
+    const userInfo = await getUserInfo(otherUid)
+    if (!userInfo) {
+      notificationStore.error('用户不存在或已被删除')
+      closeMessageContextMenu()
+      return
+    }
+    
+    // 记录来源页面信息
+    const sourceInfo = {
+      type: 'chatroom',
+      roomId: roomId.value,
+      timestamp: Date.now()
+    }
+    sessionStorage.setItem('privateChatSource', JSON.stringify(sourceInfo))
+    
+    // 直接跳转到私聊页面
+    router.push({ name: 'PrivateChat', params: { targetUid: otherUid } })
+    closeMessageContextMenu()
+  } catch (error) {
+    console.error('验证用户失败:', error)
+    notificationStore.error('验证用户失败，无法发起私聊')
+    closeMessageContextMenu()
+  }
 }
 
 // toggle block user

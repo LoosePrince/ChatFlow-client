@@ -218,14 +218,8 @@ onMounted(async () => {
     await authStore.initialize()
   }
 
-  // 处理来自其它页面的私聊跳转
-  const pendingUid = sessionStorage.getItem('openChatUid')
-  if (pendingUid) {
-    // 直接跳转到私聊页面
-    router.push({ name: 'PrivateChat', params: { targetUid: pendingUid } })
-    sessionStorage.removeItem('openChatUid')
-  } else if (route.name === 'Dashboard' || route.name === 'DashboardDefault') {
-    // 如果直接访问dashboard根路径，重定向到rooms页面
+  // 如果直接访问dashboard根路径，重定向到rooms页面
+  if (route.name === 'Dashboard' || route.name === 'DashboardDefault') {
     router.replace({ name: 'DashboardRooms' })
   }
 })

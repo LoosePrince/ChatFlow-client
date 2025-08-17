@@ -443,7 +443,24 @@ const leaveChatroom = async (chatroom) => {
 // 格式化工具函数
 const formatTime = (timestamp) => {
   if (!timestamp) return ''
-  const date = new Date(timestamp)
+  
+  // 确保时间戳是数字
+  let numericTimestamp = timestamp
+  if (typeof timestamp === 'string') {
+    numericTimestamp = parseInt(timestamp)
+  }
+  
+  if (isNaN(numericTimestamp)) {
+    return '时间未知'
+  }
+  
+  const date = new Date(numericTimestamp)
+  
+  // 检查日期是否有效
+  if (isNaN(date.getTime())) {
+    return '时间未知'
+  }
+  
   const now = new Date()
   const diff = now - date
   
@@ -460,7 +477,25 @@ const formatTime = (timestamp) => {
 
 const formatDate = (timestamp) => {
   if (!timestamp) return ''
-  return new Date(timestamp).toLocaleDateString('zh-CN', {
+  
+  // 确保时间戳是数字
+  let numericTimestamp = timestamp
+  if (typeof timestamp === 'string') {
+    numericTimestamp = parseInt(timestamp)
+  }
+  
+  if (isNaN(numericTimestamp)) {
+    return '日期未知'
+  }
+  
+  const date = new Date(numericTimestamp)
+  
+  // 检查日期是否有效
+  if (isNaN(date.getTime())) {
+    return '日期未知'
+  }
+  
+  return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
