@@ -119,7 +119,7 @@
                   </div>
                   <div class="flex items-center justify-center gap-1 text-sm text-gray-500 dark:text-gray-400 font-medium">
                     <i class="fas fa-code-branch text-indigo-600 dark:text-blue-400"></i>
-                    <span>Version 1.1.0</span>
+                    <span>Version 1.1.2</span>
                   </div>
                 </div>
               </div>
@@ -243,7 +243,7 @@
           </div>
           <div class="flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400 font-medium">
             <i class="fas fa-code-branch text-indigo-600 dark:text-blue-400 text-xs"></i>
-            <span>Version 1.1.0</span>
+            <span>Version 1.1.2</span>
           </div>
         </div>
       </div>
