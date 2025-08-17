@@ -2237,6 +2237,9 @@ const connectWebSocket = () => {
   socket.value.on('room-name-updated', (data) => {
     console.log('房间名称已更新:', data)
     
+    // 使用store的实时更新方法
+    chatroomStore.updateRoomNameRealtime(data.roomId, data.newName)
+    
     // 更新本地房间信息
     if (roomInfo.value) {
       roomInfo.value.name = data.newName
@@ -2292,6 +2295,17 @@ const connectWebSocket = () => {
     const wasNearBottom = isNearBottom()
     
     messages.push(newMessage)
+    
+    // 更新左侧边栏房间列表的最后一条消息
+    updateRoomLastMessage(messageData.chatroomId, {
+      id: messageData.id,
+      content: messageData.content,
+      messageType: messageData.messageType,
+      senderName: messageData.user?.nickname || messageData.userName || '未知用户',
+      createdAt: messageData.createdAt,
+      fileName: messageData.fileName,
+      replyToMessageId: messageData.replyToMessageId
+    })
     
     nextTick(() => {
       // 只有在用户在底部附近或者是自己发送的消息时才自动滚动到底部
@@ -2709,16 +2723,34 @@ const confirmLeave = async () => {
 const loadJoinedRooms = async () => {
   try {
     if (authStore.isUser) {
-      // 注册用户：获取创建的房间列表
-      const response = await axios.get('/api/chatrooms/my/rooms')
-      const userRooms = response.data.data || []
-      
-      joinedRooms.value = userRooms.map(room => ({
-        roomId: room.roomId,
-        name: room.name,
-        connected: true,
-        unreadCount: 0
-      }))
+      // 注册用户：使用chatroomStore中的数据，包含lastMessage
+      if (chatroomStore.userChatrooms && chatroomStore.userChatrooms.length > 0) {
+        joinedRooms.value = chatroomStore.userChatrooms.map(room => ({
+          roomId: room.roomId,
+          name: room.name,
+          connected: true,
+          unreadCount: 0,
+          lastMessage: room.lastMessage, // 包含最后一条消息
+          createdAt: room.createdAt,
+          userCount: room.userCount,
+          joinType: room.joinType
+        }))
+      } else {
+        // 如果store中没有数据，从API获取
+        const response = await axios.get('/api/chatrooms/my/rooms')
+        const userRooms = response.data.data || []
+        
+        joinedRooms.value = userRooms.map(room => ({
+          roomId: room.roomId,
+          name: room.name,
+          connected: true,
+          unreadCount: 0,
+          lastMessage: room.lastMessage, // 包含最后一条消息
+          createdAt: room.createdAt,
+          userCount: room.userCount,
+          joinType: room.joinType
+        }))
+      }
     } else {
       // 匿名用户：只显示当前房间
       joinedRooms.value = [
@@ -2726,7 +2758,11 @@ const loadJoinedRooms = async () => {
           roomId: roomId.value,
           name: roomName.value,
           connected: true,
-          unreadCount: 0
+          unreadCount: 0,
+          lastMessage: null,
+          createdAt: Date.now(),
+          userCount: 1,
+          joinType: 'anonymous'
         }
       ]
     }
@@ -2738,7 +2774,11 @@ const loadJoinedRooms = async () => {
         roomId: roomId.value,
         name: roomName.value,
         connected: true,
-        unreadCount: 0
+        unreadCount: 0,
+        lastMessage: null,
+        createdAt: Date.now(),
+        userCount: 1,
+        joinType: 'current'
       })
     }
   } catch (error) {
@@ -2749,7 +2789,11 @@ const loadJoinedRooms = async () => {
         roomId: roomId.value,
         name: roomName.value,
         connected: true,
-        unreadCount: 0
+        unreadCount: 0,
+        lastMessage: null,
+        createdAt: Date.now(),
+        userCount: 1,
+        joinType: 'current'
       }
     ]
   }
@@ -3074,6 +3118,16 @@ const confirmKickUser = async () => {
       } else {
         // 聊天室模式初始化
         await initializeChatroom()
+        
+        // 如果是注册用户且store中没有聊天室数据，先获取
+        if (authStore.isUser && (!chatroomStore.userChatrooms || chatroomStore.userChatrooms.length === 0)) {
+          try {
+            await chatroomStore.fetchUserChatrooms()
+          } catch (error) {
+            console.error('获取用户聊天室列表失败:', error)
+          }
+        }
+        
         await loadJoinedRooms()
         await loadRoomMembers()
       }
@@ -3118,6 +3172,16 @@ const toggleBlockUser = async (message) => {
   }
   closeMessageContextMenu()
 }
+
+// 更新房间的最后一条消息
+const updateRoomLastMessage = (roomId, messageData) => {
+  const roomIndex = joinedRooms.value.findIndex(room => room.roomId === roomId)
+  if (roomIndex !== -1) {
+    joinedRooms.value[roomIndex].lastMessage = messageData
+  }
+}
+
+// 加载房间成员列表
 </script>
 
 <style scoped>

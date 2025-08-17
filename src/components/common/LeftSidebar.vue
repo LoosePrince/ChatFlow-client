@@ -32,6 +32,26 @@
           <div class="text-xs opacity-60 font-mono">
             {{ room.roomId }}
           </div>
+          
+          <!-- 最后一条消息 -->
+          <div v-if="room.lastMessage" class="mt-1 text-xs opacity-70 truncate">
+            <span class="font-medium">{{ room.lastMessage.senderName }}:</span>
+            <span v-if="room.lastMessage.messageType === 'system'">
+              {{ formatMessageContent(room.lastMessage) }}
+            </span>
+            <span v-else-if="room.lastMessage.messageType === 'image'">
+              [图片]
+            </span>
+            <span v-else-if="room.lastMessage.messageType === 'file'">
+              {{ room.lastMessage.fileName || '[文件]' }}
+            </span>
+            <span v-else-if="room.lastMessage.replyToMessageId">
+              {{ formatMessageContent(room.lastMessage) }}
+            </span>
+            <span v-else>
+              {{ formatMessageContent(room.lastMessage) }}
+            </span>
+          </div>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
           <span 
@@ -128,9 +148,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import ThemeToggle from './ThemeToggle.vue'
 import SidebarContextMenu from './SidebarContextMenu.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
+import { useChatroomStore } from '@/stores/chatroom'
+import { io } from 'socket.io-client'
 
 // 定义 props
 const props = defineProps({
@@ -144,11 +168,11 @@ const props = defineProps({
   },
   currentRoomId: {
     type: String,
-    default: ''
+    default: null
   },
   currentUser: {
     type: Object,
-    default: () => null
+    default: null
   }
 })
 
@@ -161,12 +185,18 @@ const emit = defineEmits([
   'confirmLeaveRoom',
   'roomSettings',
   'leaveRoom',
-  'userProfile',
-  'currentRoomSettings'
+  'userProfile'
 ])
 
+const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
+const chatroomStore = useChatroomStore()
+
+// WebSocket 连接
+const socket = ref(null)
+
 // 右键菜单状态
-const contextMenu = reactive({
+const contextMenu = ref({
   visible: false,
   x: 0,
   y: 0,
@@ -194,6 +224,54 @@ const userAvatarUrl = computed(() => {
   return `${baseUrl}${props.currentUser.avatarUrl}`
 })
 
+// 连接WebSocket
+const connectWebSocket = () => {
+  if (!authStore.token) {
+    console.error('无法连接WebSocket：缺少认证令牌')
+    return
+  }
+  
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+  
+  socket.value = io(socketUrl, {
+    auth: {
+      token: authStore.token
+    },
+    transports: ['websocket', 'polling']
+  })
+  
+  // 连接成功
+  socket.value.on('connect', () => {
+    console.log('LeftSidebar WebSocket连接成功')
+  })
+  
+  // 房间名称更新事件
+  socket.value.on('room-name-updated', (data) => {
+    console.log('房间名称已更新:', data)
+    
+    // 使用store的实时更新方法
+    chatroomStore.updateRoomNameRealtime(data.roomId, data.newName)
+    
+    // 显示通知
+    if (data.updatedBy !== authStore.user?.uid) {
+      notificationStore.info(`房间名称已更改为: ${data.newName}`)
+    }
+  })
+  
+  // 连接错误
+  socket.value.on('connect_error', (error) => {
+    console.error('LeftSidebar WebSocket连接失败:', error)
+  })
+}
+
+// 断开WebSocket连接
+const disconnectWebSocket = () => {
+  if (socket.value) {
+    socket.value.disconnect()
+    socket.value = null
+  }
+}
+
 // 点击房间项
 const handleRoomClick = (room) => {
   emit('switchRoom', room.roomId)
@@ -203,14 +281,14 @@ const handleRoomClick = (room) => {
 const handleRoomContextMenu = (event, room) => {
   event.preventDefault()
   
-  contextMenu.type = 'room'
-  contextMenu.targetRoom = room
-  contextMenu.x = event.clientX
-  contextMenu.y = event.clientY
-  contextMenu.isContextMenu = true
-  contextMenu.triggerWidth = 0
-  contextMenu.triggerHeight = 0
-  contextMenu.visible = true
+  contextMenu.value.type = 'room'
+  contextMenu.value.targetRoom = room
+  contextMenu.value.x = event.clientX
+  contextMenu.value.y = event.clientY
+  contextMenu.value.isContextMenu = true
+  contextMenu.value.triggerWidth = 0
+  contextMenu.value.triggerHeight = 0
+  contextMenu.value.visible = true
 }
 
 // 三个点按钮菜单
@@ -218,35 +296,35 @@ const handleRoomMenuClick = (event, room) => {
   event.preventDefault()
   
   const rect = event.target.getBoundingClientRect()
-  contextMenu.type = 'room'
-  contextMenu.targetRoom = room
-  contextMenu.x = rect.left
-  contextMenu.y = rect.top
-  contextMenu.isContextMenu = false
-  contextMenu.triggerWidth = rect.width
-  contextMenu.triggerHeight = rect.height
-  contextMenu.visible = true
+  contextMenu.value.type = 'room'
+  contextMenu.value.targetRoom = room
+  contextMenu.value.x = rect.left
+  contextMenu.value.y = rect.top
+  contextMenu.value.isContextMenu = false
+  contextMenu.value.triggerWidth = rect.width
+  contextMenu.value.triggerHeight = rect.height
+  contextMenu.value.visible = true
 }
 
 // 关闭右键菜单
 const closeContextMenu = () => {
-  contextMenu.visible = false
-  contextMenu.targetRoom = null
-  contextMenu.type = 'room'
-  contextMenu.isContextMenu = false
-  contextMenu.triggerWidth = 0
-  contextMenu.triggerHeight = 0
+  contextMenu.value.visible = false
+  contextMenu.value.targetRoom = null
+  contextMenu.value.type = 'room'
+  contextMenu.value.isContextMenu = false
+  contextMenu.value.triggerWidth = 0
+  contextMenu.value.triggerHeight = 0
 }
 
 // 房间设置
 const handleRoomSettings = () => {
-  emit('roomSettings', contextMenu.targetRoom)
+  emit('roomSettings', contextMenu.value.targetRoom)
   closeContextMenu()
 }
 
 // 退出房间
 const handleLeaveRoom = () => {
-  emit('leaveRoom', contextMenu.targetRoom)
+  emit('leaveRoom', contextMenu.value.targetRoom)
   closeContextMenu()
 }
 
@@ -259,26 +337,26 @@ const handleUserInfoClick = () => {
 const handleUserInfoContextMenu = (event) => {
   event.preventDefault()
   
-  contextMenu.type = 'user'
-  contextMenu.x = event.clientX
-  contextMenu.y = event.clientY
-  contextMenu.isContextMenu = true
-  contextMenu.triggerWidth = 0
-  contextMenu.triggerHeight = 0
-  contextMenu.visible = true
+  contextMenu.value.type = 'user'
+  contextMenu.value.x = event.clientX
+  contextMenu.value.y = event.clientY
+  contextMenu.value.isContextMenu = true
+  contextMenu.value.triggerWidth = 0
+  contextMenu.value.triggerHeight = 0
+  contextMenu.value.visible = true
 }
 
 const handleUserMenuClick = (event) => {
   event.preventDefault()
   
   const rect = event.target.getBoundingClientRect()
-  contextMenu.type = 'user'
-  contextMenu.x = rect.left
-  contextMenu.y = rect.top
-  contextMenu.isContextMenu = false
-  contextMenu.triggerWidth = rect.width
-  contextMenu.triggerHeight = rect.height
-  contextMenu.visible = true
+  contextMenu.value.type = 'user'
+  contextMenu.value.x = rect.left
+  contextMenu.value.y = rect.top
+  contextMenu.value.isContextMenu = false
+  contextMenu.value.triggerWidth = rect.width
+  contextMenu.value.triggerHeight = rect.height
+  contextMenu.value.visible = true
 }
 
 const handleUserProfile = () => {
@@ -293,17 +371,53 @@ const handleCurrentRoomSettings = () => {
 
 // 点击其他地方关闭菜单
 const handleClickOutside = (event) => {
-  if (contextMenu.visible) {
+  if (contextMenu.value.visible) {
     closeContextMenu()
   }
 }
 
+// 格式化工具函数
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now - date
+  
+  if (diff < 60000) { // 1分钟内
+    return '刚刚'
+  } else if (diff < 3600000) { // 1小时内
+    return `${Math.floor(diff / 60000)}分钟前`
+  } else if (diff < 86400000) { // 24小时内
+    return `${Math.floor(diff / 3600000)}小时前`
+  } else {
+    return date.toLocaleDateString()
+  }
+}
+
+const formatMessageContent = (message) => {
+  if (!message) return ''
+  
+  if (message.messageType === 'system') {
+    return `[系统] ${message.content}`
+  }
+  
+  // 限制消息长度
+  const maxLength = 50
+  if (message.content.length > maxLength) {
+    return message.content.substring(0, maxLength) + '...'
+  }
+  
+  return message.content
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  connectWebSocket()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  disconnectWebSocket()
 })
 </script>
 

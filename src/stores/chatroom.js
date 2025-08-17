@@ -169,6 +169,36 @@ export const useChatroomStore = defineStore('chatroom', () => {
     }
   }
   
+  // 实时更新房间名称（通过WebSocket事件）
+  const updateRoomNameRealtime = (roomId, newName) => {
+    console.log('updateRoomNameRealtime 被调用:', { roomId, newName })
+    console.log('currentRoom.value:', currentRoom.value)
+    console.log('userChatrooms.value 更新前:', JSON.parse(JSON.stringify(userChatrooms.value)))
+    
+    // 更新当前房间信息
+    if (currentRoom.value && currentRoom.value.roomId === roomId) {
+      currentRoom.value.name = newName
+      console.log('已更新 currentRoom 名称')
+    }
+    
+    // 更新用户聊天室列表中的名称
+    const roomIndex = userChatrooms.value.findIndex(room => room.roomId === roomId)
+    console.log('找到房间索引:', roomIndex, '房间ID:', roomId)
+    
+    if (roomIndex !== -1) {
+      // 使用Vue的响应式更新方式
+      userChatrooms.value[roomIndex] = {
+        ...userChatrooms.value[roomIndex],
+        name: newName
+      }
+      console.log('已更新 userChatrooms 名称')
+      console.log('userChatrooms.value 更新后:', JSON.parse(JSON.stringify(userChatrooms.value)))
+    } else {
+      console.warn('未找到要更新的房间:', roomId)
+      console.log('所有房间ID:', userChatrooms.value.map(room => room.roomId))
+    }
+  }
+  
   return {
     // 状态
     currentRoom,
@@ -198,6 +228,7 @@ export const useChatroomStore = defineStore('chatroom', () => {
     fetchUserChatrooms,
     joinChatroom,
     createChatroom,
-    updateRoomName
+    updateRoomName,
+    updateRoomNameRealtime
   }
 }) 

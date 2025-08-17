@@ -74,7 +74,9 @@
             >
               <div class="flex justify-between items-start mb-2">
                 <div class="flex-1">
-                  <h3 class="text-lg font-semibold text-secondary-900 dark:text-secondary-100 mb-1 leading-tight">{{ chatroom.name }}</h3>
+                  <h3 class="text-lg font-semibold text-secondary-900 dark:text-secondary-100 mb-1 leading-tight">
+                    {{ chatroom.name }} (ID: {{ chatroom.roomId }})
+                  </h3>
                   <div class="flex gap-4 text-sm">
                     <span class="text-secondary-600 dark:text-secondary-400 flex items-center gap-1">
                       <i class="fas fa-hashtag"></i>
@@ -238,7 +240,9 @@
               <!-- 房间信息 -->
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-1">
-                  <h3 class="text-sm font-semibold text-secondary-900 dark:text-secondary-100 truncate">{{ chatroom.name }}</h3>
+                  <h3 class="text-sm font-semibold text-secondary-900 dark:text-secondary-100 truncate">
+                    {{ chatroom.name }} ({{ chatroom.roomId }})
+                  </h3>
                   <span v-if="chatroom.joinType === 'created'" class="text-xs px-1.5 py-0.5 bg-warning-100 dark:bg-warning-900/30 text-warning-700 dark:text-warning-300 rounded-full">
                     房主
                   </span>
@@ -283,17 +287,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import { useChatroomStore } from '@/stores/chatroom'
+import { io } from 'socket.io-client'
 import axios from 'axios'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 const chatroomStore = useChatroomStore()
+
+// WebSocket 连接
+const socket = ref(null)
 
 // 合并并排序的聊天室列表（按最后消息时间排序，新的在上）
 const sortedUserChatrooms = computed(() => {
@@ -324,6 +332,54 @@ const currentY = ref(0)
 const maxPullDistance = 100 // 最大下拉距离
 const refreshThreshold = 100 // 触发刷新的阈值
 const mobileRoomsContentRef = ref(null)
+
+// 连接WebSocket
+const connectWebSocket = () => {
+  if (!authStore.token) {
+    console.error('无法连接WebSocket：缺少认证令牌')
+    return
+  }
+  
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+  
+  socket.value = io(socketUrl, {
+    auth: {
+      token: authStore.token
+    },
+    transports: ['websocket', 'polling']
+  })
+  
+  // 连接成功
+  socket.value.on('connect', () => {
+    console.log('RoomsPage WebSocket连接成功')
+  })
+  
+  // 房间名称更新事件
+  socket.value.on('room-name-updated', (data) => {
+    console.log('房间名称已更新:', data)
+    
+    // 使用store的实时更新方法
+    chatroomStore.updateRoomNameRealtime(data.roomId, data.newName)
+    
+    // 显示通知
+    if (data.updatedBy !== authStore.user?.uid) {
+      notificationStore.info(`房间名称已更改为: ${data.newName}`)
+    }
+  })
+  
+  // 连接错误
+  socket.value.on('connect_error', (error) => {
+    console.error('RoomsPage WebSocket连接失败:', error)
+  })
+}
+
+// 断开WebSocket连接
+const disconnectWebSocket = () => {
+  if (socket.value) {
+    socket.value.disconnect()
+    socket.value = null
+  }
+}
 
 // 方法
 const handleUserRegister = () => {
@@ -483,14 +539,21 @@ const handleTouchEnd = async () => {
 
 // 生命周期
 onMounted(async () => {
-  // 加载用户聊天室列表
-  if (authStore.isUser) {
-    try {
-      await chatroomStore.fetchUserChatrooms()
-    } catch (error) {
-      console.error('加载聊天室列表失败:', error)
-      notificationStore.error('加载聊天室列表失败，请刷新页面重试')
-    }
+  // 等待认证状态初始化完成
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
   }
+  
+  // 如果是注册用户，加载聊天室列表
+  if (authStore.isUser) {
+    await chatroomStore.fetchUserChatrooms()
+  }
+  
+  // 连接WebSocket
+  connectWebSocket()
+})
+
+onUnmounted(() => {
+  disconnectWebSocket()
 })
 </script> 
